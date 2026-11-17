@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js --reset",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.js"
   },
   "repository": {
     "type": "git",
