@@ -1,0 +1,73 @@
+<% const isT = user.role !== 'student'; %>
+<div class="page-head">
+  <div>
+    <small class="muted">สัปดาห์ <%= s.week_number %> · <%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · <%= s.location || '' %></small>
+    <h1><%= s.title %></h1>
+    <div><%- u.badge('session', s.status) %> <%- u.badge('attendanceState', s.attendance_state) %> <% if (lesson.clo_codes) { %><span class="badge info"><%= lesson.clo_codes %></span><% } %></div>
+  </div>
+  <div class="actions">
+    <% if (isT) { %>
+      <a class="btn" href="/teacher/sessions/<%= s.id %>/live">หน้าระหว่างคาบ</a>
+      <% if (user.role === 'teacher') { %><a class="btn ghost" href="/teacher/sessions/<%= s.id %>/edit">แก้ไขรายละเอียด</a><% } %>
+    <% } else if (s.attendance_state === 'open' && !myAttendance) { %>
+      <a class="btn" href="/checkin">เช็คชื่อคาบนี้</a>
+    <% } %>
+  </div>
+</div>
+<% if (!isT) { %>
+  <div class="card">
+    <h2>การเข้าเรียนของฉัน</h2>
+    <% if (myAttendance) { %>
+      <p><%- u.badge('attendance', myAttendance.attendance_status) %> <%- u.badge('method', myAttendance.checkin_method) %> <small><%= u.thaiDate(myAttendance.checkin_time, { time: true }) %></small>
+      <% if (myAttendance.verified_at) { %><span class="badge ok">ยืนยันในห้องเรียนแล้ว</span><% } %></p>
+      <% if (s.attendance_state === 'open' && !myAttendance.verified_at && s.verify_code_expires_at && s.verify_code_expires_at > new Date().toISOString()) { %>
+        <form method="post" action="/checkin/verify" class="row" style="max-width:420px">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="session_id" value="<%= s.id %>">
+          <input type="text" name="code" inputmode="numeric" maxlength="4" placeholder="รหัสยืนยัน 4 หลักบนจอ" required>
+          <button class="btn" type="submit">ยืนยัน</button>
+        </form>
+      <% } %>
+    <% } else { %><p>ยังไม่มีข้อมูลการเข้าเรียน</p><% } %>
+  </div>
+<% } %>
+<div class="grid g2">
+  <div class="card">
+    <h2>วัตถุประสงค์และหัวข้อ</h2>
+    <dl class="kv">
+      <dt>วัตถุประสงค์</dt><dd><%= lesson.objectives || '—' %></dd>
+      <dt>หัวข้อ/เนื้อหาหลัก</dt><dd><%= lesson.topics || s.title %></dd>
+      <dt>CLO ที่เกี่ยวข้อง</dt><dd><%= lesson.clo_codes || '—' %></dd>
+      <dt>วิธีสอน</dt><dd><%= lesson.teaching_method || '—' %></dd>
+      <dt>ผู้สอน</dt><dd><%= s.instructor || '—' %></dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h2>กิจกรรม</h2>
+    <dl class="kv">
+      <dt>ภาคทฤษฎี</dt><dd><%= lesson.theory_activities || '—' %></dd>
+      <dt>ภาคปฏิบัติ</dt><dd><%= lesson.practical_activities || '—' %></dd>
+    </dl>
+  </div>
+</div>
+<div class="grid g2">
+  <div class="card">
+    <h2>สื่อ / เอกสารประกอบ</h2>
+    <% if (!materials.length) { %><div class="empty">ยังไม่มีสื่อประกอบคาบ</div><% } %>
+    <ul class="list">
+      <% materials.forEach(m => { %><li><div><%= m.title %> <% if (m.visibility === 'teachers') { %><span class="badge muted">เฉพาะผู้สอน</span><% } %></div>
+        <div><% if (m.file_storage_key) { %><a class="btn sm ghost" href="/files/material/<%= m.id %>" target="_blank" rel="noopener">เปิดไฟล์</a><% } %><% if (m.external_url) { %><a class="btn sm ghost" href="<%= m.external_url %>" target="_blank" rel="noopener noreferrer">เปิดลิงก์</a><% } %></div></li><% }) %>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>งานที่มอบหมายในคาบ</h2>
+    <% if (!assignments.length) { %><div class="empty">ไม่มีงานที่เชื่อมโยงกับคาบนี้</div><% } %>
+    <ul class="list">
+      <% assignments.forEach(a => { %><li><div><a href="<%= user.role === 'teacher' ? '/teacher/grading/' + a.id : isT ? '/teacher/assignments' : '/student/assignments/' + a.id %>"><%= a.assignment_code %> <%= a.title %></a><br><small><%= a.max_score %> คะแนน · <%= a.due_date ? 'ส่ง ' + u.thaiDate(a.due_date, { time: true }) : (a.submission_mode === 'in_class' ? 'ให้คะแนนในคาบ' : 'ไม่กำหนดเวลาส่ง') %></small></div><%- u.badge('assignment', a.status) %></li><% }) %>
+    </ul>
+  </div>
+</div>
+<% if (isT && (lesson.post_class_notes || lesson.issues || lesson.next_session_notes)) { %>
+  <div class="card"><h2>บันทึกหลังสอน</h2>
+    <dl class="kv"><dt>สรุปหลังสอน</dt><dd><%= lesson.post_class_notes || '—' %></dd><dt>ปัญหา</dt><dd><%= lesson.issues || '—' %></dd><dt>ข้อสังเกตคาบถัดไป</dt><dd><%= lesson.next_session_notes || '—' %></dd></dl>
+  </div>
+<% } %>

@@ -1,0 +1,48 @@
+<div class="page-head">
+  <div><small class="muted"><%= st.student_code %> · <%= st.email || '' %></small><h1><%= st.full_name %></h1><div><%- st.enrollment_status === 'active' ? '<span class="badge ok">ลงทะเบียน</span>' : '<span class="badge muted">ถอนรายวิชา</span>' %></div></div>
+  <div class="actions">
+    <form method="post" action="/teacher/students/<%= st.id %>/reset-password" class="inline" data-confirm="รีเซ็ตรหัสผ่านเป็นรหัสนักศึกษา?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">รีเซ็ตรหัสผ่าน</button></form>
+    <form method="post" action="/teacher/students/<%= st.id %>/enrollment" class="inline" data-confirm="เปลี่ยนสถานะการลงทะเบียน?"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="<%= st.enrollment_status === 'active' ? 'withdrawn' : 'active' %>"><button class="btn sm ghost"><%= st.enrollment_status === 'active' ? 'ถอนรายวิชา' : 'คืนสถานะ' %></button></form>
+  </div>
+</div>
+<div class="grid g4">
+  <div class="stat accent"><div class="label">คะแนนสะสม</div><div class="value"><%= row ? row.total : '—' %></div><div class="sub">/100 · รอผล <%= row ? row.pending : 0 %> รายการ</div></div>
+  <% const att = history.filter(h => h.attendance_state !== 'not_started'); const came = att.filter(h => ['present','late'].includes(h.attendance_status)).length; %>
+  <div class="stat"><div class="label">เข้าเรียน</div><div class="value"><%= came %>/<%= att.length %></div><div class="sub">สาย <%= att.filter(h => h.attendance_status === 'late').length %> · ขาด <%= att.filter(h => h.attendance_status === 'absent').length %></div></div>
+  <% clo.summary.forEach(s => { const v = clo.perStudent[0] && clo.perStudent[0].clo[s.clo.id]; %>
+    <div class="stat"><div class="label"><%= s.clo.clo_code %></div><div class="value"><%= v ? v.percent + '%' : '—' %></div><div class="sub">CLO Score</div></div>
+  <% }) %>
+</div>
+<div class="grid g2">
+  <div class="card">
+    <h2>คะแนนรายหมวด</h2>
+    <table><tr><th>หมวด</th><th class="num">ได้</th><th class="num">เต็ม</th><th>รายการ</th></tr>
+      <% gb.categories.forEach(cat => { const b = row.byCat[cat.id]; %><tr><td><small><%= cat.category_name %></small></td><td class="num"><%= b.earned %></td><td class="num"><%= cat.max_score %></td>
+        <td><% b.items.forEach(i => { %><div><small><% if (user.role === 'teacher') { %><a href="/teacher/grading/<%= i.assignment.id %>?student=<%= st.id %>"><%= i.assignment.assignment_code %></a><% } else { %><%= i.assignment.assignment_code %><% } %>: <%= i.counted ? i.grade.total_score + '/' + i.assignment.max_score : u.label('grade', i.state) %></small></div><% }) %></td></tr><% }) %>
+    </table>
+  </div>
+  <div class="card">
+    <h2>ประวัติการเข้าเรียน</h2>
+    <table><tr><th>สัปดาห์</th><th>สถานะ</th><th>วิธี/เวลา</th></tr>
+      <% att.forEach(h => { %><tr><td>W<%= h.week_number %></td><td><%- u.badge('attendance', h.attendance_status || 'none') %><% if (h.verified_at) { %> <span class="badge ok">✓</span><% } %><% if (h.note) { %><br><small><%= h.note %></small><% } %></td><td><small><%= h.checkin_method ? u.label('method', h.checkin_method) : '' %> <%= h.checkin_time ? u.thaiDate(h.checkin_time, { time: true }) : '' %></small></td></tr><% }) %>
+    </table>
+  </div>
+</div>
+<div class="grid g2">
+  <div class="card">
+    <h2>อุปกรณ์ที่ลงทะเบียน (Device Binding)</h2>
+    <% if (!devices.length) { %><div class="empty">ไม่มีอุปกรณ์ที่ผูกไว้<%= course.device_binding ? '' : ' (ปิดใช้งาน Device Binding)' %></div><% } %>
+    <ul class="list"><% devices.forEach(d => { %><li><small><%= d.device_label %> · ลงทะเบียน <%= u.thaiDate(d.registered_at, { time: true }) %><%= d.revoked_at ? ' · ยกเลิก ' + u.thaiDate(d.revoked_at) + (d.revoke_reason ? ' (' + d.revoke_reason + ')' : '') : '' %></small><span class="badge <%= d.status === 'active' ? 'ok' : 'muted' %>"><%= d.status === 'active' ? 'ใช้งาน' : 'ยกเลิก' %></span></li><% }) %></ul>
+    <% if (devices.some(d => d.status === 'active')) { %>
+      <form method="post" action="/teacher/students/<%= st.id %>/revoke-devices" class="row" style="margin-top:.6rem"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="text" name="reason" required placeholder="เหตุผล เช่น โทรศัพท์หาย/เปลี่ยนเครื่อง"><button class="btn sm ghost">ยกเลิกอุปกรณ์เดิม</button></form>
+    <% } %>
+  </div>
+  <div class="card">
+    <h2>เหตุการณ์เสี่ยง / คำร้อง</h2>
+    <ul class="list">
+      <% risks.forEach(r => { %><li><small>W<%= r.week_number || '-' %> · <%= u.RISK_TYPES[r.event_type] || r.event_type %> · <%= u.thaiDate(r.created_at, { time: true }) %></small><span><%- u.badge('risk', r.risk_level) %> <%- u.badge('review', r.review_status) %></span></li><% }) %>
+      <% appeals.forEach(a => { %><li><small>คำร้อง: <%= a.message %></small><%- u.badge('appeal', a.status) %></li><% }) %>
+    </ul>
+    <% if (!risks.length && !appeals.length) { %><div class="empty">ไม่มี</div><% } %>
+  </div>
+</div>

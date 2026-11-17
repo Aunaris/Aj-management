@@ -1,0 +1,43 @@
+<div class="page-head">
+  <div>
+    <small class="muted"><%= a.category_name %> · คะแนนเต็ม <%= a.max_score %><%= session ? ' · สัปดาห์ ' + session.week_number : '' %></small>
+    <h1>Quick Grid: <%= a.assignment_code %> <%= a.title %></h1>
+    <p>พิมพ์คะแนนแล้วระบบบันทึก Draft อัตโนมัติ · กด Enter เพื่อลงไปแถวถัดไป · กด "เผยแพร่" เพื่อให้นักศึกษาเห็น</p>
+  </div>
+  <div class="actions">
+    <% if (session) { %><a class="btn ghost" href="/teacher/sessions/<%= session.id %>/live">← กลับหน้าคาบ</a><% } %>
+    <% if (a.submission_mode === 'online') { %><a class="btn ghost" href="/teacher/grading/<%= a.id %>">ตรวจพร้อม Preview</a><% } %>
+    <form method="post" action="/teacher/grading/<%= a.id %>/publish-all" class="inline" data-confirm="เผยแพร่คะแนน Draft ทั้งหมด?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn navy" <%= locked ? 'disabled' : '' %>>เผยแพร่ Draft ทั้งหมด</button></form>
+  </div>
+</div>
+<% if (locked) { %><div class="flash warning">คะแนนถูกล็อกแล้ว</div><% } %>
+<% if (rubric) { %><div class="card"><small><strong>เกณฑ์:</strong> <% rubric.criteria.forEach((c, i) => { %><span class="badge muted">C<%= i + 1 %> <%= c.criterion_name %> (<%= c.max_score %>)</span> <% }) %></small></div><% } %>
+<div class="table-wrap">
+  <table class="grid-table" data-grid="<%= a.id %>" data-max="<%= a.max_score %>">
+    <tr>
+      <th>รหัส</th><th>ชื่อ-นามสกุล</th>
+      <% if (session) { %><th>เข้าเรียน</th><% } %>
+      <% if (a.submission_mode === 'online') { %><th>ส่งงาน</th><% } %>
+      <% if (rubric) { rubric.criteria.forEach((c, i) => { %><th class="num" title="<%= c.criterion_name %>">C<%= i + 1 %> /<%= c.max_score %></th><% }) } else { %><th class="num">คะแนน /<%= a.max_score %></th><% } %>
+      <th class="num">รวม</th><th>Feedback</th><th>สถานะ</th><th></th>
+    </tr>
+    <% overview.forEach(o => { const g = o.full; %>
+      <tr data-student="<%= o.student.id %>" data-status="<%= g ? g.status : '' %>">
+        <td><small><%= o.student.student_code %></small></td>
+        <td><%= o.student.full_name %></td>
+        <% if (session) { %><td><%- u.badge('attendance', attendance[o.student.id] || 'none') %></td><% } %>
+        <% if (a.submission_mode === 'online') { %><td><a href="/teacher/grading/<%= a.id %>?student=<%= o.student.id %>"><%- u.badge('submission', o.submission ? o.submission.status : 'none') %></a></td><% } %>
+        <% if (rubric) { rubric.criteria.forEach((c, i) => { %>
+          <td class="num"><input class="score" type="number" step="0.25" min="0" max="<%= c.max_score %>" data-criterion="<%= c.id %>" data-max="<%= c.max_score %>" data-weight="<%= c.weight %>" data-col="c<%= i %>" value="<%= g && g.scores[c.id] !== undefined ? g.scores[c.id] : '' %>" aria-label="<%= o.student.full_name %> <%= c.criterion_name %>" <%= locked || (g && g.status === 'locked') ? 'disabled' : '' %>></td>
+        <% }) } else { %>
+          <td class="num"><input class="score" type="number" step="0.25" min="0" max="<%= a.max_score %>" data-direct data-col="d" value="<%= g && g.total_score !== null ? g.total_score : '' %>" aria-label="คะแนน <%= o.student.full_name %>" <%= locked ? 'disabled' : '' %>></td>
+        <% } %>
+        <td class="num total"><%= g && g.total_score !== null ? g.total_score : '—' %></td>
+        <td><input type="text" data-feedback value="<%= g && g.feedback ? g.feedback : '' %>" placeholder="ไม่บังคับ" style="min-width:160px" <%= locked ? 'disabled' : '' %>></td>
+        <td><span class="save-state"><%= g ? u.label('grade', g.status) : '' %></span></td>
+        <td><button class="btn sm" data-row-action="publish" <%= locked ? 'disabled' : '' %>>เผยแพร่</button></td>
+      </tr>
+    <% }) %>
+  </table>
+</div>
+<% if (!overview.length) { %><div class="empty">ยังไม่มีรายชื่อนักศึกษา</div><% } %>

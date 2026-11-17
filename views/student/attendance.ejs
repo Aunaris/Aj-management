@@ -1,0 +1,29 @@
+<div class="page-head"><div><h1>การเข้าเรียนของฉัน</h1><p>ประวัติการเช็คชื่อรายสัปดาห์ และการแจ้งปัญหาถึงผู้สอน</p></div></div>
+<div class="grid g-side">
+  <div class="card">
+    <div class="table-wrap"><table>
+      <tr><th>สัปดาห์</th><th>หัวข้อ</th><th>สถานะ</th><th>วิธี / เวลา</th></tr>
+      <% history.forEach(h => { %><tr><td>W<%= h.week_number %></td><td><a href="/sessions/<%= h.session_id %>"><small><%= h.title %></small></a></td>
+        <td><%- h.attendance_state === 'not_started' && !h.attendance_status ? '<small class="muted">ยังไม่ถึง/ยังไม่เปิด</small>' : u.badge('attendance', h.attendance_status || 'none') %><% if (h.verified_at) { %> <span class="badge ok">✓ ยืนยัน</span><% } %><% if (h.note) { %><br><small><%= h.note %></small><% } %></td>
+        <td><small><%= h.checkin_method ? u.label('method', h.checkin_method) : '' %> <%= h.checkin_time ? u.thaiDate(h.checkin_time, { time: true }) : '' %></small></td></tr><% }) %>
+    </table></div>
+  </div>
+  <div>
+    <div class="card">
+      <h2>แจ้งปัญหา / ขอให้ตรวจสอบใหม่</h2>
+      <form method="post" action="/student/appeals" class="stack">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label><span class="l">ประเภท</span><select name="type"><option value="attendance">การเข้าเรียน (เช่น เช็คชื่อไม่ได้)</option><option value="device_change">ขอเปลี่ยนอุปกรณ์ (โทรศัพท์หาย/เสีย/เปลี่ยนเครื่อง)</option></select></label>
+        <label><span class="l">คาบเรียน</span><select name="session_id"><option value="">— ไม่ระบุ —</option><% history.forEach(h => { %><option value="<%= h.session_id %>">สัปดาห์ <%= h.week_number %></option><% }) %></select></label>
+        <label><span class="l">รายละเอียด</span><textarea name="message" required maxlength="2000" placeholder="อธิบายเหตุการณ์"></textarea></label>
+        <button class="btn sm" type="submit">ส่งคำร้อง</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>คำร้องของฉัน</h2>
+      <% if (!appeals.length) { %><div class="empty">ยังไม่มีคำร้อง</div><% } %>
+      <ul class="list"><% appeals.forEach(a => { %><li><div><small><%= u.thaiDate(a.created_at, { time: true }) %> · <%= a.appeal_type === 'device_change' ? 'เปลี่ยนอุปกรณ์' : 'การเข้าเรียน' %></small><br><%= a.message %><% if (a.response) { %><br><small>ผู้สอน: <%= a.response %></small><% } %></div><%- u.badge('appeal', a.status) %></li><% }) %></ul>
+    </div>
+    <% if (deviceBinding) { %><div class="card"><h2>อุปกรณ์หลัก</h2><ul class="list"><% devices.forEach(d => { %><li><small><%= u.thaiDate(d.registered_at, { time: true }) %></small><span class="badge <%= d.status === 'active' ? 'ok' : 'muted' %>"><%= d.status === 'active' ? 'ใช้งาน' : 'ยกเลิก' %></span></li><% }) %></ul><% if (!devices.length) { %><p class="hint">ระบบจะลงทะเบียนอุปกรณ์อัตโนมัติเมื่อเช็คชื่อครั้งแรก</p><% } %></div><% } %>
+  </div>
+</div>

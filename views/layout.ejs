@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title ? title + ' · ' : '' %>2D Animation Classroom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <meta name="csrf-token" content="<%= csrf %>">
+</head>
+<body class="<%= user ? 'role-' + user.role : 'guest' %>">
+<% if (user) { %>
+<input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true">
+<aside class="sidebar" aria-label="เมนูหลัก">
+  <div class="brand">
+    <div class="brand-mark">2D</div>
+    <div><strong>Animation Classroom</strong><small><%= course ? course.course_code : '' %> · <%= course ? course.semester + '/' + course.academic_year : '' %></small></div>
+  </div>
+  <nav>
+    <% const nav = (href, label, icon) => { const active = path === href || (href !== '/teacher' && href !== '/student' && path.startsWith(href)); %>
+      <a href="<%= href %>" class="<%= active ? 'active' : '' %>"><span class="ico"><%= icon %></span><%= label %></a>
+    <% } %>
+    <% if (user.role === 'teacher' || user.role === 'admin') { %>
+      <div class="nav-group">ภาพรวม</div>
+      <% nav('/teacher', 'Dashboard', '◧') %>
+      <% nav('/course', 'หน้าแรกรายวิชา', '⌂') %>
+      <div class="nav-group">ระหว่างคาบ</div>
+      <% nav('/teacher/sessions', 'คาบเรียน & เช็คชื่อ', '◷') %>
+      <% nav('/teacher/assignments', 'งานที่มอบหมาย', '✎') %>
+      <% nav('/teacher/risk', 'ตรวจสอบการเช็คชื่อ', '⚑') %>
+      <div class="nav-group">คะแนน & รายงาน</div>
+      <% nav('/teacher/gradebook', 'สมุดคะแนน', '▦') %>
+      <% nav('/teacher/clo', 'CLO Analytics', '◎') %>
+      <% nav('/teacher/reports', 'รายงาน / ส่งออก', '⇩') %>
+      <div class="nav-group">จัดการ</div>
+      <% nav('/teacher/students', 'นักศึกษา', '☺') %>
+      <% nav('/teacher/settings', 'ตั้งค่ารายวิชา', '⚙') %>
+      <% nav('/teacher/audit', 'Audit Log', '☰') %>
+      <% if (user.role === 'admin') nav('/admin', 'ผู้ใช้ (Admin)', '⚿') %>
+    <% } else { %>
+      <% nav('/student', 'Dashboard', '◧') %>
+      <% nav('/checkin', 'เช็คชื่อ', '▣') %>
+      <% nav('/course', 'รายวิชา', '⌂') %>
+      <% nav('/student/assignments', 'งานของฉัน', '✎') %>
+      <% nav('/student/grades', 'คะแนน & Feedback', '▦') %>
+      <% if (course && course.clo_visible_to_students) nav('/student/clo', 'ความก้าวหน้า CLO', '◎') %>
+      <% nav('/student/attendance', 'การเข้าเรียน', '◷') %>
+      <% nav('/student/portfolio', 'My Portfolio', '❖') %>
+    <% } %>
+  </nav>
+</aside>
+<div class="main">
+  <header class="topbar">
+    <label for="nav-toggle" class="burger" aria-label="เปิดเมนู">☰</label>
+    <div class="top-title"><%= course ? course.course_name : '' %></div>
+    <a class="bell" href="/notifications" aria-label="การแจ้งเตือน <%= unread %> รายการ">🔔<% if (unread) { %><span class="count"><%= unread > 99 ? '99+' : unread %></span><% } %></a>
+    <div class="who">
+      <span><%= user.full_name %></span>
+      <small><%= { admin: 'Admin', teacher: 'Teacher', student: 'Student' }[user.role] %><%= user.student_code ? ' · ' + user.student_code : '' %></small>
+    </div>
+    <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost sm" type="submit">ออกจากระบบ</button></form>
+  </header>
+  <main class="content">
+    <% if (flash) { %>
+      <div class="flash <%= flash.type %>" role="alert">
+        <% flash.message.forEach(m => { %><div><%= m %></div><% }) %>
+      </div>
+    <% } %>
+    <%- body %>
+  </main>
+</div>
+<% } else { %>
+  <main class="guest-wrap">
+    <% if (flash) { %><div class="flash <%= flash.type %>" role="alert"><% flash.message.forEach(m => { %><div><%= m %></div><% }) %></div><% } %>
+    <%- body %>
+  </main>
+<% } %>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

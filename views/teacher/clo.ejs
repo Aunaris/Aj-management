@@ -1,0 +1,43 @@
+<div class="page-head">
+  <div><h1>CLO Analytics</h1><p>CLO Score (%) = Σ(คะแนนที่ได้ × น้ำหนัก CLO) ÷ Σ(คะแนนเต็ม × น้ำหนัก CLO) × 100 · Achievement Rate = ผู้ผ่านเกณฑ์ ÷ ผู้ได้รับการประเมิน × 100 · แยกจากคะแนนรวมรายวิชา</p></div>
+  <a class="btn ghost" href="/teacher/reports/clo.csv">ส่งออก CSV</a>
+</div>
+<div class="grid g4">
+  <% data.summary.forEach(s => { %>
+    <div class="stat">
+      <div class="label"><strong><%= s.clo.clo_code %></strong> · เกณฑ์ผ่าน <%= s.clo.passing_criteria !== null ? s.clo.passing_criteria + '%' : 'ยังไม่กำหนด' %></div>
+      <div class="value"><%= s.achievementRate !== null ? s.achievementRate + '%' : '—' %></div>
+      <div class="sub">Achievement Rate · เฉลี่ย <%= u.fmtScore(s.average) %>% · ประเมิน <%= s.assessed %> คน<%= s.passed !== null ? ' · ผ่าน ' + s.passed : '' %> · คะแนนเต็มที่ map <%= s.plannedMax %></div>
+      <div class="progress" style="margin-top:.4rem"><span style="width:<%= s.average || 0 %>%"></span></div>
+    </div>
+  <% }) %>
+</div>
+<div class="grid g-side">
+  <div class="card">
+    <h2>คะแนน CLO รายบุคคล (%)</h2>
+    <div class="table-wrap"><table>
+      <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><% data.clos.forEach(c => { %><th class="num"><%= c.clo_code %></th><% }) %></tr>
+      <% data.perStudent.forEach(p => { %><tr><td><small><%= p.student.student_code %></small></td><td><%= p.student.full_name %></td>
+        <% data.clos.forEach(c => { const v = p.clo[c.id]; const pass = v && c.passing_criteria !== null ? v.percent >= c.passing_criteria : null; %>
+          <td class="num"><% if (v) { %><span class="<%= pass === null ? '' : pass ? 'badge ok' : 'badge bad' %>"><%= v.percent %></span><% } else { %><small class="muted">ยังไม่ประเมิน</small><% } %></td>
+        <% }) %></tr><% }) %>
+    </table></div>
+  </div>
+  <div>
+    <div class="card">
+      <h2>เกณฑ์ผ่าน CLO</h2>
+      <% if (user.role === 'teacher') { %>
+      <form method="post" action="/teacher/clo/criteria" class="stack">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <% data.clos.forEach(c => { %><label><span class="l"><%= c.clo_code %> (%)</span><input type="number" min="0" max="100" step="0.5" name="pass_<%= c.clo_code %>" value="<%= c.passing_criteria ?? '' %>" placeholder="ยังไม่กำหนด"></label><% }) %>
+        <p class="hint">OBE-3 ยังไม่กำหนดค่าเริ่มต้น — ระบบจะไม่คำนวณ Achievement Rate จนกว่าจะกำหนดเกณฑ์</p>
+        <button class="btn sm" type="submit">บันทึก</button>
+      </form>
+      <% } else { %><ul class="list"><% data.clos.forEach(c => { %><li><%= c.clo_code %><span><%= c.passing_criteria ?? 'ยังไม่กำหนด' %></span></li><% }) %></ul><% } %>
+    </div>
+    <div class="card">
+      <h2>CLO Mapping ของงาน</h2>
+      <ul class="list"><% assignments.forEach(a => { %><li><small><%= a.assignment_code %> <%= a.title %> (<%= a.max_score %>)</small><span><% a.maps.forEach(m => { %><span class="badge info"><%= m.clo_code %><%= a.maps.length > 1 ? ' ×' + m.contribution_weight : '' %></span> <% }) %></span></li><% }) %></ul>
+    </div>
+  </div>
+</div>

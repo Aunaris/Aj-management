@@ -1,0 +1,80 @@
+<% const allowed = a.allowed_types ? a.allowed_types.split(',') : []; %>
+<div class="page-head">
+  <div>
+    <small class="muted"><%= a.category_name %> · <%= maps.map(m => m.clo_code).join(', ') %></small>
+    <h1><%= a.assignment_code %> <%= a.title %></h1>
+    <div><%- u.badge('assignment', a.status) %> <strong><%= a.max_score %> คะแนน</strong>
+      <% if (a.due_date) { %> · กำหนดส่ง <strong><%= u.thaiDate(a.due_date, { time: true }) %></strong><% if (Date.parse(a.due_date) < Date.now()) { %> <span class="badge bad">เลยกำหนดแล้ว</span><% } %><% } %></div>
+  </div>
+</div>
+<div class="grid g-side">
+  <div>
+    <div class="card">
+      <h2>คำสั่งงาน</h2>
+      <% if (a.description) { %><p><%= a.description %></p><% } %>
+      <p style="white-space:pre-line"><%= a.instructions || '—' %></p>
+      <% if (a.submission_mode === 'online') { %>
+      <dl class="kv">
+        <dt>ชนิดไฟล์ที่รับ</dt><dd><%= allowed.join(', ') || '—' %> (ไม่เกิน <%= a.max_file_mb %> MB/ไฟล์)</dd>
+        <dt>แนบ URL</dt><dd><%= a.allow_links ? 'ได้' + (a.allowed_domains ? ' (เฉพาะ ' + a.allowed_domains + ')' : '') : 'ไม่ได้' %></dd>
+        <dt>ส่งซ้ำ</dt><dd><%= a.allow_resubmit ? 'ได้ สูงสุด ' + a.max_versions + ' ครั้ง' : 'ไม่ได้' %></dd>
+        <dt>งานล่าช้า</dt><dd><%= a.late_policy === 'reject' ? 'ไม่รับหลังกำหนดส่ง' : 'รับ แต่บันทึกว่าส่งล่าช้า' %></dd>
+      </dl>
+      <% } %>
+    </div>
+    <% if (grade) { %>
+    <div class="card" style="border-color:<%= grade.status === 'revision_requested' ? 'var(--bad)' : 'var(--teal)' %>">
+      <h2>ผลการตรวจและ Feedback <%- u.badge('grade', grade.status) %></h2>
+      <% if (grade.total_score !== null && grade.total_score !== undefined) { %><div class="total-box"><span>คะแนนที่ได้</span><span><strong><%= grade.total_score %></strong> / <%= a.max_score %></span></div><% } %>
+      <% if (rubric && grade.total_score !== null) { %>
+        <table><tr><th>เกณฑ์</th><th class="num">คะแนน</th><th>ความเห็น</th></tr>
+          <% rubric.criteria.forEach(c => { %><tr><td><%= c.criterion_name %></td><td class="num"><%= grade.scores[c.id] ?? '—' %>/<%= c.max_score %></td><td><small><%= grade.comments[c.id] || '' %></small></td></tr><% }) %></table>
+      <% } %>
+      <% if (grade.feedback) { %><h3>Feedback จากผู้สอน</h3><p style="white-space:pre-line"><%= grade.feedback %></p><% } %>
+      <% if (grade.status === 'revision_requested') { %><div class="flash warning">ผู้สอนขอให้ปรับปรุงงาน กรุณาแก้ไขและส่งเวอร์ชันใหม่</div><% } %>
+    </div>
+    <% } %>
+    <% if (a.submission_mode === 'online') { %>
+    <div class="card">
+      <h2>ส่งงาน</h2>
+      <% if (blocked) { %><div class="flash warning"><%= blocked %></div><% } else { %>
+      <form method="post" action="/student/assignments/<%= a.id %>/submit" enctype="multipart/form-data" class="stack" data-submit-form data-allowed="<%= allowed.join(',') %>" data-max-mb="<%= Math.min(a.max_file_mb, maxUpload) %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <% if (allowed.length) { %>
+        <label><span class="l">ไฟล์งาน (เลือกได้หลายไฟล์)</span><input type="file" name="files" multiple accept="<%= allowed.map(t => '.' + t).join(',') %>"></label>
+        <div data-file-list></div>
+        <% } %>
+        <% if (a.allow_links) { %>
+          <div class="field"><span class="l">ลิงก์ผลงาน</span>
+            <div class="row" data-link-row><input type="url" name="link_url" placeholder="https://drive.google.com/…"><input type="text" name="link_title" placeholder="คำอธิบายลิงก์ (ไม่บังคับ)"></div>
+            <button class="btn sm ghost" data-add-link type="button">+ เพิ่มลิงก์</button>
+            <div class="hint">⚠ ตรวจสอบสิทธิ์การแชร์ให้อาจารย์เปิดดูได้ (Anyone with the link) — ระบบจะไม่ขอรหัสผ่านบัญชีภายนอกใด ๆ</div>
+          </div>
+        <% } %>
+        <label><span class="l">หมายเหตุถึงผู้สอน</span><textarea name="note" maxlength="2000"></textarea></label>
+        <button class="btn lg" type="submit">ตรวจสอบและยืนยันส่งงาน<%= versions.length ? ' (เวอร์ชัน ' + (versions[0].version + 1) + ')' : '' %></button>
+      </form>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+  <div>
+    <% if (rubric) { %>
+    <div class="card"><h2>เกณฑ์ประเมิน (Rubric)</h2>
+      <ul class="list"><% rubric.criteria.forEach(c => { %><li><div><%= c.criterion_name %><% if (c.description) { %><br><small><%= c.description %></small><% } %></div><strong><%= c.max_score %></strong></li><% }) %></ul></div>
+    <% } %>
+    <div class="card"><h2>ประวัติการส่ง</h2>
+      <% if (!versions.length) { %><div class="empty">ยังไม่ได้ส่ง</div><% } %>
+      <% versions.forEach(v => { %>
+        <details <%= v === versions[0] ? 'open' : '' %> style="margin-bottom:.6rem"><summary>v<%= v.version %> · <%= u.thaiDate(v.submitted_at, { time: true }) %> <%- u.badge('submission', v.status) %><%= v.is_late ? ' ⏰' : '' %></summary>
+          <% v.files.forEach(f => { %>
+            <% if (f.kind === 'image') { %><div class="preview"><img src="/files/submission/<%= f.id %>" alt="<%= f.file_name %>" loading="lazy"></div><% } else if (f.kind === 'video') { %><div class="preview"><video src="/files/submission/<%= f.id %>" controls preload="metadata" playsinline></video></div><% } %>
+            <div class="file-card"><small><%= f.file_name %> · <%= u.fileSize(f.file_size) %></small><a class="btn sm ghost" href="/files/submission/<%= f.id %>?download=1">ดาวน์โหลด</a></div>
+          <% }) %>
+          <% v.links.forEach(l => { %><div class="file-card"><a href="<%= l.url %>" target="_blank" rel="noopener noreferrer"><small><%= l.title || l.url %></small></a><%- u.badge('link', l.validation_status) %></div><% }) %>
+          <% if (v.note) { %><small class="muted">หมายเหตุ: <%= v.note %></small><% } %>
+        </details>
+      <% }) %>
+    </div>
+  </div>
+</div>

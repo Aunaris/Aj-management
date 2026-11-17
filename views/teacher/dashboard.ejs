@@ -1,0 +1,54 @@
+<div class="page-head">
+  <div><h1>สวัสดี <%= user.full_name %></h1><p><%= course.course_code %> <%= course.course_name %> · <%= u.thaiDate(new Date().toISOString()) %></p></div>
+  <div class="actions">
+    <% if (todaySessions.length) { todaySessions.forEach(s => { %>
+      <form method="post" action="/teacher/sessions/<%= s.id %>/attendance/open" class="inline">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <% if (s.attendance_state === 'open') { %><a class="btn lg" href="/teacher/sessions/<%= s.id %>/live">▶ กลับไปหน้าคาบ สัปดาห์ <%= s.week_number %> (กำลังเช็คชื่อ)</a>
+        <% } else if (user.role === 'teacher') { %><button class="btn lg" type="submit">▶ เปิดคาบ + QR สัปดาห์ <%= s.week_number %></button><% } %>
+      </form>
+    <% }) } else if (next && user.role === 'teacher') { %>
+      <form method="post" action="/teacher/sessions/<%= next.id %>/attendance/open" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn lg" type="submit">▶ เปิดคาบ + QR สัปดาห์ <%= next.week_number %></button></form>
+    <% } %>
+    <a class="btn ghost" href="/teacher/sessions">เลือกคาบอื่น</a>
+  </div>
+</div>
+<% if (!course.structure_confirmed_at) { %>
+  <div class="flash warning">โครงสร้างคะแนนตาม OBE-3 ยังไม่ได้รับการยืนยันจากผู้สอน — <a href="/teacher/settings">ตรวจสอบและยืนยัน</a> ก่อนเปิดใช้งานจริง</div>
+<% } %>
+<div class="grid g4">
+  <div class="stat accent"><div class="label">ผู้เรียน</div><div class="value"><%= students.length %></div><div class="sub">ลงทะเบียน</div></div>
+  <div class="stat"><div class="label">เข้าเรียนคาบล่าสุด</div><div class="value"><%= lastSummary ? (lastSummary.sum.present + lastSummary.sum.late) : '—' %></div><div class="sub"><%= lastSummary ? 'สัปดาห์ ' + lastSummary.s.week_number + ' · สาย ' + lastSummary.sum.late + ' · ขาด ' + lastSummary.sum.absent : 'ยังไม่มีการเช็คชื่อ' %></div></div>
+  <div class="stat"><div class="label">งานเปิดรับส่ง</div><div class="value"><%= open.length %></div><div class="sub">ส่งแล้วทั้งหมด <%= counts.total_subs %> ครั้ง</div></div>
+  <div class="stat"><div class="label">งานรอตรวจ</div><div class="value" style="color:<%= counts.to_review ? 'var(--warn)' : 'inherit' %>"><%= counts.to_review %></div><div class="sub">คะแนนเฉลี่ยสะสม <%= u.fmtScore(avg) %></div></div>
+</div>
+<% if (counts.risks || counts.appeals) { %>
+  <div class="flash warning">มีเหตุการณ์เสี่ยงการเช็คชื่อรอตรวจสอบ <%= counts.risks %> รายการ และคำร้อง <%= counts.appeals %> รายการ — <a href="/teacher/risk">ตรวจสอบ</a></div>
+<% } %>
+<div class="grid g-side">
+  <div class="card">
+    <h2>งานที่เปิดรับ <% if (user.role === 'teacher') { %><a class="btn sm ghost" href="/teacher/assignments/new">+ สร้างงาน</a><% } %></h2>
+    <% if (!open.length) { %><div class="empty">ยังไม่มีงานที่เปิดรับ</div><% } %>
+    <div class="table-wrap"><table>
+      <tr><th>งาน</th><th>หมวด</th><th>กำหนดส่ง</th><th></th></tr>
+      <% open.forEach(a => { %><tr><td><strong><%= a.assignment_code %></strong> <%= a.title %></td><td><small><%= a.category_name %></small></td><td><small><%= a.due_date ? u.thaiDate(a.due_date, { time: true }) : (a.submission_mode === 'in_class' ? 'ในคาบ' : '—') %></small></td>
+        <td class="actions"><% if (user.role === 'teacher') { %><a class="btn sm" href="/teacher/grading/<%= a.id %>">ตรวจ</a><a class="btn sm ghost" href="/teacher/grading/<%= a.id %>/grid">Quick Grid</a><% } %></td></tr><% }) %>
+    </table></div>
+  </div>
+  <div>
+    <div class="card">
+      <h2>สถานะ CLO</h2>
+      <% clo.forEach(c => { %>
+        <div style="margin-bottom:.6rem"><div class="row" style="justify-content:space-between"><strong style="flex:0"><%= c.clo.clo_code %></strong><small style="text-align:right">เฉลี่ย <%= u.fmtScore(c.average) %>% · ประเมิน <%= c.assessed %> คน<%= c.achievementRate !== null ? ' · บรรลุ ' + c.achievementRate + '%' : '' %></small></div>
+        <div class="progress"><span style="width:<%= c.average || 0 %>%"></span></div></div>
+      <% }) %>
+      <a class="hint" href="/teacher/clo">ดู CLO Analytics</a>
+    </div>
+    <div class="card">
+      <h2>โครงสร้างคะแนน</h2>
+      <ul class="list">
+        <% structure.categories.forEach(c => { %><li><small><%= c.category_name %></small><span><%= c.planned %>/<%= c.max_score %> <%- c.state === 'ok' ? '<span class="badge ok">ครบ</span>' : c.state === 'over' ? '<span class="badge bad">เกิน</span>' : '<span class="badge muted">ยังไม่ครบ</span>' %></span></li><% }) %>
+      </ul>
+    </div>
+  </div>
+</div>

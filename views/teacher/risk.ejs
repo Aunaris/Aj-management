@@ -1,0 +1,65 @@
+<div class="page-head">
+  <div><h1>ตรวจสอบการเช็คชื่อ (Anti Proxy Attendance)</h1><p>ระบบสร้าง Risk Event เพื่อให้ผู้สอนพิจารณา — ไม่ตัดสินว่าทุจริตหรือหักคะแนนอัตโนมัติ</p></div>
+</div>
+<div class="pill-tabs">
+  <a href="/teacher/risk<%= sessionFilter ? '?session=' + sessionFilter : '' %>" class="<%= !status ? 'on' : '' %>">ทั้งหมด</a>
+  <% ['pending','dismissed','confirmed'].forEach(k => { %><a href="/teacher/risk?status=<%= k %><%= sessionFilter ? '&session=' + sessionFilter : '' %>" class="<%= status === k ? 'on' : '' %>"><%= u.label('review', k) %></a><% }) %>
+</div>
+<div class="card">
+  <h2>เหตุการณ์เสี่ยง</h2>
+  <% if (!events.length) { %><div class="empty">ไม่มีเหตุการณ์</div><% } %>
+  <div class="table-wrap"><table>
+    <tr><th>นักศึกษา</th><th>คาบ</th><th>เหตุการณ์</th><th>ระดับ</th><th>เวลา / อุปกรณ์</th><th>สถานะตรวจสอบ</th><th>บันทึกผล</th></tr>
+    <% events.forEach(e => { %>
+      <tr>
+        <td><a href="/teacher/students/<%= e.user_id %>"><%= e.full_name %></a><br><small><%= e.student_code %></small></td>
+        <td><small><%= e.week_number ? 'สัปดาห์ ' + e.week_number : '—' %></small></td>
+        <td><%= u.RISK_TYPES[e.event_type] || e.event_type %>
+          <% if (e.metadata && e.metadata.otherAccounts) { %><br><small>บัญชีอื่นบนอุปกรณ์เดียวกัน: <%= e.metadata.otherAccounts.length %> บัญชี</small><% } %>
+          <% if (e.metadata && e.metadata.activeDevices) { %><br><small>อุปกรณ์ที่ใช้งานพร้อมกัน: <%= e.metadata.activeDevices %></small><% } %>
+          <% if (e.metadata && e.metadata.attemptsInLastMinute) { %><br><small>คำขอใน 1 นาที: <%= e.metadata.attemptsInLastMinute %></small><% } %>
+        </td>
+        <td><%- u.badge('risk', e.risk_level) %></td>
+        <td><small><%= u.thaiDate(e.created_at, { time: true }) %><br>Device ID (hash) ไม่ระบุตัวบุคคล</small></td>
+        <td><%- u.badge('review', e.review_status) %><% if (e.reviewed_at) { %><br><small><%= e.reviewer_name %> · <%= u.thaiDate(e.reviewed_at, { time: true }) %></small><br><small><%= e.review_note %></small><% } %></td>
+        <td>
+          <% if (user.role === 'teacher') { %>
+          <form method="post" action="/teacher/risk/<%= e.id %>/review" class="stack" style="min-width:200px">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <input type="text" name="note" required placeholder="เหตุผล/ผลการตรวจสอบ" value="">
+            <div class="actions"><button class="btn sm" name="decision" value="dismissed">ไม่พบปัญหา</button><button class="btn sm danger" name="decision" value="confirmed">ยืนยันผิดปกติ</button></div>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+  </table></div>
+</div>
+<div class="card" id="appeals">
+  <h2>คำร้อง / อุทธรณ์จากนักศึกษา</h2>
+  <% if (!appeals.length) { %><div class="empty">ไม่มีคำร้อง</div><% } %>
+  <div class="table-wrap"><table>
+    <tr><th>นักศึกษา</th><th>ประเภท</th><th>คาบ</th><th>รายละเอียด</th><th>สถานะ</th><th>พิจารณา</th></tr>
+    <% appeals.forEach(a => { %>
+      <tr>
+        <td><a href="/teacher/students/<%= a.student_id %>"><%= a.full_name %></a><br><small><%= a.student_code %> · <%= u.thaiDate(a.created_at, { time: true }) %></small></td>
+        <td><%= a.appeal_type === 'device_change' ? 'ขอเปลี่ยนอุปกรณ์' : 'การเข้าเรียน' %></td>
+        <td><small><%= a.week_number ? 'สัปดาห์ ' + a.week_number : '—' %></small></td>
+        <td><%= a.message %><% if (a.response) { %><br><small>ผล: <%= a.response %></small><% } %></td>
+        <td><%- u.badge('appeal', a.status) %></td>
+        <td>
+          <% if (a.status === 'pending' && user.role === 'teacher') { %>
+          <form method="post" action="/teacher/appeals/<%= a.id %>/review" class="stack" style="min-width:220px">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <% if (a.appeal_type === 'attendance' && a.session_id) { %>
+              <select name="attendance_status"><option value="">— ไม่เปลี่ยนสถานะ —</option><option value="present">ปรับเป็น มาเรียน</option><option value="late">ปรับเป็น มาสาย</option><option value="leave">ปรับเป็น ลา</option></select>
+            <% } %>
+            <input type="text" name="response" required placeholder="เหตุผลการพิจารณา">
+            <div class="actions"><button class="btn sm" name="decision" value="approved">อนุมัติ</button><button class="btn sm ghost" name="decision" value="rejected">ไม่อนุมัติ</button></div>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+  </table></div>
+</div>

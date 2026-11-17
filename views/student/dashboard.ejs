@@ -1,0 +1,40 @@
+<div class="page-head">
+  <div><h1>สวัสดี <%= user.full_name %></h1><p><%= user.student_code %> · <%= course.course_code %> <%= course.course_name %></p></div>
+  <a class="btn lg" href="/checkin">▣ เช็คชื่อ</a>
+</div>
+<% myOpen.forEach(o => { %>
+  <div class="flash <%= o.rec ? 'success' : 'warning' %>">
+    สัปดาห์ <%= o.s.week_number %> กำลังเปิดเช็คชื่อ —
+    <% if (o.rec) { %>คุณเช็คชื่อแล้ว (<%= u.label('attendance', o.rec.attendance_status) %>) <a href="/sessions/<%= o.s.id %>">ดูรายละเอียดคาบ / ยืนยันรหัสในห้อง</a><% } else { %><a href="/checkin">สแกน QR หรือกรอกรหัสเพื่อเช็คชื่อ</a><% } %>
+  </div>
+<% }) %>
+<div class="grid g4">
+  <div class="stat accent"><div class="label">คะแนนสะสม (เผยแพร่แล้ว)</div><div class="value"><%= row ? row.total : 0 %></div><div class="sub">/100 · รอผล <%= row ? row.pending : 0 %> รายการ</div></div>
+  <div class="stat"><div class="label">งานที่ต้องส่ง</div><div class="value"><%= pending.length %></div><div class="sub">รวมงานที่ขอให้แก้ไข</div></div>
+  <div class="stat"><div class="label">การเข้าเรียน</div><div class="value"><%= attendance.attended %>/<%= attendance.total %></div><div class="sub">คาบที่มีการเช็คชื่อ</div></div>
+  <div class="stat"><div class="label">คาบถัดไป</div><div class="value" style="font-size:1.1rem"><%= next ? 'สัปดาห์ ' + next.week_number : '—' %></div><div class="sub"><%= next ? u.thaiDate(next.session_date) + ' ' + (next.start_time || '') : '' %></div></div>
+</div>
+<div class="grid g-side">
+  <div class="card">
+    <h2>งานที่ต้องทำ</h2>
+    <% if (!pending.length) { %><div class="empty">ไม่มีงานค้าง 🎉</div><% } %>
+    <ul class="list">
+      <% pending.forEach(a => { const due = a.due_date ? Date.parse(a.due_date) : null; const soon = due && due - Date.now() < 86400000 && due > Date.now(); %>
+        <li><div><a href="/student/assignments/<%= a.id %>"><strong><%= a.title %></strong></a><br><small><%= a.max_score %> คะแนน · <%= a.due_date ? 'กำหนดส่ง ' + u.thaiDate(a.due_date, { time: true }) : 'ไม่กำหนดเวลา' %></small></div>
+          <span><% if (a.grade && a.grade.status === 'revision_requested') { %><span class="badge bad">ขอให้แก้ไข</span><% } else if (a.overdue) { %><span class="badge bad">เลยกำหนด</span><% } else if (soon) { %><span class="badge warn">ใกล้ครบกำหนด</span><% } else { %><span class="badge muted">ยังไม่ส่ง</span><% } %></span></li>
+      <% }) %>
+    </ul>
+  </div>
+  <div>
+    <div class="card">
+      <h2>คะแนนล่าสุด</h2>
+      <% if (!graded.length) { %><div class="empty">ยังไม่มีคะแนนที่เผยแพร่</div><% } %>
+      <ul class="list"><% graded.forEach(a => { %><li><a href="/student/assignments/<%= a.id %>"><small><%= a.title %></small></a><strong><%= a.grade.total_score %>/<%= a.max_score %></strong></li><% }) %></ul>
+    </div>
+    <div class="card">
+      <h2>ประกาศ</h2>
+      <% if (!announcements.length) { %><div class="empty">ไม่มีประกาศ</div><% } %>
+      <ul class="list"><% announcements.forEach(an => { %><li><div><% if (an.mandatory) { %><span class="badge bad">สำคัญ</span> <% } %><strong><%= an.title %></strong><% if (an.body) { %><div><small><%= an.body %></small></div><% } %></div></li><% }) %></ul>
+    </div>
+  </div>
+</div>

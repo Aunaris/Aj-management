@@ -1,0 +1,22 @@
+<div class="page-head"><div><h1>จัดการผู้ใช้</h1><p>Admin: สร้างบัญชีผู้สอน/ผู้ดูแล ปิดบัญชี และตั้งรหัสผ่านใหม่ · นักศึกษานำเข้าที่หน้า <a href="/teacher/students">นักศึกษา</a></p></div>
+  <a class="btn ghost" href="/admin/backup">ดาวน์โหลด Backup ฐานข้อมูล</a></div>
+<div class="grid g-side">
+  <div class="card"><div class="table-wrap"><table>
+    <tr><th>ชื่อผู้ใช้</th><th>ชื่อ-นามสกุล</th><th>บทบาท</th><th>สถานะ</th><th></th></tr>
+    <% users.forEach(x => { %><tr><td><%= x.username %></td><td><%= x.full_name %><% if (x.email) { %><br><small><%= x.email %></small><% } %></td><td><%= x.role %></td><td><%- x.status === 'active' ? '<span class="badge ok">ใช้งาน</span>' : '<span class="badge muted">ปิด</span>' %></td>
+      <td class="actions">
+        <form method="post" action="/admin/users/<%= x.id %>/status" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="<%= x.status === 'active' ? 'disabled' : 'active' %>"><button class="btn sm ghost"><%= x.status === 'active' ? 'ปิดบัญชี' : 'เปิดบัญชี' %></button></form>
+        <form method="post" action="/admin/users/<%= x.id %>/password" class="inline row" style="max-width:260px"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="password" name="password" minlength="8" placeholder="รหัสผ่านใหม่" required autocomplete="new-password"><button class="btn sm ghost">ตั้ง</button></form>
+      </td></tr><% }) %>
+  </table></div></div>
+  <div class="card"><h2>สร้างบัญชี</h2>
+    <form method="post" action="/admin/users" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label><span class="l">บทบาท</span><select name="role"><option value="teacher">Teacher</option><option value="admin">Admin</option><option value="student">Student</option></select></label>
+      <label><span class="l">ชื่อผู้ใช้ (นักศึกษาใช้รหัสนักศึกษา)</span><input type="text" name="username" required></label>
+      <label><span class="l">ชื่อ-นามสกุล</span><input type="text" name="full_name" required></label>
+      <label><span class="l">อีเมล</span><input type="email" name="email"></label>
+      <label><span class="l">รหัสผ่านเริ่มต้น</span><input type="password" name="password" minlength="8" required autocomplete="new-password"></label>
+      <button class="btn sm" type="submit">สร้าง</button>
+    </form></div>
+</div>

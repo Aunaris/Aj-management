@@ -1,0 +1,54 @@
+<div class="page-head">
+  <div><h1>แก้ไขคาบ สัปดาห์ <%= s.week_number %></h1><p>Class Session Detail: หัวข้อ วัตถุประสงค์ กิจกรรม สื่อ CLO และบันทึกหลังสอน</p></div>
+  <div class="actions"><a class="btn ghost" href="/sessions/<%= s.id %>">ดูมุมมองนักศึกษา</a><a class="btn" href="/teacher/sessions/<%= s.id %>/live">หน้าระหว่างคาบ</a></div>
+</div>
+<form method="post" action="/teacher/sessions/<%= s.id %>/edit" class="card stack">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="row">
+    <label style="flex:0 0 110px"><span class="l">สัปดาห์</span><input type="number" name="week_number" value="<%= s.week_number %>" min="1" max="30"></label>
+    <label style="flex:3"><span class="l">หัวข้อการเรียนรู้</span><input type="text" name="title" value="<%= s.title %>" required></label>
+    <label><span class="l">สถานะ</span><select name="status"><% ['draft','published','completed','cancelled'].forEach(st => { %><option value="<%= st %>" <%= s.status === st ? 'selected' : '' %>><%= u.label('session', st) %></option><% }) %></select></label>
+  </div>
+  <div class="row">
+    <label><span class="l">วันที่</span><input type="date" name="session_date" value="<%= s.session_date || '' %>"></label>
+    <label><span class="l">เวลาเริ่ม</span><input type="time" name="start_time" value="<%= s.start_time || '' %>"></label>
+    <label><span class="l">เวลาสิ้นสุด</span><input type="time" name="end_time" value="<%= s.end_time || '' %>"></label>
+    <label><span class="l">สถานที่</span><input type="text" name="location" value="<%= s.location || '' %>"></label>
+    <label><span class="l">ผู้สอน</span><input type="text" name="instructor" value="<%= s.instructor || '' %>"></label>
+  </div>
+  <label><span class="l">วัตถุประสงค์</span><textarea name="objectives"><%= lesson.objectives || '' %></textarea></label>
+  <label><span class="l">เนื้อหาหลัก</span><textarea name="topics"><%= lesson.topics || '' %></textarea></label>
+  <div class="row">
+    <label><span class="l">กิจกรรมภาคทฤษฎี</span><textarea name="theory_activities"><%= lesson.theory_activities || '' %></textarea></label>
+    <label><span class="l">กิจกรรมภาคปฏิบัติ</span><textarea name="practical_activities"><%= lesson.practical_activities || '' %></textarea></label>
+  </div>
+  <div class="row">
+    <label><span class="l">วิธีสอน</span><input type="text" name="teaching_method" value="<%= lesson.teaching_method || '' %>"></label>
+    <div class="field"><span class="l">CLO ที่เกี่ยวข้อง</span><div class="actions"><% clos.forEach(c => { %><label class="check"><input type="checkbox" name="clo_codes" value="<%= c.clo_code %>" <%= (lesson.clo_codes || '').includes(c.clo_code) ? 'checked' : '' %>><span><%= c.clo_code %></span></label><% }) %></div></div>
+  </div>
+  <fieldset><legend>บันทึกหลังสอน</legend>
+    <label><span class="l">สรุปหลังสอน</span><textarea name="post_class_notes"><%= lesson.post_class_notes || '' %></textarea></label>
+    <div class="row">
+      <label><span class="l">ปัญหาที่พบ</span><textarea name="issues"><%= lesson.issues || '' %></textarea></label>
+      <label><span class="l">ข้อสังเกตสำหรับคาบถัดไป</span><textarea name="next_session_notes"><%= lesson.next_session_notes || '' %></textarea></label>
+    </div>
+  </fieldset>
+  <button class="btn" type="submit">บันทึก</button>
+</form>
+<div class="card">
+  <h2>สื่อ / เอกสารประกอบคาบ</h2>
+  <ul class="list">
+    <% materials.forEach(m => { %><li><div><%= m.title %> <% if (m.visibility === 'teachers') { %><span class="badge muted">เฉพาะผู้สอน</span><% } %><br><small><%= m.external_url || m.file_name %></small></div>
+      <form method="post" action="/teacher/sessions/<%= s.id %>/materials/<%= m.id %>/delete" data-confirm="ลบสื่อนี้?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">ลบ</button></form></li><% }) %>
+  </ul>
+  <form method="post" action="/teacher/sessions/<%= s.id %>/materials" enctype="multipart/form-data" class="stack" style="margin-top:.8rem">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row">
+      <label><span class="l">ชื่อสื่อ</span><input type="text" name="title" placeholder="เช่น สไลด์บทที่ 2, วิดีโอตัวอย่าง"></label>
+      <label><span class="l">URL (วิดีโอ/บทความ/เว็บไซต์)</span><input type="url" name="external_url" placeholder="https://"></label>
+      <label><span class="l">หรือไฟล์</span><input type="file" name="file"></label>
+      <label style="flex:0 0 160px"><span class="l">การมองเห็น</span><select name="visibility"><option value="students">นักศึกษาเห็น</option><option value="teachers">เฉพาะผู้สอน</option></select></label>
+    </div>
+    <button class="btn sm" type="submit">เพิ่มสื่อ</button>
+  </form>
+</div>

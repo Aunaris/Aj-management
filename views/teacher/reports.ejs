@@ -1,0 +1,17 @@
+<div class="page-head"><div><h1>รายงานและส่งออกข้อมูล</h1><p>CSV เปิดด้วย Microsoft Excel ได้ทันที (UTF-8 พร้อมภาษาไทย) · "พิมพ์/PDF" เปิดหน้าพิมพ์แล้วเลือก Save as PDF · ทุกรายงานแสดงภาคเรียน รายวิชา วันที่ออกรายงาน และเงื่อนไขการคัดกรอง</p></div></div>
+<div class="grid g3">
+  <% Object.entries(types).forEach(([k, label]) => { %>
+    <div class="card">
+      <h2><%= label %></h2>
+      <% if (k === 'submissions' || k === 'grading') { %>
+        <form method="get" action="/teacher/reports/<%= k %>.csv" class="stack">
+          <select name="assignment"><option value="">ทุกงาน</option><% assignments.forEach(a => { %><option value="<%= a.id %>"><%= a.assignment_code %> <%= a.title %></option><% }) %></select>
+          <div class="actions"><button class="btn sm" type="submit">CSV (Excel)</button><button class="btn sm ghost" type="submit" formaction="/teacher/reports/<%= k %>/print" formtarget="_blank">พิมพ์ / PDF</button></div>
+        </form>
+      <% } else { %>
+        <div class="actions"><a class="btn sm" href="/teacher/reports/<%= k %>.csv">CSV (Excel)</a><a class="btn sm ghost" href="/teacher/reports/<%= k %>/print" target="_blank" rel="noopener">พิมพ์ / PDF</a></div>
+      <% } %>
+    </div>
+  <% }) %>
+</div>
+<% if (user.role === 'admin') { %><div class="card"><h2>สำรองข้อมูล</h2><p class="hint">ดาวน์โหลดสำเนาฐานข้อมูลทั้งหมด (ไฟล์งานอยู่ในโฟลเดอร์ storage ต้องสำรองแยก)</p><a class="btn sm ghost" href="/admin/backup">ดาวน์โหลด Backup</a></div><% } %>

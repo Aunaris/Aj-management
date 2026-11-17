@@ -1,0 +1,19 @@
+<div class="page-head"><div><h1>คะแนนและ Feedback</h1><p>แสดงเฉพาะคะแนนที่ผู้สอนเผยแพร่แล้ว</p></div></div>
+<div class="grid g4">
+  <div class="stat accent"><div class="label">คะแนนสะสม</div><div class="value"><%= row ? row.total : 0 %></div><div class="sub">/100 · รอผลประเมิน <%= row ? row.pending : 0 %> รายการ</div></div>
+</div>
+<div class="card">
+  <h2>คะแนนรายหมวด (OBE-3)</h2>
+  <div class="table-wrap"><table>
+    <tr><th>หมวด</th><th>CLO</th><th class="num">ได้</th><th class="num">เต็ม</th><th>รายการ</th></tr>
+    <% gb.categories.forEach(cat => { const b = row.byCat[cat.id]; %>
+      <tr><td><%= cat.category_name %></td><td><%= cat.clo_reference %></td><td class="num"><strong><%= b.earned %></strong></td><td class="num"><%= cat.max_score %></td>
+        <td><% b.items.forEach(i => { %><div><small><a href="/student/assignments/<%= i.assignment.id %>"><%= i.assignment.title %></a>: <%= i.counted ? i.grade.total_score + '/' + i.assignment.max_score : (i.state === 'revision_requested' ? 'ขอให้แก้ไข' : 'รอผลประเมิน') %></small></div><% }) %></td></tr>
+    <% }) %>
+  </table></div>
+</div>
+<div class="card">
+  <h2>Feedback ล่าสุด</h2>
+  <% const fb = list.filter(a => a.grade && a.grade.feedback); if (!fb.length) { %><div class="empty">ยังไม่มี Feedback</div><% } %>
+  <ul class="list"><% fb.forEach(a => { %><li><div><a href="/student/assignments/<%= a.id %>"><strong><%= a.title %></strong></a><div style="white-space:pre-line"><small><%= a.grade.feedback %></small></div></div><%- u.badge('grade', a.grade.status) %></li><% }) %></ul>
+</div>

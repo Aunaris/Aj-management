@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR เช็คชื่อ · สัปดาห์ <%= s.week_number %></title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=Inter:wght@600;700&display=swap">
+<link rel="stylesheet" href="/static/css/app.css"><meta name="csrf-token" content="<%= csrf %>"></head>
+<body class="projector">
+  <div data-qr-session="<%= s.id %>">
+    <h1><%= course.course_code %> · สัปดาห์ <%= s.week_number %> — สแกนเพื่อเช็คชื่อ</h1>
+    <p class="meta">เข้าสู่ระบบด้วยบัญชีของตนเองก่อนสแกน · QR เปลี่ยนทุก <%= course.qr_ttl_seconds %> วินาที</p>
+    <div class="qr-wrap"><img data-qr-img alt="QR Code เช็คชื่อ"></div>
+    <div class="ring"><span data-qr-bar style="width:100%"></span></div>
+    <div class="meta">QR ใหม่ใน <span data-qr-left>—</span> · หรือพิมพ์รหัส</div>
+    <div class="short-code" data-qr-code>······</div>
+    <div class="meta">เช็คชื่อแล้ว</div><div class="big-count" data-qr-count>—</div>
+    <div class="meta" data-qr-closed hidden>ปิดการเช็คชื่อแล้ว</div>
+    <div class="verify" data-qr-verify hidden>มีรหัสยืนยันในห้องเรียน — ดูรหัสจากผู้สอน แล้วกรอกในหน้ารายละเอียดคาบ</div>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body></html>

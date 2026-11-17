@@ -1,0 +1,111 @@
+<% const open = s.attendance_state === 'open'; const isT = user.role === 'teacher'; %>
+<div class="page-head">
+  <div>
+    <small class="muted">สัปดาห์ <%= s.week_number %> · <%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · มาสายเมื่อเกิน <%= course.late_after_minutes %> นาที</small>
+    <h1><%= s.title %></h1>
+    <div><%- u.badge('attendanceState', s.attendance_state) %> <a href="/sessions/<%= s.id %>">รายละเอียดคาบ</a></div>
+  </div>
+  <% if (isT) { %>
+  <div class="actions">
+    <% if (!open) { %>
+      <form method="post" action="/teacher/sessions/<%= s.id %>/attendance/open" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn lg" type="submit"><%= s.attendance_state === 'closed' ? 'เปิดเช็คชื่ออีกครั้ง' : '▶ เปิดเช็คชื่อ QR' %></button></form>
+    <% } else { %>
+      <a class="btn navy" href="/teacher/sessions/<%= s.id %>/projector" target="_blank" rel="noopener">⛶ เปิดจอ QR (Projector)</a>
+      <form method="post" action="/teacher/sessions/<%= s.id %>/verify-code" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="minutes" value="2"><button class="btn ghost" type="submit" title="สุ่มรหัส 4 หลักให้นักศึกษายืนยันว่าอยู่ในห้อง">สุ่มรหัสยืนยันในห้อง</button></form>
+      <form method="post" action="/teacher/sessions/<%= s.id %>/attendance/close" class="inline" data-confirm="ปิดการเช็คชื่อ? นักศึกษาที่ยังไม่เช็คชื่อจะถูกบันทึกเป็น 'ขาดเรียน' (แก้ไขได้ภายหลังพร้อมเหตุผล)">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="mark_absent" value="1"><button class="btn danger" type="submit">■ ปิดเช็คชื่อ</button>
+      </form>
+    <% } %>
+  </div>
+  <% } %>
+</div>
+
+<div class="live-grid">
+  <div>
+    <div class="card qr-box" <% if (open && isT) { %>data-qr-session="<%= s.id %>"<% } %>>
+      <h2 style="justify-content:center">QR เช็คชื่อ</h2>
+      <% if (open && isT) { %>
+        <img data-qr-img alt="QR Code สำหรับเช็คชื่อ (หมุนเวียนอัตโนมัติ)">
+        <div class="ring"><span data-qr-bar style="width:100%"></span></div>
+        <div class="countdown">QR ใหม่ใน <span data-qr-left>—</span></div>
+        <div class="short-code" data-qr-code>······</div>
+        <div class="hint">หรือพิมพ์รหัส 6 ตัวที่หน้า "เช็คชื่อ"</div>
+        <div class="hint" data-qr-closed hidden>ปิดการเช็คชื่อแล้ว</div>
+        <span data-qr-verify hidden class="badge ok">รหัสยืนยันในห้องกำลังเปิดใช้</span>
+      <% } else { %>
+        <div class="empty"><%= s.attendance_state === 'closed' ? 'ปิดการเช็คชื่อแล้ว — แก้ไขสถานะแบบ Manual ได้ที่ตารางด้านขวา (ต้องระบุเหตุผล)' : 'กด "เปิดเช็คชื่อ QR" เพื่อเริ่ม' %></div>
+      <% } %>
+    </div>
+    <div class="card">
+      <h2>สรุปการเข้าเรียน</h2>
+      <div class="grid g2" style="gap:.5rem">
+        <div class="stat"><div class="label">มาเรียน</div><div class="value" data-sum="present"><%= summary.present %></div></div>
+        <div class="stat"><div class="label">มาสาย</div><div class="value" data-sum="late"><%= summary.late %></div></div>
+        <div class="stat"><div class="label">ขาด</div><div class="value" data-sum="absent"><%= summary.absent %></div></div>
+        <div class="stat"><div class="label">ลา / ยังไม่เช็ค</div><div class="value"><span data-sum="leave"><%= summary.leave %></span> / <span data-sum="none"><%= summary.none %></span></div></div>
+      </div>
+      <p class="hint">ยืนยันในห้องแล้ว <span data-sum="verified"><%= summary.verified %></span> คน · ทั้งหมด <%= summary.total %> คน</p>
+      <% if (isT) { %>
+      <details><summary>บันทึกแบบกลุ่ม (กรณีระบบ/อินเทอร์เน็ตขัดข้อง)</summary>
+        <form method="post" action="/teacher/sessions/<%= s.id %>/attendance/bulk" class="stack" style="margin-top:.5rem" data-confirm="ยืนยันบันทึกสถานะแบบกลุ่ม?">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="row"><label><span class="l">สถานะ</span><select name="status"><option value="present">มาเรียน</option><option value="absent">ขาดเรียน</option><option value="leave">ลา</option></select></label></div>
+          <label class="check"><input type="checkbox" name="only_unmarked" value="1" checked><span>เฉพาะคนที่ยังไม่มีสถานะ</span></label>
+          <label><span class="l">เหตุผล</span><input type="text" name="reason" required placeholder="เช่น อินเทอร์เน็ตห้องเรียนขัดข้อง"></label>
+          <button class="btn sm" type="submit">บันทึก</button>
+        </form>
+      </details>
+      <% } %>
+    </div>
+    <% if (risks.length) { %>
+    <div class="card">
+      <h2>เหตุการณ์เสี่ยง (รอตรวจสอบ) <a class="btn sm ghost" href="/teacher/risk?session=<%= s.id %>">ตรวจสอบ</a></h2>
+      <ul class="list"><% risks.slice(0, 6).forEach(r => { %><li><div><strong><%= r.full_name %></strong><br><small><%= u.RISK_TYPES[r.event_type] || r.event_type %> · <%= u.thaiDate(r.created_at, { time: true }) %></small></div><%- u.badge('risk', r.risk_level) %></li><% }) %></ul>
+      <p class="hint">ระบบไม่ตัดสินหรือหักคะแนนอัตโนมัติ ผู้สอนเป็นผู้พิจารณา</p>
+    </div>
+    <% } %>
+    <div class="card">
+      <h2>ให้คะแนนระหว่างคาบ</h2>
+      <% if (!assignments.length) { %><div class="empty">ยังไม่มีงานในคาบนี้</div><% } %>
+      <ul class="list">
+        <% assignments.forEach(a => { %><li><div><strong><%= a.assignment_code %></strong> <%= a.title %><br><small><%= a.max_score %> คะแนน · <%= a.submission_mode === 'in_class' ? 'ให้คะแนนในคาบ' : 'ส่งออนไลน์' %></small> <%- u.badge('assignment', a.status) %></div>
+          <% if (isT) { %><div class="actions"><a class="btn sm" href="/teacher/grading/<%= a.id %>/grid?session=<%= s.id %>">Quick Grid</a><% if (a.submission_mode === 'online') { %><a class="btn sm ghost" href="/teacher/grading/<%= a.id %>">ตรวจงาน</a><% } %></div><% } %></li><% }) %>
+      </ul>
+      <% if (isT) { %>
+      <div class="actions" style="margin-top:.6rem">
+        <a class="btn sm ghost" href="/teacher/assignments/new?template=in_class_activity&session=<%= s.id %>">+ กิจกรรมในคาบ</a>
+        <a class="btn sm ghost" href="/teacher/assignments/new?session=<%= s.id %>">+ งานใหม่ของคาบนี้</a>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>รายชื่อนักศึกษา <small class="muted">เช็คแล้ว <span data-qr-count><%= summary.present + summary.late %> / <%= summary.total %></span></small></h2>
+    <div class="table-wrap">
+      <table data-roster="<%= s.id %>" data-state="<%= s.attendance_state %>" data-closed="<%= s.attendance_state === 'closed' ? 1 : 0 %>">
+        <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>เวลา</th><th>วิธี</th><th>สถานะ (คลิกเพื่อแก้ไข)</th></tr>
+        <% roster.forEach(r => { const st = r.record ? r.record.attendance_status : ''; %>
+          <tr class="roster-row <%= st ? 'status-' + st : '' %>" data-student="<%= r.id %>" data-current="<%= st %>">
+            <td><small><%= r.student_code %></small></td>
+            <td><a href="/teacher/students/<%= r.id %>"><%= r.full_name %></a>
+              <span class="badge ok" data-verified <%= r.record && r.record.verified_at ? '' : 'hidden' %>>✓ ยืนยัน</span>
+              <span class="badge bad" data-risk <%= r.pendingRisks ? '' : 'hidden' %>>⚑ <%= r.pendingRisks %></span>
+              <% if (r.record && r.record.note) { %><br><small class="muted"><%= r.record.note %></small><% } %>
+            </td>
+            <td><small data-time><%= r.record && r.record.checkin_time ? u.thaiDate(r.record.checkin_time, { time: true }).split(' ').slice(-2).join(' ') : '' %></small></td>
+            <td><small data-method><%= r.record ? u.label('method', r.record.checkin_method) : '' %></small></td>
+            <td>
+              <% if (isT || user.role === 'admin') { %>
+              <div class="seg" role="group" aria-label="สถานะการเข้าเรียน">
+                <% ['present','late','absent','leave'].forEach(k => { %><button type="button" data-status="<%= k %>" class="<%= k %> <%= st === k ? 'on' : '' %>"><%= u.label('attendance', k) %></button><% }) %>
+              </div>
+              <% } else { %><%- u.badge('attendance', st || 'none') %><% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </table>
+    </div>
+    <% if (!roster.length) { %><div class="empty">ยังไม่มีรายชื่อนักศึกษา — <a href="/teacher/students">นำเข้ารายชื่อ</a></div><% } %>
+  </div>
+</div>

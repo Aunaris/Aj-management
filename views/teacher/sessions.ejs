@@ -1,0 +1,30 @@
+<div class="page-head">
+  <div><h1>คาบเรียนและการเช็คชื่อ</h1><p>แผนการสอน 17 สัปดาห์ตาม OBE-3 — เลือกคาบเพื่อเปิด QR / เช็คชื่อแบบ Manual / ให้คะแนนระหว่างคาบ</p></div>
+  <% if (user.role === 'teacher') { %>
+  <details><summary class="btn ghost">+ เพิ่มคาบ (สอนชดเชย/เพิ่มเติม)</summary>
+    <form method="post" action="/teacher/sessions" class="card stack" style="margin-top:.5rem;min-width:300px">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="row"><label><span class="l">สัปดาห์</span><input type="number" name="week_number" min="1" max="30" required></label><label><span class="l">วันที่</span><input type="date" name="session_date"></label></div>
+      <label><span class="l">หัวข้อ</span><input type="text" name="title"></label>
+      <div class="row"><label><span class="l">เริ่ม</span><input type="time" name="start_time" value="09:00"></label><label><span class="l">สิ้นสุด</span><input type="time" name="end_time" value="13:00"></label></div>
+      <button class="btn sm" type="submit">สร้าง</button>
+    </form>
+  </details>
+  <% } %>
+</div>
+<div class="table-wrap"><table>
+  <tr><th>สัปดาห์</th><th>หัวข้อ</th><th>วันเวลา</th><th>สถานะ</th><th>เข้าเรียน</th><th></th></tr>
+  <% sessions.forEach(s => { %>
+    <tr>
+      <td><span class="week <%= s.attendance_state === 'open' ? 'now' : '' %>" style="display:inline-block;width:48px">W<%= s.week_number %></span></td>
+      <td><a href="/sessions/<%= s.id %>"><%= s.title %></a></td>
+      <td><small><%= u.thaiDate(s.session_date) %><br><%= s.start_time || '' %>–<%= s.end_time || '' %></small></td>
+      <td><%- u.badge('session', s.status) %><br><%- u.badge('attendanceState', s.attendance_state) %></td>
+      <td><% if (s.summary) { %><small>มา <%= s.summary.present %> · สาย <%= s.summary.late %> · ขาด <%= s.summary.absent %> · ลา <%= s.summary.leave %><%= s.summary.none ? ' · ยังไม่เช็ค ' + s.summary.none : '' %></small><% } else { %><small class="muted">—</small><% } %></td>
+      <td class="actions">
+        <a class="btn sm" href="/teacher/sessions/<%= s.id %>/live">ระหว่างคาบ</a>
+        <% if (user.role === 'teacher') { %><a class="btn sm ghost" href="/teacher/sessions/<%= s.id %>/edit">แก้ไข</a><% } %>
+      </td>
+    </tr>
+  <% }) %>
+</table></div>

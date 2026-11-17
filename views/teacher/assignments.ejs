@@ -1,0 +1,47 @@
+<div class="page-head">
+  <div><h1>งานที่มอบหมาย</h1><p>สร้างโจทย์ กำหนดหมวดคะแนนตาม OBE-3, CLO, Rubric และกำหนดส่ง</p></div>
+  <% if (user.role === 'teacher') { %>
+  <div class="actions">
+    <select data-template-select aria-label="สร้างจาก Template">
+      <option value="">+ สร้างจาก Template…</option>
+      <% Object.entries(templates).forEach(([k, t]) => { %><option value="<%= k %>"><%= t.label %></option><% }) %>
+    </select>
+    <a class="btn" href="/teacher/assignments/new">+ สร้างงานเปล่า</a>
+  </div>
+  <% } %>
+</div>
+<div class="card">
+  <h2>การใช้คะแนนในแต่ละหมวด</h2>
+  <div class="table-wrap"><table>
+    <tr><th>หมวด (OBE-3)</th><th>CLO</th><th class="num">คะแนนเต็มหมวด</th><th class="num">วางแผนแล้ว</th><th class="num">เผยแพร่แล้ว</th><th>สถานะ</th></tr>
+    <% structure.categories.forEach(c => { %><tr><td><%= c.category_name %></td><td><%= c.clo_reference %></td><td class="num"><%= c.max_score %></td><td class="num"><%= c.planned %></td><td class="num"><%= c.published %></td>
+      <td><%- c.state === 'ok' ? '<span class="badge ok">ครบ</span>' : c.state === 'over' ? '<span class="badge bad">เกิน</span>' : '<span class="badge muted">เหลือ ' + u.round2(c.max_score - c.planned) + '</span>' %></td></tr><% }) %>
+  </table></div>
+</div>
+<div class="card">
+  <h2>รายการงาน</h2>
+  <% if (!list.length) { %><div class="empty">ยังไม่มีงาน — เริ่มจาก Template เช่น Bouncing Ball, Character Design, Storyboard, Walk Cycle หรือ Final Project</div><% } %>
+  <div class="table-wrap"><table>
+    <tr><th>รหัส</th><th>ชื่องาน</th><th>หมวด</th><th class="num">คะแนน</th><th>กำหนดส่ง</th><th>ส่ง / ตรวจ</th><th>สถานะ</th><th></th></tr>
+    <% list.forEach(a => { %>
+      <tr>
+        <td><strong><%= a.assignment_code %></strong></td>
+        <td><%= a.title %><br><small><%= a.submission_mode === 'in_class' ? 'ให้คะแนนในคาบ' : 'ส่งออนไลน์' %><%= a.week_number ? ' · สัปดาห์ ' + a.week_number : '' %></small></td>
+        <td><small><%= a.category_name %></small></td>
+        <td class="num"><%= a.max_score %></td>
+        <td><small><%= a.due_date ? u.thaiDate(a.due_date, { time: true }) : '—' %></small></td>
+        <td><small><%= a.submission_mode === 'online' ? 'ส่ง ' + a.submitted + '/' + a.total + ' · ' : '' %>รอตรวจ <%= a.toReview %> · เผยแพร่ <%= a.published %></small></td>
+        <td><%- u.badge('assignment', a.status) %></td>
+        <td class="actions">
+          <% if (user.role === 'teacher') { %>
+          <a class="btn sm" href="/teacher/grading/<%= a.id %><%= a.submission_mode === 'in_class' ? '/grid' : '' %>">ตรวจ/ให้คะแนน</a>
+          <a class="btn sm ghost" href="/teacher/assignments/<%= a.id %>/edit">แก้ไข</a>
+          <% if (a.status === 'draft') { %><form method="post" action="/teacher/assignments/<%= a.id %>/status" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="published"><button class="btn sm navy">เผยแพร่</button></form><% } %>
+          <% if (a.status === 'published') { %><form method="post" action="/teacher/assignments/<%= a.id %>/status" class="inline" data-confirm="ปิดรับงานนี้?"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="closed"><button class="btn sm ghost">ปิดรับ</button></form><% } %>
+          <% if (a.status === 'closed') { %><form method="post" action="/teacher/assignments/<%= a.id %>/status" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="published"><button class="btn sm ghost">เปิดรับอีกครั้ง</button></form><% } %>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+  </table></div>
+</div>

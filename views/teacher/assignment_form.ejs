@@ -1,0 +1,139 @@
+<%
+  const v = a || draft || {};
+  const val = (k, d = '') => (v[k] === null || v[k] === undefined ? d : v[k]);
+  const crit = a ? (rubric ? rubric.criteria : []) : (draft ? draft.criteria : []);
+  const mapBy = Object.fromEntries((maps || []).map(m => [m.clo_code, m.contribution_weight]));
+  const draftClos = draft ? draft.cloCodes : [];
+  const mode = val('submission_mode', 'online');
+  const action = a ? '/teacher/assignments/' + a.id : '/teacher/assignments';
+%>
+<div class="page-head">
+  <div><h1><%= a ? 'แก้ไขงาน ' + a.assignment_code : 'สร้างงานใหม่ (Assignment Builder)' %></h1>
+    <p><% if (a) { %><%- u.badge('assignment', a.status) %> <% } %>กำหนดหมวดคะแนน CLO Rubric และเงื่อนไขการส่ง — ระบบตรวจสอบไม่ให้คะแนนรวมเกินหมวดตาม OBE-3</p></div>
+  <div class="actions">
+    <% if (!a) { %>
+      <select data-template-select aria-label="Template">
+        <option value="">ใช้ Template…</option>
+        <% Object.entries(templates).forEach(([k, t]) => { %><option value="<%= k %>" <%= draft && draft.template === k ? 'selected' : '' %>><%= t.label %></option><% }) %>
+      </select>
+    <% } else { %>
+      <a class="btn ghost" href="/teacher/grading/<%= a.id %><%= a.submission_mode === 'in_class' ? '/grid' : '' %>">ไปหน้าตรวจ/ให้คะแนน</a>
+    <% } %>
+  </div>
+</div>
+<form method="post" action="<%= action %>" class="stack" data-assignment-form>
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="template" value="<%= val('template') %>">
+  <div class="grid g-side">
+    <div>
+      <div class="card">
+        <h2>ข้อมูลงาน</h2>
+        <div class="row">
+          <label style="flex:0 0 130px"><span class="l">รหัสงาน *</span><input type="text" name="assignment_code" value="<%= val('assignment_code') %>" required maxlength="30" pattern="[A-Za-z0-9_.\-]+"></label>
+          <label style="flex:3"><span class="l">ชื่องาน *</span><input type="text" name="title" value="<%= val('title') %>" required maxlength="200"></label>
+        </div>
+        <label><span class="l">คำอธิบาย</span><textarea name="description"><%= val('description') %></textarea></label>
+        <label><span class="l">คำสั่งงาน</span><textarea name="instructions" style="min-height:120px"><%= val('instructions') %></textarea></label>
+        <div class="row">
+          <label><span class="l">รูปแบบการให้คะแนน</span>
+            <select name="submission_mode">
+              <option value="online" <%= mode === 'online' ? 'selected' : '' %>>นักศึกษาส่งงานออนไลน์</option>
+              <option value="in_class" <%= mode === 'in_class' ? 'selected' : '' %>>ให้คะแนนในคาบ (ไม่ต้องส่งไฟล์)</option>
+            </select></label>
+          <label><span class="l">เชื่อมกับคาบเรียน</span>
+            <select name="session_id"><option value="">— ไม่ระบุ —</option>
+              <% sessions.forEach(s => { %><option value="<%= s.id %>" <%= val('session_id') === s.id ? 'selected' : '' %>>สัปดาห์ <%= s.week_number %>: <%= s.title.slice(0, 50) %></option><% }) %>
+            </select></label>
+          <label style="flex:0 0 110px"><span class="l">สัปดาห์</span><input type="number" name="week_number" min="1" max="30" value="<%= val('week_number') %>"></label>
+        </div>
+        <div class="row">
+          <label><span class="l">วันเปิดรับ</span><input type="datetime-local" name="open_at" value="<%= u.toLocalInput(val('open_at', null)) %>"></label>
+          <label><span class="l">วันกำหนดส่ง</span><input type="datetime-local" name="due_date" value="<%= u.toLocalInput(val('due_date', null)) %>"></label>
+        </div>
+      </div>
+      <div class="card" data-online-only>
+        <h2>เงื่อนไขการส่งงาน</h2>
+        <div class="row">
+          <label style="flex:3"><span class="l">ชนิดไฟล์ที่อนุญาต (คั่นด้วย ,)</span><input type="text" name="allowed_types" value="<%= val('allowed_types', 'jpg,jpeg,png,gif,mp4,mov,pdf,zip') %>">
+            <div class="hint">รองรับ: jpg jpeg png gif webp mp4 mov webm pdf zip doc docx ppt pptx xls xlsx และไฟล์ต้นฉบับ fla xfl tbh kra psd aep clip</div></label>
+          <label><span class="l">ขนาดไฟล์สูงสุด (MB)</span><input type="number" name="max_file_mb" min="1" max="2048" value="<%= val('max_file_mb', 200) %>"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="allow_links" value="1" <%= val('allow_links', 1) ? 'checked' : '' %>><span>อนุญาตแนบ URL (Google Drive, OneDrive, Dropbox, YouTube ฯลฯ)</span></label>
+        <label><span class="l">โดเมนที่อนุญาต (เว้นว่าง = ทุกโดเมน)</span><input type="text" name="allowed_domains" value="<%= val('allowed_domains') %>" placeholder="drive.google.com, youtube.com, youtu.be, onedrive.live.com, dropbox.com"></label>
+        <div class="row">
+          <label class="check" style="flex:2"><input type="checkbox" name="allow_resubmit" value="1" <%= val('allow_resubmit', 1) ? 'checked' : '' %>><span>อนุญาตให้ส่งซ้ำ (เก็บทุกเวอร์ชัน ไม่เขียนทับ)</span></label>
+          <label><span class="l">จำนวนเวอร์ชันสูงสุด</span><input type="number" name="max_versions" min="1" max="50" value="<%= val('max_versions', 5) %>"></label>
+          <label><span class="l">งานล่าช้า</span><select name="late_policy"><option value="accept_mark" <%= val('late_policy') !== 'reject' ? 'selected' : '' %>>รับ แต่ทำเครื่องหมาย "ส่งล่าช้า"</option><option value="reject" <%= val('late_policy') === 'reject' ? 'selected' : '' %>>ไม่รับหลังกำหนดส่ง</option></select></label>
+        </div>
+        <p class="hint">ระบบไม่หักคะแนนงานล่าช้าอัตโนมัติ ผู้สอนพิจารณาเองตอนตรวจ</p>
+      </div>
+      <div class="card">
+        <h2>Rubric (เกณฑ์ประเมิน) <button class="btn sm ghost" data-add-criterion type="button">+ เพิ่มเกณฑ์</button></h2>
+        <p class="hint">คะแนนรวม = Σ(คะแนนเกณฑ์ ÷ คะแนนเต็มเกณฑ์ × น้ำหนัก) ÷ Σน้ำหนัก × คะแนนเต็มงาน — ค่าเริ่มต้นน้ำหนัก = คะแนนเต็มเกณฑ์ · ระดับคะแนน (ไม่บังคับ) พิมพ์คั่นด้วย | เช่น <code>0|1|1.5|2</code> เพื่อแสดงปุ่มให้คะแนนเร็ว · ไม่ใส่เกณฑ์ = ให้คะแนนรวมโดยตรง</p>
+        <div data-criteria>
+          <% crit.forEach(c => { %>
+          <div class="row criterion" data-row>
+            <label style="flex:3"><span class="l">เกณฑ์</span><input type="text" name="criterion_name" value="<%= c.criterion_name %>"></label>
+            <label style="flex:0 0 90px"><span class="l">คะแนนเต็ม</span><input type="number" step="0.25" min="0.25" name="criterion_max" value="<%= c.max_score %>"></label>
+            <label style="flex:0 0 90px"><span class="l">น้ำหนัก</span><input type="number" step="0.25" min="0.25" name="criterion_weight" value="<%= c.weight %>"></label>
+            <label style="flex:2"><span class="l">คำอธิบายระดับ</span><input type="text" name="criterion_desc" value="<%= c.description || '' %>"></label>
+            <label style="flex:1"><span class="l">ระดับคะแนน</span><input type="text" name="criterion_levels" value="<%= (c.levels || []).join('|') %>" placeholder="0|1|2"></label>
+            <div style="flex:0 0 auto;align-self:end"><button class="btn sm ghost" data-remove-row type="button" aria-label="ลบเกณฑ์">✕</button></div>
+          </div>
+          <% }) %>
+        </div>
+        <p class="hint">ผลรวมคะแนนเต็มของเกณฑ์: <strong data-crit-sum>0</strong></p>
+        <template data-criterion-tpl>
+          <div class="row criterion" data-row>
+            <label style="flex:3"><span class="l">เกณฑ์</span><input type="text" name="criterion_name"></label>
+            <label style="flex:0 0 90px"><span class="l">คะแนนเต็ม</span><input type="number" step="0.25" min="0.25" name="criterion_max" value="1"></label>
+            <label style="flex:0 0 90px"><span class="l">น้ำหนัก</span><input type="number" step="0.25" min="0.25" name="criterion_weight" placeholder="=คะแนนเต็ม"></label>
+            <label style="flex:2"><span class="l">คำอธิบายระดับ</span><input type="text" name="criterion_desc"></label>
+            <label style="flex:1"><span class="l">ระดับคะแนน</span><input type="text" name="criterion_levels" placeholder="0|1|2"></label>
+            <div style="flex:0 0 auto;align-self:end"><button class="btn sm ghost" data-remove-row type="button" aria-label="ลบเกณฑ์">✕</button></div>
+          </div>
+        </template>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>คะแนนและหมวด (OBE-3)</h2>
+        <label><span class="l">หมวดคะแนน *</span>
+          <select name="category_id" required><option value="">— เลือก —</option>
+            <% categories.forEach(c => { %><option value="<%= c.id %>" data-hint="<%= c.rubric_hint %>" <%= val('category_id') === c.id ? 'selected' : '' %>><%= c.category_name %> (<%= c.clo_reference %>) — เหลือ <%= u.round2(c.max_score - usage[c.id]) %>/<%= c.max_score %></option><% }) %>
+          </select>
+          <div class="hint" data-cat-hint><%= (categories.find(c => c.id === val('category_id')) || {}).rubric_hint || '' %></div></label>
+        <label><span class="l">คะแนนเต็มของงาน *</span><input type="number" step="0.25" min="0.25" name="max_score" value="<%= val('max_score') %>" required></label>
+      </div>
+      <div class="card">
+        <h2>CLO Mapping</h2>
+        <p class="hint">เลือก CLO ที่งานนี้ประเมิน หากเลือกหลาย CLO ให้กำหนดน้ำหนักรวม = 1 เพื่อไม่ให้นับคะแนนซ้ำ</p>
+        <% clos.forEach(c => { const on = a ? mapBy[c.clo_code] !== undefined : draftClos.includes(c.clo_code); %>
+          <div class="row" style="align-items:center">
+            <label class="check" style="flex:2"><input type="checkbox" name="clo_<%= c.clo_code %>" value="1" data-clo-check="<%= c.clo_code %>" <%= on ? 'checked' : '' %>><span><strong><%= c.clo_code %></strong> <small><%= c.description.slice(0, 60) %>…</small></span></label>
+            <label style="flex:0 0 90px"><input type="number" step="0.05" min="0" max="1" name="clo_weight_<%= c.clo_code %>" value="<%= on ? (a ? mapBy[c.clo_code] : (draftClos.length ? u.round2(1 / draftClos.length) : 1)) : '' %>" aria-label="น้ำหนัก <%= c.clo_code %>"></label>
+          </div>
+        <% }) %>
+        <p class="hint">น้ำหนักรวม: <strong data-clo-sum>0</strong></p>
+      </div>
+      <div class="card">
+        <input type="hidden" name="return_to" value="">
+        <div class="actions">
+          <button class="btn ghost" type="submit">บันทึก Draft</button>
+          <% if (!a || a.status === 'draft') { %><button class="btn" type="submit" name="publish" value="1">บันทึกและเผยแพร่</button><% } else { %><button class="btn" type="submit">บันทึกการแก้ไข</button><% } %>
+        </div>
+        <% if (a && a.status === 'published') { %><p class="hint">งานเผยแพร่แล้ว หากแก้ไขโจทย์หรือกำหนดส่ง นักศึกษาจะได้รับแจ้งเตือน</p><% } %>
+      </div>
+    </div>
+  </div>
+</form>
+<% if (a) { %>
+<div class="card">
+  <h2>สถานะงาน</h2>
+  <div class="actions">
+    <% if (a.status !== 'published') { %><form method="post" action="/teacher/assignments/<%= a.id %>/status" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="published"><button class="btn navy">เผยแพร่ / เปิดรับ</button></form><% } %>
+    <% if (a.status === 'published') { %><form method="post" action="/teacher/assignments/<%= a.id %>/status" class="inline" data-confirm="ปิดรับงานนี้?"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="closed"><button class="btn ghost">ปิดรับงาน</button></form><% } %>
+    <form method="post" action="/teacher/assignments/<%= a.id %>/delete" class="inline" data-confirm="ลบงานนี้? (ลบได้เฉพาะงานที่ยังไม่มีการส่ง/ให้คะแนน)"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger">ลบงาน</button></form>
+  </div>
+</div>
+<% } %>

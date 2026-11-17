@@ -1,0 +1,106 @@
+<%
+  const sel = selected;
+  const g = grade;
+  const gStatus = g ? g.status : 'not_graded';
+  const subStatus = (o) => o.submission ? o.submission.status : 'none';
+%>
+<div class="page-head">
+  <div>
+    <small class="muted"><%= a.category_name %> · <%= maps.map(m => m.clo_code + (maps.length > 1 ? '×' + m.contribution_weight : '')).join(', ') %> · คะแนนเต็ม <%= a.max_score %></small>
+    <h1><%= a.assignment_code %> <%= a.title %></h1>
+    <div><%- u.badge('assignment', a.status) %> <% if (a.due_date) { %><small>กำหนดส่ง <%= u.thaiDate(a.due_date, { time: true }) %></small><% } %></div>
+  </div>
+  <div class="actions">
+    <a class="btn ghost" href="/teacher/grading/<%= a.id %>/grid">Quick Grid (ทั้งห้อง)</a>
+    <form method="post" action="/teacher/grading/<%= a.id %>/publish-all" class="inline" data-confirm="เผยแพร่คะแนน Draft ทั้งหมดของงานนี้ให้นักศึกษาเห็น?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn navy" <%= locked ? 'disabled' : '' %>>เผยแพร่คะแนน Draft ทั้งหมด</button></form>
+    <a class="btn ghost" href="/teacher/assignments/<%= a.id %>/edit">แก้ไขงาน</a>
+  </div>
+</div>
+<% if (locked) { %><div class="flash warning">คะแนนรายวิชาถูกล็อกแล้ว — ดูได้อย่างเดียว</div><% } %>
+<div class="pill-tabs">
+  <% [['all','ทั้งหมด'],['to_review','รอตรวจ'],['not_submitted','ยังไม่ส่ง'],['published','เผยแพร่แล้ว']].forEach(([k,l]) => { %><a class="<%= filter === k ? 'on' : '' %>" href="/teacher/grading/<%= a.id %>?filter=<%= k %>"><%= l %></a><% }) %>
+</div>
+<div class="grade-layout">
+  <div class="card student-list" aria-label="รายชื่อนักศึกษา">
+    <% filtered.forEach(o => { %>
+      <a href="/teacher/grading/<%= a.id %>?student=<%= o.student.id %>&filter=<%= filter %>" class="<%= sel && sel.student.id === o.student.id ? 'on' : '' %>">
+        <span><%= o.student.full_name %><small><%= o.student.student_code %><%= o.submission ? ' · v' + o.submission.version : '' %></small></span>
+        <span style="text-align:right"><%- a.submission_mode === 'online' ? u.badge('submission', subStatus(o)) : '' %><br><%- o.grade ? u.badge('grade', o.grade.status) : '' %><% if (o.grade && o.grade.total_score !== null) { %> <small><%= o.grade.total_score %></small><% } %><% if (o.linkIssues) { %> <span class="badge warn" title="ลิงก์ที่ต้องตรวจ">🔗<%= o.linkIssues %></span><% } %></span>
+      </a>
+    <% }) %>
+    <% if (!filtered.length) { %><div class="empty">ไม่มีรายการ</div><% } %>
+  </div>
+
+  <div class="card">
+    <% if (!sel) { %><div class="empty">เลือกนักศึกษาจากรายการด้านซ้าย</div><% } else { %>
+      <h2><span><%= sel.student.full_name %> <small class="muted"><%= sel.student.student_code %></small></span>
+        <span class="actions"><% if (prevId) { %><a class="btn sm ghost" href="/teacher/grading/<%= a.id %>?student=<%= prevId %>&filter=<%= filter %>">‹ ก่อนหน้า</a><% } %><% if (nextId) { %><a class="btn sm ghost" href="/teacher/grading/<%= a.id %>?student=<%= nextId %>&filter=<%= filter %>">ถัดไป ›</a><% } %></span></h2>
+      <% if (!viewVersion) { %>
+        <div class="empty"><%= a.submission_mode === 'in_class' ? 'งานนี้ให้คะแนนในคาบ ไม่มีไฟล์ส่ง' : 'ยังไม่ส่งงาน' %></div>
+      <% } else { %>
+        <div class="actions" style="margin-bottom:.6rem">
+          <% versions.forEach(v => { %><a class="btn sm <%= v.id === viewVersion.id ? '' : 'ghost' %>" href="/teacher/grading/<%= a.id %>?student=<%= sel.student.id %>&filter=<%= filter %>&v=<%= v.version %>">v<%= v.version %></a><% }) %>
+          <small><%- u.badge('submission', viewVersion.status) %> ส่งเมื่อ <%= u.thaiDate(viewVersion.submitted_at, { time: true }) %> <% if (viewVersion.is_late) { %><span class="badge warn">ล่าช้า</span><% } %></small>
+        </div>
+        <% if (viewVersion.note) { %><p class="muted">หมายเหตุจากนักศึกษา: <%= viewVersion.note %></p><% } %>
+        <% viewVersion.files.forEach(f => { %>
+          <% if (f.kind === 'image') { %><div class="preview"><img src="/files/submission/<%= f.id %>" alt="<%= f.file_name %>" loading="lazy"></div>
+          <% } else if (f.kind === 'video') { %><div class="preview"><video src="/files/submission/<%= f.id %>" controls preload="metadata" playsinline></video></div>
+          <% } %>
+          <div class="file-card"><div><strong><%= f.file_name %></strong><br><small><%= f.mime_type %> · <%= u.fileSize(f.file_size) %><%= ['source','archive','document','other'].includes(f.kind) ? ' · ไม่รองรับ Preview' : '' %></small></div>
+            <div class="actions"><% if (['image','video','pdf'].includes(f.kind)) { %><a class="btn sm ghost" href="/files/submission/<%= f.id %>" target="_blank" rel="noopener">เปิด/เต็มจอ</a><% } %><a class="btn sm ghost" href="/files/submission/<%= f.id %>?download=1">ดาวน์โหลด</a></div></div>
+        <% }) %>
+        <% viewVersion.links.forEach(l => { %>
+          <div class="file-card"><div><strong>🔗 <%= l.title || 'ลิงก์' %></strong><br><a href="<%= l.url %>" target="_blank" rel="noopener noreferrer"><small><%= l.url %></small></a></div>
+            <form method="post" action="/teacher/links/<%= l.id %>/status"><input type="hidden" name="_csrf" value="<%= csrf %>">
+              <select name="status" data-autosave aria-label="สถานะลิงก์"><% ['unchecked','accessible','permission_required','invalid_url'].forEach(k => { %><option value="<%= k %>" <%= l.validation_status === k ? 'selected' : '' %>><%= u.label('link', k) %></option><% }) %></select>
+            </form></div>
+        <% }) %>
+        <% if (versions.length > 1) { %>
+          <details><summary>เปรียบเทียบเวอร์ชัน</summary>
+            <table><tr><th>เวอร์ชัน</th><th>เวลาส่ง</th><th>ไฟล์</th><th>ลิงก์</th><th>สถานะ</th></tr>
+              <% versions.forEach(v => { %><tr><td>v<%= v.version %></td><td><small><%= u.thaiDate(v.submitted_at, { time: true }) %></small></td><td><small><%= v.files.map(f => f.file_name + ' (' + u.fileSize(f.file_size) + ')').join(', ') || '—' %></small></td><td><small><%= v.links.length %></small></td><td><%- u.badge('submission', v.status) %></td></tr><% }) %>
+            </table></details>
+        <% } %>
+      <% } %>
+    <% } %>
+  </div>
+
+  <div class="card rubric-pane">
+    <% if (sel) { %>
+      <h2>ให้คะแนน <%- u.badge('grade', gStatus) %></h2>
+      <form method="post" action="/teacher/grading/<%= a.id %>/<%= sel.student.id %>" data-rubric-form data-max="<%= a.max_score %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="filter" value="<%= filter %>">
+        <% if (rubric) { rubric.criteria.forEach((c, i) => { const cur = g && g.scores[c.id] !== undefined ? g.scores[c.id] : ''; %>
+          <div class="criterion">
+            <div class="head"><label for="sc_<%= c.id %>"><strong><%= i + 1 %>. <%= c.criterion_name %></strong></label>
+              <span><input class="score" type="number" step="0.25" min="0" max="<%= c.max_score %>" id="sc_<%= c.id %>" name="score_<%= c.id %>" value="<%= cur %>" data-criterion="<%= c.id %>" data-max="<%= c.max_score %>" data-weight="<%= c.weight %>" <%= locked ? 'disabled' : '' %>> / <%= c.max_score %></span></div>
+            <% if (c.description) { %><small class="muted"><%= c.description %></small><% } %>
+            <div class="levels">
+              <% const lv = c.levels && c.levels.length ? c.levels : [0, c.max_score / 2, c.max_score]; lv.forEach(L => { %><button type="button" data-level="<%= L %>" data-target="sc_<%= c.id %>" class="<%= String(cur) === String(L) ? 'on' : '' %>"><%= L %></button><% }) %>
+            </div>
+            <input type="text" name="comment_<%= c.id %>" value="<%= g && g.comments[c.id] ? g.comments[c.id] : '' %>" placeholder="ความเห็นเกณฑ์นี้ (ไม่บังคับ)" style="margin-top:.4rem;font-size:.85rem">
+          </div>
+        <% }) } else { %>
+          <label class="field"><span class="l">คะแนน (0–<%= a.max_score %>)</span><input class="score" type="number" step="0.25" min="0" max="<%= a.max_score %>" name="direct_score" value="<%= g && g.total_score !== null ? g.total_score : '' %>" <%= locked ? 'disabled' : '' %>></label>
+        <% } %>
+        <div class="total-box"><span>คะแนนรวม</span><span><strong data-total><%= g && g.total_score !== null ? g.total_score : '—' %></strong> / <%= a.max_score %></span></div>
+        <label class="field"><span class="l">Feedback ถึงนักศึกษา</span><textarea name="feedback" placeholder="จุดเด่น สิ่งที่ควรปรับปรุง"><%= g ? g.feedback || '' : '' %></textarea></label>
+        <% if (g && g.status === 'published') { %><label class="field"><span class="l">เหตุผลการแก้ไขคะแนน (จำเป็นเมื่อแก้คะแนนที่เผยแพร่แล้ว)</span><input type="text" name="reason"></label><% } %>
+        <% if (nextId) { %><label class="check"><input type="checkbox" name="next_student" value="<%= nextId %>" checked><span>ไปคนถัดไปหลังบันทึก</span></label><% } %>
+        <div class="actions">
+          <button class="btn ghost" name="action" value="draft" <%= locked ? 'disabled' : '' %>>บันทึก Draft</button>
+          <button class="btn" name="action" value="publish" <%= locked ? 'disabled' : '' %>>บันทึก & เผยแพร่</button>
+          <% if (a.submission_mode === 'online') { %><button class="btn warn" name="action" value="revision" <%= locked ? 'disabled' : '' %> title="ต้องเขียน Feedback">ขอให้แก้ไข</button><% } %>
+        </div>
+      </form>
+      <% if (history.length) { %>
+        <details style="margin-top:.8rem"><summary>ประวัติการแก้ไขคะแนน (<%= history.length %>)</summary>
+          <ul class="list"><% history.forEach(h => { %><li><small><%= u.thaiDate(h.changed_at, { time: true }) %> · <%= h.changed_by_name %><br><%= u.fmtScore(h.old_score) %> → <%= u.fmtScore(h.new_score) %> (<%= u.label('grade', h.old_status || 'not_graded') %> → <%= u.label('grade', h.new_status) %>)<%= h.reason ? ' · ' + h.reason : '' %></small></li><% }) %></ul></details>
+      <% } %>
+      <% if (feedbacks.length > 1) { %>
+        <details><summary>Feedback ก่อนหน้า</summary><ul class="list"><% feedbacks.slice(1).forEach(f => { %><li><small><%= u.thaiDate(f.created_at, { time: true }) %>: <%= f.content %></small></li><% }) %></ul></details>
+      <% } %>
+    <% } %>
+  </div>
+</div>

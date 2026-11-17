@@ -1,0 +1,13 @@
+<div class="page-head"><div><h1>งานของฉัน</h1><p>กำหนดส่งและสถานะการส่งงานทั้งหมด</p></div></div>
+<div class="table-wrap"><table>
+  <tr><th>งาน</th><th>กำหนดส่ง</th><th>สถานะการส่ง</th><th class="num">คะแนน</th></tr>
+  <% list.forEach(a => { %>
+    <tr>
+      <td><a href="/student/assignments/<%= a.id %>"><strong><%= a.assignment_code %></strong> <%= a.title %></a><br><small><%= a.category_name %> · <%= a.max_score %> คะแนน<%= a.status === 'closed' ? ' · ปิดรับแล้ว' : '' %></small></td>
+      <td><small><%= a.submission_mode === 'in_class' ? 'ให้คะแนนในคาบ' : a.due_date ? u.thaiDate(a.due_date, { time: true }) : '—' %></small></td>
+      <td><% if (a.submission_mode === 'online') { %><%- a.overdue ? '<span class="badge bad">เลยกำหนด/ยังไม่ส่ง</span>' : u.badge('submission', a.sub ? a.sub.status : 'none') %><%= a.sub ? ' v' + a.sub.version : '' %><% } else { %><small class="muted">—</small><% } %></td>
+      <td class="num"><%= a.grade && a.grade.total_score !== null && a.grade.total_score !== undefined ? a.grade.total_score + '/' + a.max_score : (a.grade && a.grade.status === 'revision_requested' ? 'ขอให้แก้ไข' : '—') %></td>
+    </tr>
+  <% }) %>
+</table></div>
+<% if (!list.length) { %><div class="empty">ยังไม่มีงานที่มอบหมาย</div><% } %>

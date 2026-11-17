@@ -1,0 +1,54 @@
+<div class="page-head"><div><h1>ตั้งค่ารายวิชา</h1><p><%= c.course_code %> <%= c.course_name %> · <%= c.faculty %></p></div></div>
+<div class="grid g2">
+  <div class="card">
+    <h2>โครงสร้างคะแนนตาม OBE-3 <%- c.structure_confirmed_at ? '<span class="badge ok">ยืนยันแล้ว</span>' : '<span class="badge warn">รอยืนยัน</span>' %></h2>
+    <p class="hint">ค่าเริ่มต้นถอดจาก OBE-3 หมวด 8 (รวม 100 คะแนน) ระบบไม่เพิ่ม/ลด/เปลี่ยนการจัดสรรคะแนนอัตโนมัติ และไม่สร้างหมวดสอบกลางภาค/ปลายภาคจนกว่าผู้สอนยืนยัน</p>
+    <form method="post" action="/teacher/settings/categories">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <table><tr><th>หมวด</th><th>CLO</th><th class="num">คะแนน</th></tr>
+        <% categories.forEach(cat => { %><tr><td><%= cat.category_name %><br><small class="muted"><%= cat.rubric_hint %></small></td><td><%= cat.clo_reference %></td>
+          <td class="num"><% if (user.role === 'admin' && !c.structure_confirmed_at) { %><input class="score" type="number" step="0.5" min="0" name="max_<%= cat.id %>" value="<%= cat.max_score %>"><% } else { %><%= cat.max_score %><% } %></td></tr><% }) %>
+        <tr><th>รวม</th><th></th><th class="num"><%= structure.total %></th></tr>
+      </table>
+      <% if (user.role === 'admin' && !c.structure_confirmed_at) { %><button class="btn sm ghost" type="submit" style="margin-top:.5rem">บันทึกคะแนนหมวด (Admin)</button><% } %>
+    </form>
+    <% if (!c.structure_confirmed_at && user.role === 'teacher') { %>
+      <form method="post" action="/teacher/settings/confirm-structure" style="margin-top:.8rem" data-confirm="ยืนยันว่าโครงสร้างคะแนนถูกต้องตาม OBE-3 และพร้อมเปิดใช้งาน?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn">ตรวจสอบแล้ว ยืนยันโครงสร้างคะแนน</button></form>
+    <% } else if (c.structure_confirmed_at) { %><p class="hint">ยืนยันเมื่อ <%= u.thaiDate(c.structure_confirmed_at, { time: true }) %></p><% } %>
+  </div>
+  <div class="card">
+    <h2>การเช็คชื่อและการแจ้งเตือน</h2>
+    <form method="post" action="/teacher/settings" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="row">
+        <label><span class="l">อายุ QR (วินาที)</span><input type="number" name="qr_ttl_seconds" min="15" max="600" value="<%= c.qr_ttl_seconds %>"><div class="hint">แนะนำ 30–60 วินาที</div></label>
+        <label><span class="l">มาสายเมื่อเกิน (นาที)</span><input type="number" name="late_after_minutes" min="0" max="240" value="<%= c.late_after_minutes %>"><div class="hint">นับจากเวลาเริ่มคาบ (หรือเวลาเปิดเช็คชื่อ)</div></label>
+      </div>
+      <label class="check"><input type="checkbox" name="device_binding" value="1" <%= c.device_binding ? 'checked' : '' %>><span>เปิด Device Binding — ผูกอุปกรณ์หลักกับบัญชี และแจ้งเตือนเมื่อเปลี่ยนอุปกรณ์ (ไม่ใช่หลักฐานยืนยันตัวบุคคล)</span></label>
+      <label class="check"><input type="checkbox" name="clo_visible_to_students" value="1" <%= c.clo_visible_to_students ? 'checked' : '' %>><span>เปิดให้นักศึกษาเห็นความก้าวหน้า CLO ของตนเอง</span></label>
+      <label><span class="l">เตือนก่อนกำหนดส่ง (ชั่วโมง คั่นด้วย ,)</span><input type="text" name="reminder_hours" value="<%= c.reminder_hours %>"></label>
+      <label><span class="l">ช่องทางติดต่อผู้สอน</span><input type="text" name="contact" value="<%= c.contact || '' %>"></label>
+      <p class="hint">Privacy by Design: ระบบไม่เก็บ GPS ภาพใบหน้า หรือข้อมูลชีวมิติ · เก็บ Device ID เป็นค่า hash · ล้างประวัติคำขอเช็คชื่อหลัง 30 วัน และ Risk Event ที่ตรวจแล้วหลัง <%= c.risk_retention_days %> วัน</p>
+      <button class="btn sm" type="submit">บันทึก</button>
+    </form>
+  </div>
+</div>
+<div class="card" id="documents">
+  <h2>เอกสารรายวิชา (OBE-3, แผนการสอน, เกณฑ์ประเมิน)</h2>
+  <ul class="list"><% documents.forEach(d => { %><li><div><%= d.title %><br><small><%= d.file_name || d.external_url || '' %></small></div>
+    <div class="actions"><% if (d.file_storage_key) { %><a class="btn sm ghost" href="/files/document/<%= d.id %>" target="_blank" rel="noopener">เปิด</a><% } %>
+    <% if (user.role === 'teacher') { %><form method="post" action="/teacher/documents/<%= d.id %>/delete" data-confirm="ลบเอกสารนี้?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">ลบ</button></form><% } %></div></li><% }) %></ul>
+  <% if (user.role === 'teacher') { %>
+  <form method="post" action="/teacher/documents" enctype="multipart/form-data" class="stack" style="margin-top:.8rem">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row"><label><span class="l">ชื่อเอกสาร</span><input type="text" name="title" required></label><label><span class="l">ไฟล์ (PDF ฯลฯ)</span><input type="file" name="file"></label><label><span class="l">หรือ URL</span><input type="url" name="external_url"></label></div>
+    <button class="btn sm" type="submit">เพิ่มเอกสาร</button>
+  </form>
+  <% } %>
+</div>
+<div class="card">
+  <h2>CLOs</h2>
+  <table><tr><th>CLO</th><th>คำอธิบาย</th><th>PLO</th><th>เกณฑ์ผ่าน</th></tr>
+    <% clos.forEach(x => { %><tr><td><%= x.clo_code %></td><td><%= x.description %></td><td><small><%= x.plo_mapping %></small></td><td><%= x.passing_criteria ?? 'ยังไม่กำหนด' %> <a href="/teacher/clo" class="hint">ตั้งค่า</a></td></tr><% }) %>
+  </table>
+</div>

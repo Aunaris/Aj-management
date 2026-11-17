@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><%= title %></title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap"><link rel="stylesheet" href="/static/css/app.css"></head>
+<body class="print-page">
+  <div class="no-print actions" style="margin-bottom:1rem"><button class="btn" data-print>พิมพ์ / บันทึกเป็น PDF</button></div>
+  <h1><%= title %></h1>
+  <p>รายวิชา <%= course.course_code %> <%= course.course_name %> · ภาคการศึกษา <%= course.semester %>/<%= course.academic_year %><br>
+  วันที่ออกรายงาน <%= u.thaiDate(generatedAt, { time: true }) %> · ผู้ออกรายงาน <%= user.full_name %><% if (data.filters.length) { %><br>เงื่อนไข: <%= data.filters.join('; ') %><% } %></p>
+  <table>
+    <tr><% data.headers.forEach(h => { %><th><%= h %></th><% }) %></tr>
+    <% data.rows.forEach(r => { %><tr><% r.forEach(c => { %><td><%= c %></td><% }) %></tr><% }) %>
+  </table>
+  <script src="/static/js/app.js"></script>
+</body></html>

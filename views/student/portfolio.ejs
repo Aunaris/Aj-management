@@ -1,0 +1,14 @@
+<div class="page-head"><div><h1>My Portfolio</h1><p>รวบรวมผลงานเวอร์ชันล่าสุดของแต่ละงาน</p></div></div>
+<% if (!items.length) { %><div class="empty card">ยังไม่มีผลงาน</div><% } %>
+<div class="portfolio">
+  <% items.forEach(f => { %>
+    <div class="item">
+      <div class="thumb">
+        <% if (f.kind === 'image') { %><img src="/files/submission/<%= f.id %>" alt="<%= f.file_name %>" loading="lazy">
+        <% } else if (f.kind === 'video') { %><video src="/files/submission/<%= f.id %>" controls preload="metadata" playsinline></video>
+        <% } else { %><span><%= f.file_name.split('.').pop().toUpperCase() %></span><% } %>
+      </div>
+      <div class="cap"><a href="/student/assignments/<%= f.assignment_id %>"><strong><%= f.assignment_title %></strong></a><br><small><%= f.file_name %> · v<%= f.version %> · <%= u.thaiDate(f.submitted_at) %></small></div>
+    </div>
+  <% }) %>
+</div>

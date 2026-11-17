@@ -1,0 +1,11 @@
+<div class="page-head"><div><h1>ความก้าวหน้า CLO</h1><p>คำนวณจากคะแนนที่เผยแพร่แล้วของงานที่เชื่อมโยงกับแต่ละ CLO</p></div></div>
+<div class="grid g2">
+  <% data.summary.forEach(s => { const v = data.perStudent[0] && data.perStudent[0].clo[s.clo.id]; %>
+    <div class="card">
+      <h2><%= s.clo.clo_code %> <%= v ? v.percent + '%' : '' %></h2>
+      <p><small><%= s.clo.description %></small></p>
+      <div class="progress"><span style="width:<%= v ? v.percent : 0 %>%"></span></div>
+      <p class="hint"><%= v ? 'ได้ ' + v.earned + ' จาก ' + v.max + ' คะแนนที่ประเมินแล้ว' : 'ยังไม่มีผลประเมิน' %><%= s.clo.passing_criteria !== null ? ' · เกณฑ์ผ่าน ' + s.clo.passing_criteria + '%' : '' %></p>
+    </div>
+  <% }) %>
+</div>

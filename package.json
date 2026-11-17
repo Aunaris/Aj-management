@@ -1,0 +1,36 @@
+{
+  "name": "animation-classroom",
+  "version": "1.0.0",
+  "description": "2D Animation Classroom Management System — เช็คชื่อ ส่งงาน และให้คะแนนระหว่างคาบ (รายวิชา 10802103)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js --reset",
+    "test": "node --test test/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aunaris/Aj-management.git"
+  },
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/Aunaris/Aj-management/issues"
+  },
+  "homepage": "https://github.com/Aunaris/Aj-management#readme",
+  "dependencies": {
+    "better-sqlite3": "^13.2.0",
+    "cookie-parser": "^1.4.7",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "private": true
+}

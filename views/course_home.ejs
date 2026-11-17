@@ -1,0 +1,99 @@
+<% const isT = user.role !== 'student'; const today = u.localToday(); %>
+<div class="card" style="background:var(--navy);color:#fff;border-color:var(--navy)">
+  <div class="page-head" style="margin:0">
+    <div>
+      <small style="color:#a9bfce"><%= course.course_code %> · <%= course.credit %> หน่วยกิต · ภาคการศึกษา <%= course.semester %>/<%= course.academic_year %></small>
+      <h1 style="color:#fff"><%= course.course_name %></h1>
+      <div style="color:#c9d7e1"><%= course.course_name_en %> — <%= course.program %></div>
+      <div style="color:#c9d7e1;margin-top:.3rem">ผู้สอน: <%= course.instructors %><% if (course.contact) { %> · ติดต่อ: <%= course.contact %><% } %></div>
+    </div>
+    <div class="actions">
+      <% if (isT && next) { %><a class="btn" href="/teacher/sessions/<%= next.id %>/live">เปิดคาบถัดไป (สัปดาห์ <%= next.week_number %>)</a><% } %>
+      <% if (!isT) { %><a class="btn" href="/checkin">เช็คชื่อ</a><% } %>
+    </div>
+  </div>
+</div>
+
+<div class="grid g4">
+  <div class="stat"><div class="label">จำนวนสัปดาห์</div><div class="value"><%= sessions.length %></div><div class="sub">ตามแผนการสอน OBE-3</div></div>
+  <div class="stat"><div class="label">คาบถัดไป</div><div class="value" style="font-size:1.15rem"><%= next ? 'สัปดาห์ ' + next.week_number : '—' %></div><div class="sub"><%= next ? u.thaiDate(next.session_date) + ' ' + (next.start_time || '') : '' %></div></div>
+  <div class="stat"><div class="label">งานที่เปิดรับ</div><div class="value"><%= upcoming.length %></div><div class="sub">กำหนดส่งใกล้ถึง</div></div>
+  <% if (progress) { %>
+    <div class="stat"><div class="label">ความคืบหน้าของฉัน</div><div class="value"><%= progress.done %>/<%= progress.total %></div><div class="progress"><span style="width:<%= progress.total ? Math.round(progress.done / progress.total * 100) : 0 %>%"></span></div></div>
+  <% } else { %>
+    <div class="stat"><div class="label">นักศึกษา</div><div class="value"><%= studentCount %></div><div class="sub">ลงทะเบียน</div></div>
+  <% } %>
+</div>
+
+<div class="grid g-side">
+  <div>
+    <div class="card">
+      <h2>คำอธิบายรายวิชา</h2>
+      <p><%= course.description_th %></p>
+      <details><summary>English</summary><p><%= course.description_en %></p></details>
+    </div>
+    <div class="card">
+      <h2>ผลลัพธ์การเรียนรู้รายวิชา (CLOs)</h2>
+      <ul class="list">
+        <% clos.forEach(c => { %><li><div><strong><%= c.clo_code %></strong> <%= c.description %><br><small>เชื่อมโยง: <%= c.plo_mapping %></small></div></li><% }) %>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>ตารางคาบเรียน (Timeline)</h2>
+      <ul class="timeline">
+        <% sessions.forEach(s => { %>
+          <li>
+            <div class="week <%= s.session_date === today || s.attendance_state === 'open' ? 'now' : '' %>">W<%= s.week_number %></div>
+            <div><a href="/sessions/<%= s.id %>"><strong><%= s.title %></strong></a><br><small><%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · <%= s.location || '' %></small></div>
+            <div><%- u.badge('session', s.status) %> <% if (s.attendance_state === 'open') { %><%- u.badge('attendanceState', 'open') %><% } %></div>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <h2>ประกาศ</h2>
+      <% if (isT) { %>
+        <details style="margin-bottom:.8rem"><summary>+ เพิ่มประกาศ</summary>
+          <form method="post" action="/teacher/announcements" class="stack" style="margin-top:.6rem">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <label><span class="l">หัวข้อ</span><input type="text" name="title" required maxlength="200"></label>
+            <label><span class="l">รายละเอียด</span><textarea name="body"></textarea></label>
+            <label class="check"><input type="checkbox" name="mandatory" value="1"><span>ประกาศสำคัญ (แจ้งเตือนทุกคน ไม่สามารถปิดได้)</span></label>
+            <button class="btn sm" type="submit">เผยแพร่</button>
+          </form>
+        </details>
+      <% } %>
+      <% if (!announcements.length) { %><div class="empty">ยังไม่มีประกาศ</div><% } %>
+      <ul class="list">
+        <% announcements.forEach(a => { %>
+          <li><div><% if (a.mandatory) { %><span class="badge bad">สำคัญ</span> <% } %><strong><%= a.title %></strong><% if (a.body) { %><div><%= a.body %></div><% } %><small><%= u.thaiDate(a.created_at, { time: true }) %> · <%= a.author %></small></div>
+          <% if (isT) { %><form method="post" action="/teacher/announcements/<%= a.id %>/delete" data-confirm="ลบประกาศนี้?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">ลบ</button></form><% } %></li>
+        <% }) %>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>งานที่ใกล้ครบกำหนด</h2>
+      <% if (!upcoming.length) { %><div class="empty">ไม่มีงานที่ใกล้ครบกำหนด</div><% } %>
+      <ul class="list">
+        <% upcoming.forEach(a => { %><li><div><a href="<%= user.role === 'teacher' ? '/teacher/grading/' + a.id : isT ? '/teacher/assignments' : '/student/assignments/' + a.id %>"><%= a.title %></a><br><small>ส่งภายใน <%= u.thaiDate(a.due_date, { time: true }) %> · <%= a.max_score %> คะแนน</small></div></li><% }) %>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>โครงสร้างคะแนน (OBE-3)</h2>
+      <table>
+        <tr><th>รายการประเมิน</th><th>CLO</th><th class="num">คะแนน</th></tr>
+        <% categories.forEach(c => { %><tr><td><%= c.category_name %></td><td><%= c.clo_reference %></td><td class="num"><%= c.max_score %></td></tr><% }) %>
+        <tr><th>รวม</th><th></th><th class="num"><%= categories.reduce((s, c) => s + c.max_score, 0) %></th></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Course Information</h2>
+      <ul class="list">
+        <% documents.forEach(d => { %><li><div><%= d.title %></div><div><% if (d.file_storage_key) { %><a class="btn sm ghost" href="/files/document/<%= d.id %>" target="_blank" rel="noopener">เปิดไฟล์</a><% } %><% if (d.external_url) { %><a class="btn sm ghost" href="<%= d.external_url %>" target="_blank" rel="noopener noreferrer">ลิงก์</a><% } %></div></li><% }) %>
+      </ul>
+      <% if (isT) { %><a href="/teacher/settings#documents" class="hint">จัดการเอกสารรายวิชา</a><% } %>
+    </div>
+  </div>
+</div>

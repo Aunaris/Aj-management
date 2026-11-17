@@ -1,0 +1,20 @@
+<div class="card" style="max-width:520px;margin:0 auto">
+  <h1>เช็คชื่อเข้าเรียน</h1>
+  <p class="muted">เข้าสู่ระบบในชื่อ <strong><%= user.full_name %></strong> (<%= user.student_code %>) — ห้ามเช็คชื่อแทนผู้อื่น</p>
+  <% if (token) { %>
+    <form method="post" action="/checkin" data-autosubmit>
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="token" value="<%= token %>">
+      <button class="btn lg" type="submit" style="width:100%">ยืนยันเช็คชื่อ</button>
+    </form>
+    <p class="hint">กำลังส่งคำขอเช็คชื่อ…</p>
+  <% } else { %>
+    <p>สแกน QR บนจอด้วยกล้องโทรศัพท์ หรือกรอกรหัส 6 ตัวที่แสดงใต้ QR</p>
+    <% if (!open.length) { %><div class="flash warning">ขณะนี้ยังไม่มีคาบที่เปิดเช็คชื่อ</div><% } %>
+    <form method="post" action="/checkin" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label><span class="l">รหัสเช็คชื่อ</span><input type="text" name="code" maxlength="6" autocomplete="off" autocapitalize="characters" required style="font-size:1.6rem;letter-spacing:.3em;text-align:center;text-transform:uppercase" placeholder="XXXXXX"></label>
+      <button class="btn lg" type="submit" style="width:100%">เช็คชื่อ</button>
+    </form>
+  <% } %>
+  <p class="hint">มีปัญหา เช่น โทรศัพท์เสีย แบตหมด หรืออินเทอร์เน็ตขัดข้อง? แจ้งผู้สอนเพื่อบันทึกแบบ Manual หรือ <a href="/student/attendance">ส่งคำร้อง</a></p>
+</div>

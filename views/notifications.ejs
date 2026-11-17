@@ -1,0 +1,36 @@
+<div class="page-head">
+  <div><h1>Notification Center</h1><p>การแจ้งเตือนภายในระบบ</p></div>
+  <form method="post" action="/notifications/read"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost" type="submit">ทำเครื่องหมายว่าอ่านทั้งหมด</button></form>
+</div>
+<div class="grid g-side">
+  <div class="card">
+    <% if (!items.length) { %><div class="empty">ยังไม่มีการแจ้งเตือน</div><% } %>
+    <ul class="list">
+      <% items.forEach(n => { %>
+        <li>
+          <div>
+            <% if (!n.read_at) { %><span class="badge info">ใหม่</span><% } %>
+            <% if (n.mandatory) { %><span class="badge bad">สำคัญ</span><% } %>
+            <strong><%= n.title %></strong>
+            <% if (n.message) { %><div class="muted"><%= n.message %></div><% } %>
+            <small><%= u.thaiDate(n.created_at, { time: true }) %></small>
+          </div>
+          <% if (n.link) { %>
+          <form method="post" action="/notifications/read"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="id" value="<%= n.id %>"><input type="hidden" name="go" value="<%= n.link %>"><button class="btn sm ghost" type="submit">เปิด</button></form>
+          <% } %>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>ตั้งค่าการแจ้งเตือน</h2>
+    <form method="post" action="/notifications/preferences">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <% prefs.filter(p => user.role === 'student' ? !p.label.includes('(ผู้สอน)') : true).forEach(p => { %>
+        <label class="check"><input type="checkbox" name="pref_<%= p.key %>" value="1" <%= p.enabled ? 'checked' : '' %>><span><%= p.label %></span></label>
+      <% }) %>
+      <p class="hint">ประกาศที่ผู้สอนกำหนดเป็น "สำคัญ" จะแสดงเสมอ ช่องทางปัจจุบัน: In-app (รองรับขยายเป็น Email/LINE OA ภายหลัง)</p>
+      <button class="btn sm" type="submit">บันทึก</button>
+    </form>
+  </div>
+</div>

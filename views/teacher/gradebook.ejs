@@ -1,0 +1,37 @@
+<div class="page-head">
+  <div><h1>สมุดคะแนน (Final Score)</h1><p>รวมเฉพาะคะแนนที่เผยแพร่แล้ว · งานที่ยังไม่ตรวจ/ยังไม่เผยแพร่ไม่ถูกนับเป็นศูนย์ (แสดงจำนวน "รอผล")</p></div>
+  <div class="actions">
+    <a class="btn ghost" href="/teacher/reports/gradebook.csv">ส่งออก CSV (Excel)</a>
+    <% if (!c.scores_locked_at && user.role === 'teacher') { %>
+      <form method="post" action="/teacher/scores/lock" class="inline" data-confirm="ตรวจสอบคะแนนครบแล้วและต้องการล็อกคะแนน? หลังล็อกจะไม่สามารถแก้ไขคะแนนได้จนกว่าจะปลดล็อกพร้อมเหตุผล"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn navy">อนุมัติ & ล็อกคะแนน</button></form>
+    <% } else if (c.scores_locked_at) { %>
+      <span class="badge info">ล็อกเมื่อ <%= u.thaiDate(c.scores_locked_at, { time: true }) %></span>
+      <form method="post" action="/teacher/scores/unlock" class="inline row" style="max-width:420px"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="text" name="reason" required placeholder="เหตุผลการปลดล็อก"><button class="btn sm ghost">ปลดล็อก</button></form>
+    <% } %>
+  </div>
+</div>
+<% const warn = structure.categories.filter(x => x.state !== 'ok'); %>
+<% if (!structure.totalOk) { %><div class="flash error">ผลรวมคะแนนเต็มของหมวดไม่เท่ากับ 100 (<%= structure.total %>)</div><% } %>
+<% if (warn.length) { %><div class="flash warning">หมวดที่คะแนนเต็มของงานยังไม่ครบ/เกิน: <% warn.forEach(x => { %><div><%= x.category_name %>: วางแผน <%= x.planned %>/<%= x.max_score %></div><% }) %></div><% } %>
+<div class="table-wrap">
+  <table>
+    <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th>
+      <% gb.categories.forEach(cat => { %><th class="num" title="<%= cat.category_name %>"><%= cat.code %><br><small><%= cat.clo_reference %> /<%= cat.max_score %></small></th><% }) %>
+      <th class="num">รวม /100</th><th class="num">Draft</th><th class="num">รอผล</th></tr>
+    <% gb.rows.forEach(r => { %>
+      <tr>
+        <td><small><%= r.student.student_code %></small></td>
+        <td><a href="/teacher/students/<%= r.student.id %>"><%= r.student.full_name %></a></td>
+        <% gb.categories.forEach(cat => { const b = r.byCat[cat.id]; %>
+          <td class="num" title="<%= b.items.map(i => i.assignment.assignment_code + ': ' + (i.counted ? i.grade.total_score : u.label('grade', i.state))).join('\n') %>">
+            <%= b.items.length ? b.earned : '—' %><% if (b.pending) { %><br><small class="muted">รอ <%= b.pending %></small><% } %>
+          </td>
+        <% }) %>
+        <td class="num"><strong><%= r.total %></strong></td>
+        <td class="num"><small><%= r.draftTotal || '' %></small></td>
+        <td class="num"><%= r.pending ? '<span class="badge warn">' + r.pending + '</span>' : '' %></td>
+      </tr>
+    <% }) %>
+  </table>
+</div>
+<p class="hint">ชี้ที่ช่องคะแนนเพื่อดูรายละเอียดรายงาน · คอลัมน์ Draft = คะแนนที่ผู้สอนบันทึกแล้วแต่ยังไม่เผยแพร่ (ไม่รวมในคะแนนรวม)</p>
