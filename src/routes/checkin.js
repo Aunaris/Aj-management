@@ -10,7 +10,7 @@ const S = allow('student');
 
 router.get('/checkin', S, (req, res) => {
   const course = courseSvc.getCourse();
-  const open = courseSvc.sessions(course.id).filter((s) => s.attendance_state === 'open');
+  const open = courseSvc.sessionsForStudent(course.id, req.user.user_id).filter((s) => s.attendance_state === 'open');
   const geo = !!course.geo_enabled && open.some((s) => att.geoCenter(s, course));
   res.page('student/checkin', { title: 'เช็คชื่อ', token: typeof req.query.t === 'string' ? req.query.t.slice(0, 100) : '', open, geo });
 });

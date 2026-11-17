@@ -44,10 +44,10 @@ function structureCheck(courseId) {
  * @param {string} courseId
  * @param {{includeDraft?: boolean, studentId?: string}} opts includeDraft = แสดงคะแนน Draft ให้ผู้สอนดูประกอบ (แยกจากคะแนนจริง)
  */
-function gradebook(courseId, { studentId } = {}) {
+function gradebook(courseId, { studentId, section } = {}) {
   const cats = courseSvc.categories(courseId);
   const { assignments, grades } = load(courseId);
-  const students = courseSvc.students(courseId).filter((s) => !studentId || s.id === studentId);
+  const students = courseSvc.students(courseId, { section }).filter((s) => !studentId || s.id === studentId);
   const gradeKey = Object.fromEntries(grades.map((g) => [`${g.assignment_id}:${g.student_id}`, g]));
   return {
     categories: cats,
@@ -75,11 +75,11 @@ function gradebook(courseId, { studentId } = {}) {
   };
 }
 
-function cloScores(courseId, { studentId } = {}) {
+function cloScores(courseId, { studentId, section } = {}) {
   const clos = courseSvc.clos(courseId);
   const { assignments, grades, maps } = load(courseId);
   const aBy = Object.fromEntries(assignments.map((a) => [a.id, a]));
-  const students = courseSvc.students(courseId).filter((s) => !studentId || s.id === studentId);
+  const students = courseSvc.students(courseId, { section }).filter((s) => !studentId || s.id === studentId);
   const perStudent = students.map((st) => {
     const res = {};
     for (const clo of clos) res[clo.id] = { earned: 0, max: 0 };
@@ -113,20 +113,32 @@ function cloScores(courseId, { studentId } = {}) {
   return { clos, perStudent, summary };
 }
 
-function attendanceMatrix(courseId) {
-  const sessions = courseSvc.sessions(courseId).filter((s) => s.status !== 'cancelled' && s.attendance_state !== 'not_started');
+/**
+ * ตารางการเข้าเรียนรายสัปดาห์ — แต่ละกลุ่มมีคาบของตนเอง จึงจับคู่นักศึกษากับคาบของกลุ่มตนในสัปดาห์นั้น
+ * @param {{section?: string}} opts section_code (ไม่ระบุ = ทุกกลุ่ม)
+ */
+function attendanceMatrix(courseId, { section } = {}) {
+  const all = courseSvc.sessions(courseId).filter((s) => s.status !== 'cancelled');
+  const inScope = all.filter((s) => !section || !s.section_code || s.section_code === String(section));
+  const started = inScope.filter((s) => s.attendance_state !== 'not_started');
+  const weeks = [...new Set(started.map((s) => s.week_number))].sort((x, y) => x - y);
   const recs = get().prepare('SELECT a.* FROM attendance_records a JOIN course_sessions s ON s.id = a.session_id WHERE s.course_id = ?').all(courseId);
   const key = Object.fromEntries(recs.map((r) => [`${r.session_id}:${r.student_id}`, r]));
-  const rows = courseSvc.students(courseId).map((st) => {
-    const cells = sessions.map((s) => key[`${s.id}:${st.id}`] || null);
-    const count = (k) => cells.filter((c) => c && c.attendance_status === k).length;
+  const sessionFor = (week, code) => started.find((s) => s.week_number === week && (s.section_code === code || !s.section_code));
+  const rows = courseSvc.students(courseId, { section }).map((st) => {
+    const cells = weeks.map((w) => {
+      const s = sessionFor(w, st.section);
+      return s ? (key[`${s.id}:${st.id}`] || null) : undefined;
+    });
+    const held = cells.filter((c) => c !== undefined);
+    const count = (k) => held.filter((c) => c && c.attendance_status === k).length;
     const attended = count('present') + count('late');
     return {
       student: st, cells, present: count('present'), late: count('late'), absent: count('absent'), leave: count('leave'),
-      none: cells.filter((c) => !c).length, rate: sessions.length ? round2((attended / sessions.length) * 100) : null,
+      none: held.filter((c) => !c).length, held: held.length, rate: held.length ? round2((attended / held.length) * 100) : null,
     };
   });
-  return { sessions, rows };
+  return { weeks, sessions: weeks.map((w) => ({ week_number: w })), rows };
 }
 
 module.exports = { structureCheck, gradebook, cloScores, attendanceMatrix };

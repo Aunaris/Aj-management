@@ -1,7 +1,7 @@
 <% const isT = user.role !== 'student'; %>
 <div class="page-head">
   <div>
-    <small class="muted">สัปดาห์ <%= s.week_number %> · <%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · <%= s.location || '' %></small>
+    <small class="muted"><% if (s.section_name) { %><span class="badge info"><%= s.section_name %></span> <% } %>สัปดาห์ <%= s.week_number %> · <%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · <%= s.location || '' %></small>
     <h1><%= s.title %></h1>
     <div><%- u.badge('session', s.status) %> <%- u.badge('attendanceState', s.attendance_state) %> <% if (lesson.clo_codes) { %><span class="badge info"><%= lesson.clo_codes %></span><% } %></div>
   </div>

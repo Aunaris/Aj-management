@@ -23,6 +23,19 @@ const TA = allow('teacher', 'admin');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024, files: 5 } });
 
 const course = () => courseSvc.getCourse();
+const secCode = (req) => (req.section ? req.section.section_code : null);
+const secId = (req) => (req.section ? req.section.id : null);
+
+/** เลือกกลุ่มเรียนที่ต้องการจัดการ (เก็บใน cookie) */
+router.get('/section', TA, (req, res) => {
+  const sec = courseSvc.getSection(String(req.query.id || ''));
+  if (sec) res.cookie('sec', sec.id, { httpOnly: true, sameSite: 'lax', maxAge: 180 * 86400000 });
+  else res.clearCookie('sec');
+  const back = String(req.query.back || '/teacher');
+  // หน้ารายละเอียดของคาบใดคาบหนึ่งเปลี่ยนกลุ่มแล้วไม่ตรง — กลับไปหน้ารวม
+  const safe = back.startsWith('/') && !back.startsWith('//') ? back.replace(/^\/teacher\/sessions\/[^/]+.*$/, '/teacher/sessions').replace(/^\/sessions\/.*/, '/teacher/sessions') : '/teacher';
+  res.redirect(safe);
+});
 
 function sessionOr404(req) {
   const s = courseSvc.getSession(req.params.id);
@@ -30,28 +43,38 @@ function sessionOr404(req) {
   return s;
 }
 
+/** เงื่อนไข SQL: นักศึกษาอยู่ในกลุ่มที่เลือก (@sec เป็น NULL = ทุกกลุ่ม) */
+const inSec = (col) => `(@sec IS NULL OR ${col} IN (SELECT user_id FROM course_enrollments WHERE course_id = @c AND section = @sec))`;
+
 /** T-01 Teacher Dashboard */
 router.get('/', TA, (req, res) => {
   const c = course();
-  const students = courseSvc.students(c.id);
+  const code = secCode(req);
+  const students = courseSvc.students(c.id, { section: code });
   const assignments = assignSvc.list(c.id);
   const open = assignments.filter((a) => a.status === 'published');
   const counts = get().prepare(`SELECT
-      (SELECT COUNT(*) FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.course_id = ? AND a.deleted_at IS NULL) total_subs,
+      (SELECT COUNT(*) FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.course_id = @c AND a.deleted_at IS NULL AND ${inSec('s.student_id')}) total_subs,
       (SELECT COUNT(*) FROM submissions s JOIN assignments a ON a.id = s.assignment_id
-        WHERE a.course_id = ? AND a.deleted_at IS NULL AND s.status IN ('submitted','late','resubmitted','under_review')
+        WHERE a.course_id = @c AND a.deleted_at IS NULL AND s.status IN ('submitted','late','resubmitted','under_review') AND ${inSec('s.student_id')}
         AND s.version = (SELECT MAX(version) FROM submissions x WHERE x.assignment_id = s.assignment_id AND x.student_id = s.student_id)) to_review,
-      (SELECT COUNT(*) FROM attendance_risk_events WHERE review_status = 'pending') risks,
-      (SELECT COUNT(*) FROM attendance_appeals WHERE status = 'pending') appeals`).get(c.id, c.id);
-  const next = courseSvc.nextSession(c.id);
+      (SELECT COUNT(*) FROM attendance_risk_events WHERE review_status = 'pending' AND ${inSec('user_id')}) risks,
+      (SELECT COUNT(*) FROM attendance_appeals WHERE status = 'pending' AND ${inSec('student_id')}) appeals`).get({ c: c.id, sec: code });
+  const next = courseSvc.nextSession(c.id, { sectionId: secId(req) });
   const today = util.localToday();
-  const todaySessions = courseSvc.sessions(c.id).filter((s) => s.session_date === today || s.attendance_state === 'open');
-  const gb = scores.gradebook(c.id);
+  const all = courseSvc.sessions(c.id, { sectionId: secId(req) });
+  const todaySessions = all.filter((s) => s.session_date === today || s.attendance_state === 'open');
+  const gb = scores.gradebook(c.id, { section: code });
   const avg = gb.rows.length ? util.round2(gb.rows.reduce((s, r) => s + r.total, 0) / gb.rows.length) : null;
-  const clo = scores.cloScores(c.id).summary;
-  const lastSession = courseSvc.sessions(c.id).filter((s) => s.attendance_state !== 'not_started').pop();
+  const clo = scores.cloScores(c.id, { section: code }).summary;
+  const lastSession = all.filter((s) => s.attendance_state !== 'not_started').sort((a, b) => String(a.attendance_opened_at).localeCompare(String(b.attendance_opened_at))).pop();
+  const sectionStats = courseSvc.sections(c.id).map((sec) => {
+    const n = courseSvc.students(c.id, { section: sec.section_code }).length;
+    const nx = courseSvc.nextSession(c.id, { sectionId: sec.id });
+    return { sec, n, next: nx };
+  });
   res.page('teacher/dashboard', {
-    title: 'Teacher Dashboard', students, open, counts, next, todaySessions, avg, clo, structure: scores.structureCheck(c.id),
+    title: 'Teacher Dashboard', students, open, counts, next, todaySessions, avg, clo, structure: scores.structureCheck(c.id), sectionStats,
     lastSummary: lastSession ? { s: lastSession, sum: att.summary(lastSession.id) } : null,
   });
 });
@@ -59,17 +82,43 @@ router.get('/', TA, (req, res) => {
 /* ---------------- Sessions ---------------- */
 router.get('/sessions', TA, (req, res) => {
   const c = course();
-  const list = courseSvc.sessions(c.id).map((s) => ({ ...s, summary: s.attendance_state !== 'not_started' ? att.summary(s.id) : null }));
+  const list = courseSvc.sessions(c.id, { sectionId: secId(req) }).map((s) => ({ ...s, summary: s.attendance_state !== 'not_started' ? att.summary(s.id) : null }));
   res.page('teacher/sessions', { title: 'คาบเรียน', sessions: list });
 });
+
+/* ---------------- กลุ่มเรียน ---------------- */
+router.get('/sections', TA, (req, res) => {
+  const c = course();
+  const list = courseSvc.sections(c.id).map((sec) => ({
+    sec, students: courseSvc.students(c.id, { section: sec.section_code }).length,
+    sessions: courseSvc.sessions(c.id, { sectionId: sec.id }).filter((x) => x.section_id === sec.id),
+  }));
+  res.page('teacher/sections', { title: 'กลุ่มเรียน', list, weekdays: courseSvc.WEEKDAYS });
+});
+
+router.post('/sections', T, action((req, res) => {
+  const code = String(req.body.section_code || '').trim();
+  if (!/^[0-9A-Za-z-]{1,10}$/.test(code)) throw Object.assign(new Error('รหัสกลุ่มเรียนต้องเป็นตัวเลข/ตัวอักษร ไม่เกิน 10 ตัว'), { status: 400 });
+  if (courseSvc.sectionByCode(course().id, code)) throw Object.assign(new Error(`มีกลุ่ม ${code} อยู่แล้ว`), { status: 400 });
+  courseSvc.ensureSection(course().id, code, { actorId: req.user.user_id });
+  res.flash('success', `สร้างกลุ่ม ${code} พร้อมคาบเรียน 17 สัปดาห์แล้ว`);
+  res.redirect('/teacher/sections');
+}));
+
+router.post('/sections/:id', T, action((req, res) => {
+  const moved = courseSvc.updateSection(req.params.id, req.body, req.user.user_id);
+  res.flash('success', req.body.apply_sessions ? `บันทึกแล้ว และปรับวัน/เวลาคาบที่ยังไม่เริ่ม ${moved} คาบ` : 'บันทึกข้อมูลกลุ่มแล้ว');
+  res.redirect('/teacher/sections');
+}));
 
 router.post('/sessions', T, action((req, res) => {
   const c = course();
   const week = Number(req.body.week_number);
   if (!(week >= 1 && week <= 30)) throw Object.assign(new Error('สัปดาห์ไม่ถูกต้อง'), { status: 400 });
   const id = uuid();
-  get().prepare(`INSERT INTO course_sessions (id, course_id, week_number, title, session_date, start_time, end_time, location, status, created_at)
-    VALUES (?,?,?,?,?,?,?,?, 'draft', ?)`).run(id, c.id, week, String(req.body.title || `คาบเพิ่มเติม สัปดาห์ ${week}`).trim(), req.body.session_date || null,
+  const sec = courseSvc.getSection(req.body.section_id) || req.section;
+  get().prepare(`INSERT INTO course_sessions (id, course_id, section_id, week_number, title, session_date, start_time, end_time, location, status, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?, 'draft', ?)`).run(id, c.id, sec ? sec.id : null, week, String(req.body.title || `คาบเพิ่มเติม สัปดาห์ ${week}`).trim(), req.body.session_date || null,
     req.body.start_time || null, req.body.end_time || null, req.body.location || null, now());
   get().prepare('INSERT INTO session_lesson_details (id, session_id) VALUES (?,?)').run(uuid(), id);
   audit.log(req.user.user_id, 'session.create', 'course_session', id);
@@ -254,7 +303,7 @@ router.post('/appeals/:id/review', T, action((req, res) => {
 router.get('/assignments', TA, (req, res) => {
   const c = course();
   const list = assignSvc.list(c.id).map((a) => {
-    const ov = subSvc.overview(a.id);
+    const ov = subSvc.overview(a.id, { section: secCode(req) });
     return {
       ...a, submitted: ov.filter((o) => o.submission).length, toReview: ov.filter((o) => o.submission && (!o.grade || o.grade.status === 'draft')).length,
       published: ov.filter((o) => o.grade && ['published', 'locked'].includes(o.grade.status)).length, total: ov.length,
@@ -341,26 +390,45 @@ router.post('/assignments/:id/delete', T, action((req, res) => {
 /* ---------------- T-10 Student Management ---------------- */
 router.get('/students', TA, (req, res) => {
   const c = course();
-  const matrix = scores.attendanceMatrix(c.id);
+  const matrix = scores.attendanceMatrix(c.id, { section: secCode(req) });
   const rate = Object.fromEntries(matrix.rows.map((r) => [r.student.id, r]));
-  res.page('teacher/students', { title: 'รายชื่อนักศึกษา', students: courseSvc.students(c.id, { includeWithdrawn: true }), rate, result: null });
+  const q = String(req.query.q || '').trim().toLowerCase();
+  const list = courseSvc.students(c.id, { includeWithdrawn: true, section: secCode(req) })
+    .filter((x) => !q || `${x.student_code} ${x.full_name} ${x.email || ''}`.toLowerCase().includes(q));
+  const counts = courseSvc.sections(c.id).map((sec) => ({ sec, n: courseSvc.students(c.id, { section: sec.section_code }).length }));
+  res.page('teacher/students', { title: 'รายชื่อนักศึกษา', students: list, rate, result: null, counts, q, total: courseSvc.students(c.id).length });
 });
+
+function importFlash(res, results) {
+  const msgs = [];
+  let bad = false;
+  for (const r of results) {
+    const where = r.meta && r.meta.section ? `กลุ่ม ${r.meta.section}` : Object.keys(r.sections).map((k) => `กลุ่ม ${k}`).join(', ') || 'ไม่ระบุกลุ่ม';
+    msgs.push(`${r.file ? r.file + ': ' : ''}${where} — นำเข้า ${r.enrolled} คน (บัญชีใหม่ ${r.created} คน)`);
+    msgs.push(...r.warnings, ...r.moved.map((m) => `ย้ายกลุ่ม ${m}`), ...r.errors);
+    if (r.errors.length || r.warnings.length) bad = true;
+  }
+  res.flash(bad ? 'warning' : 'success', msgs);
+}
 
 router.post('/students/import', TA, action((req, res) => {
   const c = course();
-  const result = courseSvc.importStudents(c.id, req.body.data, req.user.user_id);
-  const msgs = [`นำเข้า ${result.enrolled} คน (สร้างบัญชีใหม่ ${result.created} คน)`];
-  if (result.errors.length) msgs.push(...result.errors);
-  res.flash(result.errors.length ? 'warning' : 'success', msgs);
+  const result = courseSvc.importStudents(c.id, req.body.data, req.user.user_id, { section: req.body.section || secCode(req) });
+  importFlash(res, [result]);
   res.redirect('/teacher/students');
 }));
 
-router.post('/students/import-file', TA, upload.single('file'), (req, res, next) => verifyCsrf(req, res, next), action((req, res) => {
-  if (!req.file) throw Object.assign(new Error('กรุณาเลือกไฟล์ CSV'), { status: 400 });
+/** อัปโหลดไฟล์ ClassRoster จากระบบทะเบียน (หลายไฟล์/หลายกลุ่มพร้อมกัน) */
+router.post('/students/import-file', TA, upload.array('files', 10), (req, res, next) => verifyCsrf(req, res, next), action((req, res) => {
+  const files = req.files || [];
+  if (!files.length) throw Object.assign(new Error('กรุณาเลือกไฟล์ CSV'), { status: 400 });
   const c = course();
-  const result = courseSvc.importStudents(c.id, req.file.buffer.toString('utf8'), req.user.user_id);
-  const msgs = [`นำเข้า ${result.enrolled} คน (สร้างบัญชีใหม่ ${result.created} คน)`, ...result.errors];
-  res.flash(result.errors.length ? 'warning' : 'success', msgs);
+  const results = files.map((f) => {
+    let text = f.buffer.toString('utf8');
+    if (text.includes('\ufffd')) text = new TextDecoder('windows-874').decode(f.buffer); // ไฟล์ภาษาไทยแบบ TIS-620/ANSI
+    return { ...courseSvc.importStudents(c.id, text, req.user.user_id, { section: req.body.section || null }), file: subSvc.fixName(f.originalname) };
+  });
+  importFlash(res, results);
   res.redirect('/teacher/students');
 }));
 
@@ -370,7 +438,7 @@ router.get('/students/:id', TA, (req, res, next) => {
   if (!st) return next();
   const gb = scores.gradebook(c.id, { studentId: st.id });
   res.page('teacher/student_detail', {
-    title: st.full_name, st, history: att.studentHistory(c.id, st.id), gb, row: gb.rows[0], clo: scores.cloScores(c.id, { studentId: st.id }),
+    title: st.full_name, st, sections: courseSvc.sections(c.id), history: att.studentHistory(c.id, st.id), gb, row: gb.rows[0], clo: scores.cloScores(c.id, { studentId: st.id }),
     devices: att.devices(st.id), risks: att.riskEvents().filter((e) => e.user_id === st.id), appeals: att.appeals({ studentId: st.id }),
   });
 });
@@ -398,6 +466,18 @@ router.post('/students/:id/enrollment', TA, action((req, res) => {
   get().prepare('UPDATE course_enrollments SET enrollment_status = ? WHERE course_id = ? AND user_id = ?').run(status, c.id, req.params.id);
   audit.log(req.user.user_id, 'enrollment.update', 'user', req.params.id, { status });
   res.flash('success', status === 'withdrawn' ? 'เปลี่ยนสถานะเป็นถอนรายวิชาแล้ว' : 'คืนสถานะลงทะเบียนแล้ว');
+  res.redirect(`/teacher/students/${req.params.id}`);
+}));
+
+/** ย้ายกลุ่มเรียน (ประวัติการเข้าเรียนเดิมยังอยู่ คาบใหม่จะเป็นของกลุ่มใหม่) */
+router.post('/students/:id/section', TA, action((req, res) => {
+  const c = course();
+  const sec = courseSvc.getSection(req.body.section_id);
+  if (!sec || sec.course_id !== c.id) throw Object.assign(new Error('ไม่พบกลุ่มเรียน'), { status: 400 });
+  const old = courseSvc.studentSectionCode(c.id, req.params.id);
+  get().prepare('UPDATE course_enrollments SET section = ? WHERE course_id = ? AND user_id = ?').run(sec.section_code, c.id, req.params.id);
+  audit.log(req.user.user_id, 'enrollment.section', 'user', req.params.id, { old, new: sec.section_code });
+  res.flash('success', `ย้ายไป${sec.name || 'กลุ่ม ' + sec.section_code}แล้ว`);
   res.redirect(`/teacher/students/${req.params.id}`);
 }));
 
@@ -435,6 +515,20 @@ router.post('/settings', TA, action((req, res) => {
 }));
 
 /** ผู้สอนยืนยันโครงสร้างคะแนนก่อนเปิดใช้งานจริง (Blueprint 2.3) */
+router.post('/settings/course', TA, action((req, res) => {
+  const c = course();
+  const code = String(req.body.course_code || '').trim();
+  const sem = String(req.body.semester || '').trim();
+  const year = String(req.body.academic_year || '').trim();
+  const name = String(req.body.course_name || '').trim();
+  if (!/^[0-9A-Za-z-]{4,15}$/.test(code)) throw Object.assign(new Error('รหัสวิชาไม่ถูกต้อง'), { status: 400 });
+  if (!/^[1-3]$/.test(sem) || !/^25\d{2}$/.test(year)) throw Object.assign(new Error('ภาคเรียน/ปีการศึกษาไม่ถูกต้อง (เช่น 2 / 2569)'), { status: 400 });
+  get().prepare('UPDATE courses SET course_code = ?, semester = ?, academic_year = ?, course_name = ? WHERE id = ?').run(code, sem, year, name || c.course_name, c.id);
+  audit.log(req.user.user_id, 'course.info', 'course', c.id, { old: [c.course_code, c.semester, c.academic_year], new: [code, sem, year] });
+  res.flash('success', 'บันทึกข้อมูลรายวิชาแล้ว');
+  res.redirect('/teacher/settings');
+}));
+
 router.post('/settings/confirm-structure', T, action((req, res) => {
   const c = course();
   const st = scores.structureCheck(c.id);

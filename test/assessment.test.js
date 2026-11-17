@@ -252,13 +252,13 @@ test('TC-14 ส่งออกรายงานตามสิทธิ์ (CSV
     assert.equal(r.status, 200, t);
     assert.match(r.headers['content-type'], /text\/csv/);
     assert.ok(r.body.startsWith('﻿'), 'BOM');
-    assert.match(r.body, /ภาคการศึกษา 1\/2569/);
+    assert.ok(r.body.includes(`ภาคการศึกษา ${course.semester}/${course.academic_year}`));
     assert.match(r.body, /วันที่ออกรายงาน/);
     const p = await teacher.get(`/teacher/reports/${t}/print`);
     assert.equal(p.status, 200);
   }
   const filtered = await teacher.get(`/teacher/reports/grading.csv?assignment=${A02.id}`);
-  assert.match(filtered.text, /เงื่อนไข: งาน: A02/);
+  assert.match(filtered.text, /เงื่อนไข:.*งาน: A02/);
   const st = await login('6501101001');
   assert.equal((await st.get('/teacher/reports/gradebook.csv')).status, 403);
   const admin = await login('admin', 'admin1234');
@@ -293,7 +293,7 @@ test('TC-22/23 Course Home และ Session Detail แสดงตามสิ�
   const st = await login('6501101001');
   const home = await st.get('/course');
   assert.equal(home.status, 200);
-  for (const t of ['10802103', 'CLO1', 'CLO4', 'Production Pipeline', 'ประกาศ']) assert.match(home.text, new RegExp(t));
+  for (const t of [course.course_code, 'CLO1', 'CLO4', 'Production Pipeline', 'ประกาศ']) assert.match(home.text, new RegExp(t));
   const s = courseSvc.sessions(course.id).find((x) => x.week_number === 2);
   const detail = await st.get(`/sessions/${s.id}`);
   assert.equal(detail.status, 200);

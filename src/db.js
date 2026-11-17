@@ -441,6 +441,21 @@ CREATE TABLE IF NOT EXISTS notification_deliveries (
   error_message TEXT
 );
 
+CREATE TABLE IF NOT EXISTS course_sections (
+  id TEXT PRIMARY KEY,
+  course_id TEXT NOT NULL REFERENCES courses(id),
+  section_code TEXT NOT NULL,
+  name TEXT,
+  meeting_day INTEGER,
+  first_date TEXT,
+  start_time TEXT,
+  end_time TEXT,
+  location TEXT,
+  instructor TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (course_id, section_code)
+);
+
 CREATE TABLE IF NOT EXISTS mail_accounts (
   id TEXT PRIMARY KEY,
   course_id TEXT NOT NULL UNIQUE REFERENCES courses(id),
@@ -504,7 +519,8 @@ const COLUMNS = {
     geo_enabled: 'INTEGER NOT NULL DEFAULT 0', geo_lat: 'REAL', geo_lng: 'REAL', geo_radius_m: 'INTEGER NOT NULL DEFAULT 150',
     geo_max_accuracy_m: 'INTEGER NOT NULL DEFAULT 150', device_lock: 'INTEGER NOT NULL DEFAULT 1', ip_allowlist: 'TEXT',
   },
-  course_sessions: { geo_lat: 'REAL', geo_lng: 'REAL' },
+  course_sessions: { geo_lat: 'REAL', geo_lng: 'REAL', section_id: 'TEXT REFERENCES course_sections(id)' },
+  users: { program: 'TEXT', faculty: 'TEXT' },
   attendance_records: {
     ip_address: 'TEXT', fingerprint_hash: 'TEXT', local_device_hash: 'TEXT', geo_lat: 'REAL', geo_lng: 'REAL', geo_accuracy_m: 'REAL', geo_distance_m: 'REAL',
   },

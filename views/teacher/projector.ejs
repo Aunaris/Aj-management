@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="/static/css/app.css"><meta name="csrf-token" content="<%= csrf %>"></head>
 <body class="projector">
   <div data-qr-session="<%= s.id %>">
-    <h1><%= course.course_code %> · สัปดาห์ <%= s.week_number %> — สแกนเพื่อเช็คชื่อ</h1>
+    <h1><%= course.course_code %> · <%= s.section_name ? s.section_name + ' · ' : '' %>สัปดาห์ <%= s.week_number %> — สแกนเพื่อเช็คชื่อ</h1>
     <p class="meta">เข้าสู่ระบบด้วยบัญชีของตนเองก่อนสแกน · QR เปลี่ยนทุก <%= course.qr_ttl_seconds %> วินาที</p>
     <div class="qr-wrap"><img data-qr-img alt="QR Code เช็คชื่อ"></div>
     <div class="ring"><span data-qr-bar style="width:100%"></span></div>

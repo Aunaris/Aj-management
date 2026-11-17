@@ -32,9 +32,10 @@ router.get('/course', allow(), (req, res) => {
   }
   res.page('course_home', {
     title: 'หน้าแรกของรายวิชา', clos: courseSvc.clos(course.id), categories: courseSvc.categories(course.id),
-    sessions: courseSvc.sessions(course.id).filter((s) => !isStudent || s.status !== 'draft'),
+    sessions: isStudent ? courseSvc.sessionsForStudent(course.id, req.user.user_id).filter((s) => s.status !== 'draft') : courseSvc.sessions(course.id, { sectionId: req.section ? req.section.id : null }),
     announcements: courseSvc.announcements(course.id), documents: courseSvc.documents(course.id),
-    next: courseSvc.nextSession(course.id), upcoming, progress, studentCount: courseSvc.students(course.id).length,
+    next: courseSvc.nextSession(course.id, { sectionId: isStudent ? (res.locals.mySection || {}).id : (req.section || {}).id }), upcoming, progress,
+    studentCount: courseSvc.students(course.id, { section: isStudent || !req.section ? null : req.section.section_code }).length,
   });
 });
 
@@ -42,7 +43,7 @@ router.get('/course', allow(), (req, res) => {
 router.get('/sessions/:id', allow(), (req, res, next) => {
   const s = courseSvc.getSession(req.params.id);
   const isStudent = req.user.role === 'student';
-  if (!s || (isStudent && s.status === 'draft')) return next();
+  if (!s || (isStudent && (s.status === 'draft' || !courseSvc.sessionVisibleTo(s, s.course_id, req.user.user_id)))) return next();
   const assignments = assignSvc.list(s.course_id, { sessionId: s.id, studentView: isStudent });
   let myAttendance = null;
   if (isStudent) myAttendance = get().prepare('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?').get(s.id, req.user.user_id);

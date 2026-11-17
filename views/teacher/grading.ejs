@@ -7,7 +7,7 @@
 <div class="page-head">
   <div>
     <small class="muted"><%= a.category_name %> · <%= maps.map(m => m.clo_code + (maps.length > 1 ? '×' + m.contribution_weight : '')).join(', ') %> · คะแนนเต็ม <%= a.max_score %></small>
-    <h1><%= a.assignment_code %> <%= a.title %></h1>
+    <h1><%= a.assignment_code %> <%= a.title %> <small class="muted"><%= currentSection ? '· ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : '· ทุกกลุ่ม' %></small></h1>
     <div><%- u.badge('assignment', a.status) %> <% if (a.due_date) { %><small>กำหนดส่ง <%= u.thaiDate(a.due_date, { time: true }) %></small><% } %></div>
   </div>
   <div class="actions">
@@ -24,7 +24,7 @@
   <div class="card student-list" aria-label="รายชื่อนักศึกษา">
     <% filtered.forEach(o => { %>
       <a href="/teacher/grading/<%= a.id %>?student=<%= o.student.id %>&filter=<%= filter %>" class="<%= sel && sel.student.id === o.student.id ? 'on' : '' %>">
-        <span><%= o.student.full_name %><small><%= o.student.student_code %><%= o.submission ? ' · v' + o.submission.version : '' %></small></span>
+        <span><%= o.student.full_name %><small><%= !currentSection && o.student.section ? 'ก.' + o.student.section + ' · ' : '' %><%= o.student.student_code %><%= o.submission ? ' · v' + o.submission.version : '' %></small></span>
         <span style="text-align:right"><%- a.submission_mode === 'online' ? u.badge('submission', subStatus(o)) : '' %><br><%- o.grade ? u.badge('grade', o.grade.status) : '' %><% if (o.grade && o.grade.total_score !== null) { %> <small><%= o.grade.total_score %></small><% } %><% if (o.linkIssues) { %> <span class="badge warn" title="ลิงก์ที่ต้องตรวจ">🔗<%= o.linkIssues %></span><% } %></span>
       </a>
     <% }) %>

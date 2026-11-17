@@ -31,12 +31,12 @@ router.get('/', S, (req, res) => {
   const list = myAssignments(c.id, req.user.user_id);
   const pending = list.filter((a) => a.status === 'published' && a.submission_mode === 'online' && (!a.sub || (a.grade && a.grade.status === 'revision_requested')));
   const graded = list.filter((a) => a.grade && a.grade.total_score !== null && a.grade.total_score !== undefined);
-  const openSessions = courseSvc.sessions(c.id).filter((s) => s.attendance_state === 'open');
+  const openSessions = courseSvc.sessionsForStudent(c.id, req.user.user_id).filter((s) => s.attendance_state === 'open');
   const myOpen = openSessions.map((s) => ({ s, rec: get().prepare('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?').get(s.id, req.user.user_id) }));
   const gb = scores.gradebook(c.id, { studentId: req.user.user_id });
   const hist = att.studentHistory(c.id, req.user.user_id).filter((h) => h.attendance_state !== 'not_started');
   res.page('student/dashboard', {
-    title: 'หน้าหลักนักศึกษา', pending, graded: graded.slice(-5).reverse(), myOpen, next: courseSvc.nextSession(c.id), row: gb.rows[0], gb,
+    title: 'หน้าหลักนักศึกษา', pending, graded: graded.slice(-5).reverse(), myOpen, next: courseSvc.nextSession(c.id, { sectionId: (res.locals.mySection || {}).id || '__none__' }), row: gb.rows[0], gb,
     attendance: { total: hist.length, attended: hist.filter((h) => ['present', 'late'].includes(h.attendance_status)).length },
     announcements: courseSvc.announcements(c.id, 3),
   });

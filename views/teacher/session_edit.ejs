@@ -1,5 +1,5 @@
 <div class="page-head">
-  <div><h1>แก้ไขคาบ สัปดาห์ <%= s.week_number %></h1><p>Class Session Detail: หัวข้อ วัตถุประสงค์ กิจกรรม สื่อ CLO และบันทึกหลังสอน</p></div>
+  <div><h1>แก้ไขคาบ สัปดาห์ <%= s.week_number %> <%= s.section_name ? '· ' + s.section_name : '' %></h1><p>Class Session Detail: หัวข้อ วัตถุประสงค์ กิจกรรม สื่อ CLO และบันทึกหลังสอน</p></div>
   <div class="actions"><a class="btn ghost" href="/sessions/<%= s.id %>">ดูมุมมองนักศึกษา</a><a class="btn" href="/teacher/sessions/<%= s.id %>/live">หน้าระหว่างคาบ</a></div>
 </div>
 <form method="post" action="/teacher/sessions/<%= s.id %>/edit" class="card stack">

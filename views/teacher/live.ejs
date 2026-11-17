@@ -1,7 +1,7 @@
 <% const open = s.attendance_state === 'open'; const isT = user.role === 'teacher'; %>
 <div class="page-head">
   <div>
-    <small class="muted">สัปดาห์ <%= s.week_number %> · <%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · มาสายเมื่อเกิน <%= course.late_after_minutes %> นาที</small>
+    <small class="muted"><% if (s.section_name) { %><span class="badge info"><%= s.section_name %></span> <% } %>สัปดาห์ <%= s.week_number %> · <%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · มาสายเมื่อเกิน <%= course.late_after_minutes %> นาที</small>
     <h1><%= s.title %></h1>
     <div><%- u.badge('attendanceState', s.attendance_state) %> <a href="/sessions/<%= s.id %>">รายละเอียดคาบ</a></div>
   </div>

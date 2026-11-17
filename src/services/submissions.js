@@ -137,7 +137,7 @@ function getSubmission(id) {
 }
 
 /** รายชื่อนักศึกษาพร้อมสถานะการส่งและการตรวจของ Assignment */
-function overview(assignmentId) {
+function overview(assignmentId, { section } = {}) {
   const a = assignSvc.getAssignment(assignmentId);
   const subs = get().prepare(`SELECT s.* FROM submissions s JOIN (SELECT student_id, MAX(version) v FROM submissions WHERE assignment_id = ? GROUP BY student_id) m
     ON m.student_id = s.student_id AND m.v = s.version WHERE s.assignment_id = ?`).all(assignmentId, assignmentId);
@@ -147,7 +147,7 @@ function overview(assignmentId) {
   const linkIssues = get().prepare(`SELECT s.student_id, COUNT(*) c FROM submission_links l JOIN submissions s ON s.id = l.submission_id
     WHERE s.assignment_id = ? AND l.validation_status IN ('unchecked','permission_required','invalid_url') GROUP BY s.student_id`).all(assignmentId);
   const linkBy = Object.fromEntries(linkIssues.map((r) => [r.student_id, r.c]));
-  return courseSvc.students(a.course_id).map((st) => ({ student: st, submission: subBy[st.id] || null, grade: gradeBy[st.id] || null, linkIssues: linkBy[st.id] || 0 }));
+  return courseSvc.students(a.course_id, { section }).map((st) => ({ student: st, submission: subBy[st.id] || null, grade: gradeBy[st.id] || null, linkIssues: linkBy[st.id] || 0 }));
 }
 
 function setLinkStatus(linkId, status, actorId) {

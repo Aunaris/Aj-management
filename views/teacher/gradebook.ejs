@@ -1,5 +1,5 @@
 <div class="page-head">
-  <div><h1>สมุดคะแนน (Final Score)</h1><p>รวมเฉพาะคะแนนที่เผยแพร่แล้ว · งานที่ยังไม่ตรวจ/ยังไม่เผยแพร่ไม่ถูกนับเป็นศูนย์ (แสดงจำนวน "รอผล")</p></div>
+  <div><h1>สมุดคะแนน (Final Score) <%= currentSection ? '· ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : '· ทุกกลุ่ม' %></h1><p>รวมเฉพาะคะแนนที่เผยแพร่แล้ว · งานที่ยังไม่ตรวจ/ยังไม่เผยแพร่ไม่ถูกนับเป็นศูนย์ (แสดงจำนวน "รอผล")</p></div>
   <div class="actions">
     <a class="btn ghost" href="/teacher/reports/gradebook.csv">ส่งออก CSV (Excel)</a>
     <% if (!c.scores_locked_at && user.role === 'teacher') { %>
@@ -15,11 +15,12 @@
 <% if (warn.length) { %><div class="flash warning">หมวดที่คะแนนเต็มของงานยังไม่ครบ/เกิน: <% warn.forEach(x => { %><div><%= x.category_name %>: วางแผน <%= x.planned %>/<%= x.max_score %></div><% }) %></div><% } %>
 <div class="table-wrap">
   <table>
-    <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th>
+    <tr><th>กลุ่ม</th><th>รหัส</th><th>ชื่อ-นามสกุล</th>
       <% gb.categories.forEach(cat => { %><th class="num" title="<%= cat.category_name %>"><%= cat.code %><br><small><%= cat.clo_reference %> /<%= cat.max_score %></small></th><% }) %>
       <th class="num">รวม /100</th><th class="num">Draft</th><th class="num">รอผล</th></tr>
     <% gb.rows.forEach(r => { %>
       <tr>
+        <td><small><%= r.student.section || '' %></small></td>
         <td><small><%= r.student.student_code %></small></td>
         <td><a href="/teacher/students/<%= r.student.id %>"><%= r.student.full_name %></a></td>
         <% gb.categories.forEach(cat => { const b = r.byCat[cat.id]; %>

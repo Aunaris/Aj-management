@@ -59,6 +59,19 @@ function createApp() {
     res.locals.u = util;
     res.locals.path = req.path;
     res.locals.unread = s ? notify.unreadCount(s.user_id) : 0;
+    // กลุ่มเรียนที่ผู้สอนเลือกดูอยู่ (cookie "sec") — ว่าง = ทุกกลุ่ม
+    req.section = null;
+    res.locals.sections = [];
+    res.locals.currentSection = null;
+    if (s && s.role !== 'student' && res.locals.course) {
+      res.locals.sections = courseSvc.sections(res.locals.course.id);
+      req.section = res.locals.sections.find((x) => x.id === req.cookies.sec) || null;
+      res.locals.currentSection = req.section;
+    }
+    if (s && s.role === 'student' && res.locals.course) {
+      const code = courseSvc.studentSectionCode(res.locals.course.id, s.user_id);
+      res.locals.mySection = code ? courseSvc.sectionByCode(res.locals.course.id, code) : null;
+    }
     res.locals.flash = req.cookies.flash ? safeJson(req.cookies.flash) : null;
     if (req.cookies.flash) res.clearCookie('flash');
     next();

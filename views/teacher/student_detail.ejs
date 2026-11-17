@@ -1,6 +1,11 @@
 <div class="page-head">
-  <div><small class="muted"><%= st.student_code %> · <%= st.email || '' %></small><h1><%= st.full_name %></h1><div><%- st.enrollment_status === 'active' ? '<span class="badge ok">ลงทะเบียน</span>' : '<span class="badge muted">ถอนรายวิชา</span>' %></div></div>
+  <div><small class="muted"><%= st.student_code %><%= st.email ? ' · ' + st.email : '' %><%= st.program ? ' · ' + st.program : '' %><%= st.faculty ? ' · คณะ' + st.faculty : '' %></small><h1><%= st.full_name %> <span class="badge info">กลุ่ม <%= st.section || '—' %></span></h1><div><%- st.enrollment_status === 'active' ? '<span class="badge ok">ลงทะเบียน</span>' : '<span class="badge muted">ถอนรายวิชา</span>' %></div></div>
   <div class="actions">
+    <form method="post" action="/teacher/students/<%= st.id %>/section" class="inline row" style="max-width:280px" data-confirm="ย้ายกลุ่มเรียน? ประวัติการเข้าเรียนเดิมยังอยู่">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <select name="section_id" aria-label="ย้ายกลุ่ม"><% sections.forEach(x => { %><option value="<%= x.id %>" <%= x.section_code === st.section ? 'selected' : '' %>><%= x.name || 'กลุ่ม ' + x.section_code %></option><% }) %></select>
+      <button class="btn sm ghost">ย้ายกลุ่ม</button>
+    </form>
     <form method="post" action="/teacher/students/<%= st.id %>/reset-password" class="inline" data-confirm="รีเซ็ตรหัสผ่านเป็นรหัสนักศึกษา?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">รีเซ็ตรหัสผ่าน</button></form>
     <form method="post" action="/teacher/students/<%= st.id %>/enrollment" class="inline" data-confirm="เปลี่ยนสถานะการลงทะเบียน?"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="<%= st.enrollment_status === 'active' ? 'withdrawn' : 'active' %>"><button class="btn sm ghost"><%= st.enrollment_status === 'active' ? 'ถอนรายวิชา' : 'คืนสถานะ' %></button></form>
   </div>

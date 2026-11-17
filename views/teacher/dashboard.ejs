@@ -4,11 +4,11 @@
     <% if (todaySessions.length) { todaySessions.forEach(s => { %>
       <form method="post" action="/teacher/sessions/<%= s.id %>/attendance/open" class="inline">
         <input type="hidden" name="_csrf" value="<%= csrf %>">
-        <% if (s.attendance_state === 'open') { %><a class="btn lg" href="/teacher/sessions/<%= s.id %>/live">▶ กลับไปหน้าคาบ สัปดาห์ <%= s.week_number %> (กำลังเช็คชื่อ)</a>
-        <% } else if (user.role === 'teacher') { %><button class="btn lg" type="submit">▶ เปิดคาบ + QR สัปดาห์ <%= s.week_number %></button><% } %>
+        <% if (s.attendance_state === 'open') { %><a class="btn lg" href="/teacher/sessions/<%= s.id %>/live">▶ กลับไปหน้าคาบ สัปดาห์ <%= s.week_number %> <%= s.section_name ? ' · ' + s.section_name : '' %> (กำลังเช็คชื่อ)</a>
+        <% } else if (user.role === 'teacher') { %><button class="btn lg" type="submit">▶ เปิดคาบ + QR สัปดาห์ <%= s.week_number %><%= s.section_name ? ' · ' + s.section_name : '' %></button><% } %>
       </form>
     <% }) } else if (next && user.role === 'teacher') { %>
-      <form method="post" action="/teacher/sessions/<%= next.id %>/attendance/open" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn lg" type="submit">▶ เปิดคาบ + QR สัปดาห์ <%= next.week_number %></button></form>
+      <form method="post" action="/teacher/sessions/<%= next.id %>/attendance/open" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn lg" type="submit">▶ เปิดคาบ + QR สัปดาห์ <%= next.week_number %><%= next.section_name ? ' · ' + next.section_name : '' %></button></form>
     <% } %>
     <a class="btn ghost" href="/teacher/sessions">เลือกคาบอื่น</a>
   </div>
@@ -16,8 +16,17 @@
 <% if (!course.structure_confirmed_at) { %>
   <div class="flash warning">โครงสร้างคะแนนตาม OBE-3 ยังไม่ได้รับการยืนยันจากผู้สอน — <a href="/teacher/settings">ตรวจสอบและยืนยัน</a> ก่อนเปิดใช้งานจริง</div>
 <% } %>
+<div class="sec-tabs">
+  <a href="/teacher/section?id=&back=/teacher" class="<%= !currentSection ? 'on' : '' %>"><strong>ทุกกลุ่ม</strong><small><%= sectionStats.reduce((t, x) => t + x.n, 0) %> คน</small></a>
+  <% sectionStats.forEach(x => { %>
+    <a href="/teacher/section?id=<%= x.sec.id %>&back=/teacher" class="<%= currentSection && currentSection.id === x.sec.id ? 'on' : '' %>">
+      <strong><%= x.sec.name || 'กลุ่ม ' + x.sec.section_code %></strong>
+      <small><%= x.n %> คน<% if (x.sec.meeting_day !== null && x.sec.meeting_day !== undefined) { %> · วัน<%= ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][x.sec.meeting_day] %> <%= x.sec.start_time %><% } %><br><%= x.next ? 'คาบถัดไป W' + x.next.week_number + ' · ' + u.thaiDate(x.next.session_date) : '' %><%= x.next && x.next.attendance_state === 'open' ? ' · กำลังเช็คชื่อ' : '' %></small>
+    </a>
+  <% }) %>
+</div>
 <div class="grid g4">
-  <div class="stat accent"><div class="label">ผู้เรียน</div><div class="value"><%= students.length %></div><div class="sub">ลงทะเบียน</div></div>
+  <div class="stat accent"><div class="label">ผู้เรียน<%= currentSection ? ' · ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : '' %></div><div class="value"><%= students.length %></div><div class="sub">ลงทะเบียน</div></div>
   <div class="stat"><div class="label">เข้าเรียนคาบล่าสุด</div><div class="value"><%= lastSummary ? (lastSummary.sum.present + lastSummary.sum.late) : '—' %></div><div class="sub"><%= lastSummary ? 'สัปดาห์ ' + lastSummary.s.week_number + ' · สาย ' + lastSummary.sum.late + ' · ขาด ' + lastSummary.sum.absent : 'ยังไม่มีการเช็คชื่อ' %></div></div>
   <div class="stat"><div class="label">งานเปิดรับส่ง</div><div class="value"><%= open.length %></div><div class="sub">ส่งแล้วทั้งหมด <%= counts.total_subs %> ครั้ง</div></div>
   <div class="stat"><div class="label">งานรอตรวจ</div><div class="value" style="color:<%= counts.to_review ? 'var(--warn)' : 'inherit' %>"><%= counts.to_review %></div><div class="sub">คะแนนเฉลี่ยสะสม <%= u.fmtScore(avg) %></div></div>

@@ -7,6 +7,8 @@ if (seedBase({ forceChange: true })) {
   console.log('สร้างข้อมูลรายวิชาตั้งต้นจาก OBE-3 แล้ว — บัญชีเริ่มต้น: admin/admin1234, thaksin/teacher1234, piriya/teacher1234 (ต้องเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก)');
 }
 
+require('./services/course').migrateSections(require('./services/course').getCourse().id);
+
 const { createApp } = require('./app');
 const scheduler = require('./services/scheduler');
 

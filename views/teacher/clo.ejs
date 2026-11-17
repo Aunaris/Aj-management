@@ -1,5 +1,5 @@
 <div class="page-head">
-  <div><h1>CLO Analytics</h1><p>CLO Score (%) = Σ(คะแนนที่ได้ × น้ำหนัก CLO) ÷ Σ(คะแนนเต็ม × น้ำหนัก CLO) × 100 · Achievement Rate = ผู้ผ่านเกณฑ์ ÷ ผู้ได้รับการประเมิน × 100 · แยกจากคะแนนรวมรายวิชา</p></div>
+  <div><h1>CLO Analytics <%= currentSection ? '· ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : '· ทุกกลุ่ม' %></h1><p>CLO Score (%) = Σ(คะแนนที่ได้ × น้ำหนัก CLO) ÷ Σ(คะแนนเต็ม × น้ำหนัก CLO) × 100 · Achievement Rate = ผู้ผ่านเกณฑ์ ÷ ผู้ได้รับการประเมิน × 100 · แยกจากคะแนนรวมรายวิชา</p></div>
   <a class="btn ghost" href="/teacher/reports/clo.csv">ส่งออก CSV</a>
 </div>
 <div class="grid g4">

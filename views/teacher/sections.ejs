@@ -1,0 +1,38 @@
+<div class="page-head">
+  <div><h1>กลุ่มเรียน (Section)</h1><p>แต่ละกลุ่มมีรายชื่อ คาบเรียน 17 สัปดาห์ การเช็คชื่อ และรายงานแยกกัน ส่วนงาน เกณฑ์ และโครงสร้างคะแนน OBE-3 ใช้ร่วมกันทุกกลุ่ม</p></div>
+  <% if (user.role === 'teacher') { %>
+  <form method="post" action="/teacher/sections" class="row" style="max-width:320px">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="text" name="section_code" placeholder="รหัสกลุ่มใหม่ เช่น 4" required maxlength="10">
+    <button class="btn sm">+ เพิ่มกลุ่ม</button>
+  </form>
+  <% } %>
+</div>
+<div class="grid g3">
+  <% list.forEach(({ sec, students, sessions }) => { const started = sessions.filter(x => x.attendance_state !== 'not_started').length; %>
+    <div class="card">
+      <h2><%= sec.name || 'กลุ่ม ' + sec.section_code %> <span class="badge info"><%= students %> คน</span></h2>
+      <p class="hint">คาบเรียน <%= sessions.length %> คาบ · เช็คชื่อแล้ว <%= started %> คาบ<br>
+        <%= sec.meeting_day !== null && sec.meeting_day !== undefined ? 'เรียนวัน' + weekdays[sec.meeting_day] + ' ' : '' %><%= sec.start_time || '' %>–<%= sec.end_time || '' %> <%= sec.location || '' %></p>
+      <div class="actions" style="margin-bottom:.6rem">
+        <a class="btn sm" href="/teacher/section?id=<%= sec.id %>&back=/teacher/sessions">ดูคาบเรียน</a>
+        <a class="btn sm ghost" href="/teacher/section?id=<%= sec.id %>&back=/teacher/students">รายชื่อ</a>
+      </div>
+      <% if (user.role === 'teacher') { %>
+      <form method="post" action="/teacher/sections/<%= sec.id %>" class="stack">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label><span class="l">ชื่อกลุ่ม</span><input type="text" name="name" value="<%= sec.name || '' %>"></label>
+        <label><span class="l">วันที่เรียนสัปดาห์ที่ 1</span><input type="date" name="first_date" value="<%= sec.first_date || '' %>"><div class="hint">ระบบใช้วันในสัปดาห์ของวันนี้ แล้วเพิ่มทีละ 7 วันสำหรับสัปดาห์ถัดไป</div></label>
+        <div class="row">
+          <label><span class="l">เริ่ม</span><input type="time" name="start_time" value="<%= sec.start_time || '' %>"></label>
+          <label><span class="l">สิ้นสุด</span><input type="time" name="end_time" value="<%= sec.end_time || '' %>"></label>
+        </div>
+        <label><span class="l">ห้องเรียน</span><input type="text" name="location" value="<%= sec.location || '' %>"></label>
+        <label><span class="l">ผู้สอน</span><input type="text" name="instructor" value="<%= sec.instructor || '' %>"></label>
+        <label class="check"><input type="checkbox" name="apply_sessions" value="1" checked><span>ปรับวัน/เวลา/ห้องของคาบที่ยังไม่เริ่มเช็คชื่อให้ตรงตารางนี้</span></label>
+        <button class="btn sm" type="submit">บันทึก</button>
+      </form>
+      <% } %>
+    </div>
+  <% }) %>
+</div>

@@ -1,9 +1,10 @@
 <div class="page-head">
-  <div><h1>คาบเรียนและการเช็คชื่อ</h1><p>แผนการสอน 17 สัปดาห์ตาม OBE-3 — เลือกคาบเพื่อเปิด QR / เช็คชื่อแบบ Manual / ให้คะแนนระหว่างคาบ</p></div>
+  <div><h1>คาบเรียนและการเช็คชื่อ <%= currentSection ? '· ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : '· ทุกกลุ่ม' %></h1><p>แต่ละกลุ่มเรียนมีคาบของตนเอง 17 สัปดาห์ — เลือกกลุ่มที่มุมขวาบน · <a href="/teacher/sections">ตั้งวัน/เวลาเรียนของกลุ่ม</a></p></div>
   <% if (user.role === 'teacher') { %>
   <details><summary class="btn ghost">+ เพิ่มคาบ (สอนชดเชย/เพิ่มเติม)</summary>
     <form method="post" action="/teacher/sessions" class="card stack" style="margin-top:.5rem;min-width:300px">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label><span class="l">กลุ่มเรียน</span><select name="section_id"><% sections.forEach(x => { %><option value="<%= x.id %>" <%= currentSection && currentSection.id === x.id ? 'selected' : '' %>><%= x.name || 'กลุ่ม ' + x.section_code %></option><% }) %><option value="">คาบรวมทุกกลุ่ม</option></select></label>
       <div class="row"><label><span class="l">สัปดาห์</span><input type="number" name="week_number" min="1" max="30" required></label><label><span class="l">วันที่</span><input type="date" name="session_date"></label></div>
       <label><span class="l">หัวข้อ</span><input type="text" name="title"></label>
       <div class="row"><label><span class="l">เริ่ม</span><input type="time" name="start_time" value="09:00"></label><label><span class="l">สิ้นสุด</span><input type="time" name="end_time" value="13:00"></label></div>
@@ -13,10 +14,11 @@
   <% } %>
 </div>
 <div class="table-wrap"><table>
-  <tr><th>สัปดาห์</th><th>หัวข้อ</th><th>วันเวลา</th><th>สถานะ</th><th>เข้าเรียน</th><th></th></tr>
+  <tr><th>สัปดาห์</th><th>กลุ่ม</th><th>หัวข้อ</th><th>วันเวลา</th><th>สถานะ</th><th>เข้าเรียน</th><th></th></tr>
   <% sessions.forEach(s => { %>
     <tr>
       <td><span class="week <%= s.attendance_state === 'open' ? 'now' : '' %>" style="display:inline-block;width:48px">W<%= s.week_number %></span></td>
+      <td><%- s.section_name ? '<span class="badge info">' + s.section_name + '</span>' : '<span class="badge muted">รวม</span>' %></td>
       <td><a href="/sessions/<%= s.id %>"><%= s.title %></a></td>
       <td><small><%= u.thaiDate(s.session_date) %><br><%= s.start_time || '' %>–<%= s.end_time || '' %></small></td>
       <td><%- u.badge('session', s.status) %><br><%- u.badge('attendanceState', s.attendance_state) %></td>

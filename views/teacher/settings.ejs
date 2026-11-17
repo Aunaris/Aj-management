@@ -1,4 +1,16 @@
 <div class="page-head"><div><h1>ตั้งค่ารายวิชา</h1><p><%= c.course_code %> <%= c.course_name %> · <%= c.faculty %></p></div></div>
+<div class="card">
+  <h2>ข้อมูลรายวิชา</h2>
+  <form method="post" action="/teacher/settings/course" class="row" style="align-items:end">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label style="flex:0 0 140px"><span class="l">รหัสวิชา</span><input type="text" name="course_code" value="<%= c.course_code %>" required></label>
+    <label style="flex:3"><span class="l">ชื่อวิชา</span><input type="text" name="course_name" value="<%= c.course_name %>"></label>
+    <label style="flex:0 0 100px"><span class="l">ภาคเรียน</span><input type="text" name="semester" value="<%= c.semester %>" required></label>
+    <label style="flex:0 0 120px"><span class="l">ปีการศึกษา</span><input type="text" name="academic_year" value="<%= c.academic_year %>" required></label>
+    <div style="flex:0 0 auto"><button class="btn sm">บันทึก</button></div>
+  </form>
+  <p class="hint">ไฟล์รายชื่อจากระบบทะเบียนระบุ 10801327 ภาคเรียน 2/2569 ส่วน OBE-3/Blueprint ระบุ 10802103 ภาคเรียน 1/2569 — ตรวจสอบให้ตรงกับรายวิชาจริง · <a href="/teacher/sections">จัดการกลุ่มเรียน</a></p>
+</div>
 <div class="grid g2">
   <div class="card">
     <h2>โครงสร้างคะแนนตาม OBE-3 <%- c.structure_confirmed_at ? '<span class="badge ok">ยืนยันแล้ว</span>' : '<span class="badge warn">รอยืนยัน</span>' %></h2>

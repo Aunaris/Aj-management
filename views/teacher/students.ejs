@@ -1,32 +1,53 @@
 <div class="page-head">
-  <div><h1>รายชื่อนักศึกษา</h1><p><%= students.filter(s => s.enrollment_status === 'active').length %> คนที่ลงทะเบียน</p></div>
-  <a class="btn ghost" href="/teacher/reports/progress.csv">ส่งออกความก้าวหน้า</a>
+  <div><h1>รายชื่อนักศึกษา <%= currentSection ? '· ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : '· ทุกกลุ่ม' %></h1><p>ทั้งรายวิชา <%= total %> คน · แสดง <%= students.length %> คน</p></div>
+  <div class="actions">
+    <form method="get" class="inline-search"><input type="search" name="q" value="<%= q %>" placeholder="ค้นหารหัส/ชื่อ" aria-label="ค้นหานักศึกษา"><button class="btn sm ghost">ค้นหา</button></form>
+    <a class="btn ghost" href="/teacher/reports/progress.csv">ส่งออกความก้าวหน้า</a>
+  </div>
+</div>
+<div class="sec-tabs">
+  <a href="/teacher/section?id=&back=/teacher/students" class="<%= !currentSection ? 'on' : '' %>"><strong>ทุกกลุ่ม</strong><small><%= total %> คน</small></a>
+  <% counts.forEach(x => { %>
+    <a href="/teacher/section?id=<%= x.sec.id %>&back=/teacher/students" class="<%= currentSection && currentSection.id === x.sec.id ? 'on' : '' %>">
+      <strong><%= x.sec.name || 'กลุ่ม ' + x.sec.section_code %></strong><small><%= x.n %> คน</small>
+    </a>
+  <% }) %>
 </div>
 <div class="grid g-side">
   <div class="card">
     <div class="table-wrap"><table>
-      <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>กลุ่ม</th><th class="num">เข้าเรียน</th><th>สถานะ</th></tr>
+      <tr><th>กลุ่ม</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>สาขาวิชา</th><th class="num">เข้าเรียน</th><th>สถานะ</th></tr>
       <% students.forEach(s => { const r = rate[s.id]; %>
-        <tr><td><small><%= s.student_code %></small></td><td><a href="/teacher/students/<%= s.id %>"><%= s.full_name %></a><% if (s.email) { %><br><small><%= s.email %></small><% } %></td><td><%= s.section || '' %></td>
-          <td class="num"><%= r && r.rate !== null ? r.rate + '%' : '—' %><% if (r) { %><br><small>ขาด <%= r.absent %> · สาย <%= r.late %></small><% } %></td>
-          <td><%- s.enrollment_status === 'active' ? '<span class="badge ok">ลงทะเบียน</span>' : '<span class="badge muted">ถอน</span>' %></td></tr>
+        <tr>
+          <td><span class="badge info"><%= s.section || '—' %></span></td>
+          <td><small><%= s.student_code %></small></td>
+          <td><a href="/teacher/students/<%= s.id %>"><%= s.full_name %></a><% if (s.email) { %><br><small><%= s.email %></small><% } %></td>
+          <td><small><%= s.program || '' %></small></td>
+          <td class="num"><%= r && r.rate !== null ? r.rate + '%' : '—' %><% if (r && r.held) { %><br><small>ขาด <%= r.absent %> · สาย <%= r.late %></small><% } %></td>
+          <td><%- s.enrollment_status === 'active' ? '<span class="badge ok">ลงทะเบียน</span>' : '<span class="badge muted">ถอน</span>' %></td>
+        </tr>
       <% }) %>
     </table></div>
-    <% if (!students.length) { %><div class="empty">ยังไม่มีนักศึกษา นำเข้ารายชื่อจากแบบฟอร์มด้านขวา</div><% } %>
+    <% if (!students.length) { %><div class="empty">ยังไม่มีนักศึกษาในกลุ่มนี้ — นำเข้าไฟล์รายชื่อจากแบบฟอร์มด้านขวา</div><% } %>
   </div>
   <div>
     <div class="card">
-      <h2>นำเข้ารายชื่อ (Excel/CSV)</h2>
-      <p class="hint">คัดลอกจาก Excel แล้ววาง หรืออัปโหลด CSV (UTF-8) คอลัมน์: <code>รหัสนักศึกษา, ชื่อ-นามสกุล, อีเมล, กลุ่มเรียน</code> (2 คอลัมน์แรกบังคับ) — รหัสผ่านเริ่มต้น = รหัสนักศึกษา และต้องเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก</p>
+      <h2>นำเข้าไฟล์รายชื่อจากระบบทะเบียน</h2>
+      <p class="hint">เลือกไฟล์ <code>ClassRoster_xxxxx.csv</code> ได้หลายไฟล์พร้อมกัน ระบบจะอ่าน "กลุ่มเรียน" จากหัวไฟล์ และสร้างกลุ่มพร้อมคาบเรียน 17 สัปดาห์ให้อัตโนมัติ (ถ้ายังไม่มี) · รหัสผ่านเริ่มต้น = รหัสนักศึกษา ระบบจะให้เปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก · นำเข้าซ้ำได้ โดยจะอัปเดตชื่อและกลุ่ม ไม่สร้างบัญชีซ้ำ</p>
+      <form method="post" action="/teacher/students/import-file" enctype="multipart/form-data" class="stack">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="file" name="files" accept=".csv,.txt" multiple required>
+        <button class="btn sm" type="submit">อัปโหลดและนำเข้า</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>หรือวางรายชื่อ</h2>
+      <p class="hint">คัดลอกจาก Excel: <code>รหัสนักศึกษา, ชื่อ-นามสกุล, อีเมล, กลุ่มเรียน</code> (ถ้าไม่ใส่กลุ่ม จะใช้กลุ่มที่เลือกด้านล่าง)</p>
       <form method="post" action="/teacher/students/import" class="stack">
         <input type="hidden" name="_csrf" value="<%= csrf %>">
-        <textarea name="data" rows="8" placeholder="6501101001	กมลชนก ใจดี	kamol@example.com	S1"></textarea>
-        <button class="btn sm" type="submit">นำเข้า</button>
-      </form>
-      <form method="post" action="/teacher/students/import-file" enctype="multipart/form-data" class="stack" style="margin-top:.8rem">
-        <input type="hidden" name="_csrf" value="<%= csrf %>">
-        <input type="file" name="file" accept=".csv,.txt" required>
-        <button class="btn sm ghost" type="submit">อัปโหลด CSV</button>
+        <label><span class="l">กลุ่มเรียน</span><select name="section"><option value="">— ตามคอลัมน์ในข้อมูล —</option><% sections.forEach(x => { %><option value="<%= x.section_code %>" <%= currentSection && currentSection.id === x.id ? 'selected' : '' %>><%= x.name || 'กลุ่ม ' + x.section_code %></option><% }) %></select></label>
+        <textarea name="data" rows="6" placeholder="6918102538	นางสาวตัวอย่าง นามสกุล		1"></textarea>
+        <button class="btn sm ghost" type="submit">นำเข้า</button>
       </form>
     </div>
   </div>

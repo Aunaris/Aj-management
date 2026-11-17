@@ -1,4 +1,5 @@
-<div class="page-head"><div><h1>รายงานและส่งออกข้อมูล</h1><p>CSV เปิดด้วย Microsoft Excel ได้ทันที (UTF-8 พร้อมภาษาไทย) · "พิมพ์/PDF" เปิดหน้าพิมพ์แล้วเลือก Save as PDF · ทุกรายงานแสดงภาคเรียน รายวิชา วันที่ออกรายงาน และเงื่อนไขการคัดกรอง</p></div></div>
+<div class="page-head"><div><h1>รายงานและส่งออกข้อมูล <%= currentSection ? '· ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : '· ทุกกลุ่ม' %></h1><p>CSV เปิดด้วย Microsoft Excel ได้ทันที (UTF-8 พร้อมภาษาไทย) · "พิมพ์/PDF" เปิดหน้าพิมพ์แล้วเลือก Save as PDF · ทุกรายงานแสดงภาคเรียน รายวิชา วันที่ออกรายงาน และเงื่อนไขการคัดกรอง</p></div></div>
+<p class="hint">รายงานจะออกตามกลุ่มที่เลือกที่มุมขวาบน (เลือก "ทุกกลุ่ม" เพื่อรวมทั้งหมด พร้อมคอลัมน์กลุ่มเรียน)</p>
 <div class="grid g3">
   <% Object.entries(types).forEach(([k, label]) => { %>
     <div class="card">

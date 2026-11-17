@@ -117,8 +117,8 @@ function closeAttendance(sessionId, actorId, { markAbsent = false } = {}) {
     get().prepare("UPDATE attendance_challenges SET status = 'revoked' WHERE session_id = ? AND status = 'active'").run(sessionId);
     if (markAbsent) {
       const missing = get().prepare(`SELECT u.id FROM course_enrollments e JOIN users u ON u.id = e.user_id JOIN roles r ON r.id = u.role_id
-        WHERE e.course_id = ? AND r.role_name = 'student' AND e.enrollment_status = 'active'
-        AND u.id NOT IN (SELECT student_id FROM attendance_records WHERE session_id = ?)`).all(session.course_id, sessionId);
+        WHERE e.course_id = ? AND r.role_name = 'student' AND e.enrollment_status = 'active' AND (? IS NULL OR e.section = ?)
+        AND u.id NOT IN (SELECT student_id FROM attendance_records WHERE session_id = ?)`).all(session.course_id, courseSvc.sessionSectionCode(session), courseSvc.sessionSectionCode(session), sessionId);
       const ins = get().prepare(`INSERT INTO attendance_records (id, session_id, student_id, attendance_status, checkin_method, note, updated_by, updated_at)
         VALUES (?,?,?,'absent','manual','ไม่ได้เช็คชื่อเมื่อปิด Session',?,?)`);
       for (const m of missing) ins.run(uuid(), sessionId, m.id, actorId, now());
@@ -238,6 +238,11 @@ function checkIn({ userId, token, code, deviceId, localDeviceId, fingerprint, ip
   if (!courseSvc.isEnrolled(session.course_id, userId)) {
     recordAttempt(session.id, userId, deviceHash, 'not_enrolled', extra);
     throw new AttendanceError('not_enrolled', 'บัญชีนี้ไม่ได้ลงทะเบียนในรายวิชานี้', 403);
+  }
+  if (!courseSvc.sessionVisibleTo(session, session.course_id, userId)) {
+    recordAttempt(session.id, userId, deviceHash, 'wrong_section', extra);
+    const mine = courseSvc.studentSectionCode(session.course_id, userId);
+    throw new AttendanceError('wrong_section', `QR นี้เป็นของ${session.section_name || 'กลุ่มเรียนอื่น'} คุณอยู่กลุ่ม ${mine || '-'} — กรุณาเช็คชื่อในคาบของกลุ่มตนเอง`, 403);
   }
 
   const existing = db.prepare('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?').get(session.id, userId);
@@ -378,6 +383,7 @@ function manualSet({ sessionId, studentId, status, reason, actorId }) {
   if (!VALID.includes(status)) throw new AttendanceError('invalid_status', 'สถานะไม่ถูกต้อง');
   const { session } = sessionWithCourse(sessionId);
   if (!courseSvc.isEnrolled(session.course_id, studentId)) throw new AttendanceError('not_enrolled', 'นักศึกษาไม่ได้อยู่ในรายวิชา');
+  if (!courseSvc.sessionVisibleTo(session, session.course_id, studentId)) throw new AttendanceError('wrong_section', 'นักศึกษาไม่ได้อยู่ในกลุ่มเรียนของคาบนี้');
   const db = get();
   const existing = db.prepare('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?').get(sessionId, studentId);
   const cleanReason = (reason || '').trim();
@@ -406,7 +412,7 @@ function roster(sessionId) {
   const byStudent = Object.fromEntries(recs.map((r) => [r.student_id, r]));
   const risks = get().prepare("SELECT user_id, COUNT(*) c FROM attendance_risk_events WHERE session_id = ? AND review_status = 'pending' GROUP BY user_id").all(sessionId);
   const riskBy = Object.fromEntries(risks.map((r) => [r.user_id, r.c]));
-  return courseSvc.students(session.course_id).map((s) => ({ ...s, record: byStudent[s.id] || null, pendingRisks: riskBy[s.id] || 0 }));
+  return courseSvc.students(session.course_id, { section: courseSvc.sessionSectionCode(session) }).map((s) => ({ ...s, record: byStudent[s.id] || null, pendingRisks: riskBy[s.id] || 0 }));
 }
 
 function summary(sessionId) {
@@ -420,10 +426,12 @@ function summary(sessionId) {
 }
 
 function studentHistory(courseId, studentId) {
+  const sec = courseSvc.sectionByCode(courseId, courseSvc.studentSectionCode(courseId, studentId) || '');
   return get().prepare(`SELECT s.id AS session_id, s.week_number, s.title, s.session_date, s.status AS session_status, s.attendance_state,
-      a.attendance_status, a.checkin_method, a.checkin_time, a.verified_at, a.note
+      a.attendance_status, a.checkin_method, a.checkin_time, a.verified_at, a.note, a.ip_address, a.geo_distance_m
     FROM course_sessions s LEFT JOIN attendance_records a ON a.session_id = s.id AND a.student_id = ?
-    WHERE s.course_id = ? AND s.status != 'cancelled' ORDER BY s.week_number, s.session_date`).all(studentId, courseId);
+    WHERE s.course_id = ? AND s.status != 'cancelled' AND (s.section_id IS NULL OR s.section_id IS ? OR a.id IS NOT NULL)
+    ORDER BY s.week_number, s.session_date`).all(studentId, courseId, sec ? sec.id : null);
 }
 
 function riskEvents({ sessionId, status } = {}) {

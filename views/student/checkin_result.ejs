@@ -2,7 +2,7 @@
   <% if (ok) { %>
     <div style="font-size:3rem">✅</div>
     <h1>เช็คชื่อสำเร็จ</h1>
-    <p>สัปดาห์ <%= s.week_number %>: <%= s.title %></p>
+    <p><%= s.section_name ? s.section_name + ' · ' : '' %>สัปดาห์ <%= s.week_number %>: <%= s.title %></p>
     <p><%- u.badge('attendance', result.status) %> เวลา <%= u.thaiDate(result.record.checkin_time, { time: true }) %></p>
     <% result.warnings.forEach(w => { %><div class="flash warning"><%= w %></div><% }) %>
     <a class="btn" href="/sessions/<%= s.id %>">ดูรายละเอียดคาบ / ยืนยันรหัสในห้อง</a>

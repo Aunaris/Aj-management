@@ -21,7 +21,7 @@ function assignmentOr404(id) {
 /** หน้าตรวจงาน: รายชื่อ + Preview + Rubric ในบริบทเดียวกัน */
 router.get('/grading/:id', T, (req, res) => {
   const a = assignmentOr404(req.params.id);
-  const overview = subSvc.overview(a.id);
+  const overview = subSvc.overview(a.id, { section: req.section ? req.section.section_code : null });
   const filter = req.query.filter || 'all';
   const filtered = overview.filter((o) => {
     if (filter === 'to_review') return o.submission && (!o.grade || o.grade.status === 'draft');
@@ -98,8 +98,10 @@ router.post('/links/:id/status', T, action((req, res) => {
 router.get('/grading/:id/grid', T, (req, res) => {
   const a = assignmentOr404(req.params.id);
   const rubric = assignSvc.rubric(a.id);
-  const overview = subSvc.overview(a.id).map((o) => ({ ...o, full: grading.getGrade(a.id, o.student.id) }));
   const session = req.query.session ? courseSvc.getSession(req.query.session) : null;
+  // จากหน้าระหว่างคาบ: แสดงเฉพาะนักศึกษากลุ่มของคาบนั้น
+  const section = session && session.section_code ? session.section_code : (req.section ? req.section.section_code : null);
+  const overview = subSvc.overview(a.id, { section }).map((o) => ({ ...o, full: grading.getGrade(a.id, o.student.id) }));
   let attendance = {};
   if (session) {
     const att = require('../services/attendance');
@@ -111,7 +113,7 @@ router.get('/grading/:id/grid', T, (req, res) => {
 /* ---------------- Gradebook (FR-08) ---------------- */
 router.get('/gradebook', TA, (req, res) => {
   const c = courseSvc.getCourse();
-  res.page('teacher/gradebook', { title: 'สมุดคะแนน', gb: scores.gradebook(c.id), structure: scores.structureCheck(c.id), c });
+  res.page('teacher/gradebook', { title: 'สมุดคะแนน', gb: scores.gradebook(c.id, { section: req.section ? req.section.section_code : null }), structure: scores.structureCheck(c.id), c });
 });
 
 router.post('/scores/lock', T, action((req, res) => {
@@ -129,7 +131,7 @@ router.post('/scores/unlock', allow('admin', 'teacher'), action((req, res) => {
 /* ---------------- T-09 CLO Analytics ---------------- */
 router.get('/clo', TA, (req, res) => {
   const c = courseSvc.getCourse();
-  const data = scores.cloScores(c.id);
+  const data = scores.cloScores(c.id, { section: req.section ? req.section.section_code : null });
   const assignments = assignSvc.list(c.id).map((a) => ({ ...a, maps: assignSvc.cloMaps(a.id) }));
   res.page('teacher/clo', { title: 'CLO Analytics', data, assignments });
 });
