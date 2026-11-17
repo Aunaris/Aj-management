@@ -40,7 +40,7 @@
       <% } else { %>
         <div class="actions" style="margin-bottom:.6rem">
           <% versions.forEach(v => { %><a class="btn sm <%= v.id === viewVersion.id ? '' : 'ghost' %>" href="/teacher/grading/<%= a.id %>?student=<%= sel.student.id %>&filter=<%= filter %>&v=<%= v.version %>">v<%= v.version %></a><% }) %>
-          <small><%- u.badge('submission', viewVersion.status) %> ส่งเมื่อ <%= u.thaiDate(viewVersion.submitted_at, { time: true }) %> <% if (viewVersion.is_late) { %><span class="badge warn">ล่าช้า</span><% } %></small>
+          <small><%- u.badge('submission', viewVersion.status) %><% if (viewVersion.source === 'email') { %> <span class="badge info">✉ ทางอีเมล</span><% } %> ส่งเมื่อ <%= u.thaiDate(viewVersion.submitted_at, { time: true }) %> <% if (viewVersion.is_late) { %><span class="badge warn">ล่าช้า</span><% } %></small>
         </div>
         <% if (viewVersion.note) { %><p class="muted">หมายเหตุจากนักศึกษา: <%= viewVersion.note %></p><% } %>
         <% viewVersion.files.forEach(f => { %>

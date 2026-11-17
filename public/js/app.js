@@ -104,6 +104,7 @@
             var m = $('[data-method]', row); if (m && r.method) m.textContent = r.method === 'qr' ? 'QR' : r.method === 'code' ? 'รหัส' : 'Manual';
             var v = $('[data-verified]', row); if (v) v.hidden = !r.verified;
             var rk = $('[data-risk]', row); if (rk) { rk.hidden = !r.risks; rk.textContent = '⚑ ' + r.risks; }
+            var ipc = $('[data-ip]', row); if (ipc) ipc.textContent = (r.ip || '') + (r.distance !== null && r.distance !== undefined ? ' · ' + r.distance + ' ม.' : '');
           });
         });
       }, 6000);
@@ -281,12 +282,101 @@
     if (mode) $$('[data-online-only]', form).forEach(function (el) { el.hidden = mode.value !== 'online'; });
   });
 
-  // ---- Check-in: auto-submit when opened from QR ----
-  var auto = $('form[data-autosubmit]');
-  if (auto) setTimeout(function () { auto.submit(); }, 250);
+  // ---- Check-in: device ID + fingerprint + GPS แล้วส่ง ----
+  function cyrb53(str) {
+    var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (var i = 0; i < str.length; i++) { var ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+  }
+  function localDeviceId() {
+    try {
+      var id = localStorage.getItem('aj-device-id');
+      if (!id) {
+        var a = new Uint8Array(16); (window.crypto || window.msCrypto).getRandomValues(a);
+        id = Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+        localStorage.setItem('aj-device-id', id);
+      }
+      return id;
+    } catch (e) { return ''; }
+  }
+  function fingerprint() {
+    var n = navigator, s = window.screen || {}, canvasHash = '';
+    try {
+      var c = document.createElement('canvas'); c.width = 220; c.height = 30; var x = c.getContext('2d');
+      x.textBaseline = 'top'; x.font = '16px Arial'; x.fillStyle = '#f60'; x.fillRect(100, 1, 60, 20); x.fillStyle = '#069'; x.fillText('2D Animation ✓ ก', 2, 4);
+      canvasHash = cyrb53(c.toDataURL());
+    } catch (e) { /* ignore */ }
+    var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { /* ignore */ }
+    return cyrb53([n.userAgent, n.language, (n.languages || []).join(','), n.platform, n.hardwareConcurrency, n.deviceMemory, n.maxTouchPoints,
+      s.width, s.height, s.colorDepth, window.devicePixelRatio, tz, canvasHash].join('|'));
+  }
+  function prepareCheckin(form, done) {
+    var st = $('[data-checkin-status]', form.parentNode) || $('[data-checkin-status]');
+    form.elements.fp.value = fingerprint();
+    form.elements.lsid.value = localDeviceId();
+    if (form.dataset.geo !== '1') return done();
+    function fail(msg) {
+      if (st) {
+        st.className = 'flash error'; st.textContent = msg + ' ';
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm'; b.textContent = 'ลองขอตำแหน่งอีกครั้ง';
+        b.addEventListener('click', function () { prepareCheckin(form, done); }); st.appendChild(b);
+      }
+      var btn = $('button[type=submit]', form); if (btn) btn.disabled = false;
+    }
+    if (!window.isSecureContext || !navigator.geolocation) return fail('เบราว์เซอร์นี้ขอตำแหน่งไม่ได้ (ต้องเปิดระบบผ่าน HTTPS) — แจ้งผู้สอน');
+    if (st) { st.className = 'hint'; st.textContent = '📍 กำลังขอตำแหน่ง GPS…'; }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      form.elements.lat.value = pos.coords.latitude; form.elements.lng.value = pos.coords.longitude; form.elements.acc.value = Math.round(pos.coords.accuracy);
+      if (st) st.textContent = 'ได้ตำแหน่งแล้ว (±' + Math.round(pos.coords.accuracy) + ' ม.) กำลังเช็คชื่อ…';
+      done();
+    }, function (err) {
+      fail(err.code === 1 ? 'คุณไม่อนุญาตให้เข้าถึงตำแหน่ง — เปิดสิทธิ์ Location ของเบราว์เซอร์แล้วลองใหม่' : 'ขอตำแหน่งไม่สำเร็จ กรุณาเปิด GPS แล้วลองใหม่');
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+  $$('form[data-checkin]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      if (form.dataset.ready === '1') return;
+      e.preventDefault();
+      var btn = $('button[type=submit]', form); if (btn) btn.disabled = true;
+      prepareCheckin(form, function () { form.dataset.ready = '1'; form.submit(); });
+    });
+    if (form.hasAttribute('data-autosubmit')) {
+      setTimeout(function () { prepareCheckin(form, function () { form.dataset.ready = '1'; form.submit(); }); }, 150);
+    }
+  });
+
+  // ---- ผู้สอน: ตั้งตำแหน่งห้องเรียนจาก GPS ของเครื่องนี้ ----
+  $$('[data-set-geo]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var out = $('[data-geo-status]');
+      if (!window.isSecureContext || !navigator.geolocation) { if (out) out.textContent = 'ต้องเปิดผ่าน HTTPS จึงจะใช้ GPS ได้'; return; }
+      if (out) out.textContent = 'กำลังขอตำแหน่ง…';
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var c = pos.coords;
+        if (btn.dataset.setGeo === 'fields') {
+          var f = btn.closest('form'); f.elements.geo_lat.value = c.latitude.toFixed(6); f.elements.geo_lng.value = c.longitude.toFixed(6);
+          if (out) out.textContent = 'ใส่พิกัดแล้ว (±' + Math.round(c.accuracy) + ' ม.) กดบันทึก';
+          return;
+        }
+        api(btn.dataset.setGeo, { lat: c.latitude, lng: c.longitude, accuracy: c.accuracy, as_default: btn.dataset.default === '1' })
+          .then(function () { window.location.reload(); })
+          .catch(function (err) { if (out) out.textContent = (err && err.error) || 'บันทึกไม่สำเร็จ'; });
+      }, function () { if (out) out.textContent = 'ขอตำแหน่งไม่สำเร็จ — อนุญาต Location ให้เบราว์เซอร์'; }, { enableHighAccuracy: true, timeout: 15000 });
+    });
+  });
 
   // ---- link status select auto-submit ----
   $$('select[data-autosave]').forEach(function (s) { s.addEventListener('change', function () { s.form.submit(); }); });
+  // ---- mail preset ----
+  $$('select[data-mail-preset]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var o = sel.selectedOptions[0]; if (!o || !o.dataset.host) return;
+      sel.form.elements.imap_host.value = o.dataset.host; sel.form.elements.imap_port.value = o.dataset.port; sel.form.elements.imap_secure.checked = true;
+    });
+  });
   // ---- print button ----
   $$('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });
 })();

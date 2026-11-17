@@ -29,6 +29,7 @@
       <% nav('/teacher/sessions', 'คาบเรียน & เช็คชื่อ', '◷') %>
       <% nav('/teacher/assignments', 'งานที่มอบหมาย', '✎') %>
       <% nav('/teacher/risk', 'ตรวจสอบการเช็คชื่อ', '⚑') %>
+      <% if (user.role === 'teacher') nav('/teacher/mail', 'รับงานทางอีเมล', '✉') %>
       <div class="nav-group">คะแนน & รายงาน</div>
       <% nav('/teacher/gradebook', 'สมุดคะแนน', '▦') %>
       <% nav('/teacher/clo', 'CLO Analytics', '◎') %>

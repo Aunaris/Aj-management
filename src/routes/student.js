@@ -80,7 +80,7 @@ router.get('/assignments/:id', S, (req, res, next) => {
   res.page('student/assignment', {
     title: a.title, a, versions, grade, rubric: assignSvc.rubric(a.id), maps: assignSvc.cloMaps(a.id), blocked,
     feedbacks: grade ? grading.feedbackHistory(a.id, req.user.user_id).filter(() => ['published', 'locked', 'revision_requested'].includes(grade.status)) : [],
-    maxUpload: MAX_UPLOAD_MB,
+    maxUpload: MAX_UPLOAD_MB, mailAccount: require('../services/mailin').publicAccount(a.course_id),
   });
 });
 

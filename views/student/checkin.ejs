@@ -2,19 +2,24 @@
   <h1>เช็คชื่อเข้าเรียน</h1>
   <p class="muted">เข้าสู่ระบบในชื่อ <strong><%= user.full_name %></strong> (<%= user.student_code %>) — ห้ามเช็คชื่อแทนผู้อื่น</p>
   <% if (token) { %>
-    <form method="post" action="/checkin" data-autosubmit>
+    <form method="post" action="/checkin" data-autosubmit data-checkin data-geo="<%= geo ? 1 : 0 %>">
+      <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="acc"><input type="hidden" name="fp"><input type="hidden" name="lsid">
       <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="token" value="<%= token %>">
       <button class="btn lg" type="submit" style="width:100%">ยืนยันเช็คชื่อ</button>
     </form>
-    <p class="hint">กำลังส่งคำขอเช็คชื่อ…</p>
+    <p class="hint" data-checkin-status>กำลังส่งคำขอเช็คชื่อ…</p>
   <% } else { %>
     <p>สแกน QR บนจอด้วยกล้องโทรศัพท์ หรือกรอกรหัส 6 ตัวที่แสดงใต้ QR</p>
+    <p class="hint" data-checkin-status></p>
     <% if (!open.length) { %><div class="flash warning">ขณะนี้ยังไม่มีคาบที่เปิดเช็คชื่อ</div><% } %>
-    <form method="post" action="/checkin" class="stack">
+    <form method="post" action="/checkin" class="stack" data-checkin data-geo="<%= geo ? 1 : 0 %>">
+      <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="acc"><input type="hidden" name="fp"><input type="hidden" name="lsid">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
       <label><span class="l">รหัสเช็คชื่อ</span><input type="text" name="code" maxlength="6" autocomplete="off" autocapitalize="characters" required style="font-size:1.6rem;letter-spacing:.3em;text-align:center;text-transform:uppercase" placeholder="XXXXXX"></label>
       <button class="btn lg" type="submit" style="width:100%">เช็คชื่อ</button>
     </form>
   <% } %>
+  <% if (geo) { %><p class="hint">📍 คาบนี้ตรวจตำแหน่ง GPS — กด "อนุญาต" เมื่อเบราว์เซอร์ขอตำแหน่ง และต้องอยู่ในบริเวณห้องเรียน</p><% } %>
+  <p class="hint">ระบบบันทึก IP และอุปกรณ์ที่ใช้เช็คชื่อ — 1 เครื่อง เช็คชื่อได้ 1 คนต่อคาบ</p>
   <p class="hint">มีปัญหา เช่น โทรศัพท์เสีย แบตหมด หรืออินเทอร์เน็ตขัดข้อง? แจ้งผู้สอนเพื่อบันทึกแบบ Manual หรือ <a href="/student/attendance">ส่งคำร้อง</a></p>
 </div>

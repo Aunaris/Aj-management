@@ -119,7 +119,7 @@ test('TC-03/15 Manual attendance บันทึกผู้แก้ไข ค�
   assert.equal(log.actor_id, teacherId);
 });
 
-test('TC-17 อุปกรณ์เดียวเช็คชื่อหลายบัญชี → Risk Event (ไม่ลงโทษอัตโนมัติ)', async () => {
+test('TC-17 อุปกรณ์เดียว: 1 เครื่อง เช็คชื่อได้ 1 คนต่อคาบ (device lock) + Risk Event', async () => {
   const teacher = await login('thaksin', 'teacher1234');
   const s = week(5);
   await openSession(teacher, s);
@@ -128,16 +128,92 @@ test('TC-17 อุปกรณ์เดียวเช็คชื่อหล�
   const b = await login('6501101007', '6501101007', { deviceId: device });
   assert.equal((await a.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', a.csrf).send({ token: tokenOf(s.id) })).status, 200);
   const rb = await b.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', b.csrf).send({ token: tokenOf(s.id) });
-  assert.equal(rb.status, 200);
-  assert.ok(rb.body.warnings.length >= 1);
+  assert.equal(rb.status, 403);
+  assert.equal(rb.body.code, 'device_used');
+  assert.equal(q('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?', s.id, studentId('6501101007')).length, 0);
   const ev = one("SELECT * FROM attendance_risk_events WHERE session_id = ? AND event_type = 'multi_account_device'", s.id);
   assert.equal(ev.user_id, studentId('6501101007'));
   assert.equal(ev.risk_level, 'high');
-  assert.equal(ev.review_status, 'pending');
-  // ไม่ลงโทษอัตโนมัติ: ยังบันทึกการเข้าเรียน
-  assert.ok(one('SELECT 1 x FROM attendance_records WHERE session_id = ? AND student_id = ?', s.id, studentId('6501101007')));
-  // ผู้สอนได้รับแจ้งเตือน
   assert.ok(one("SELECT 1 x FROM notifications WHERE recipient_id = ? AND event_type = 'risk_event'", teacherId));
+
+  // ล้าง cookie แต่ใช้เบราว์เซอร์เดิม (localStorage ID เดิม) ก็ยังถูกปฏิเสธ
+  const lsid = 'local-storage-id-123';
+  const c1 = await login('6501101008', '6501101008', { deviceId: 'cookie-one-zzzzzzzzzzzzzzzz' });
+  assert.equal((await c1.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', c1.csrf).send({ token: tokenOf(s.id), lsid })).status, 200);
+  const c2 = await login('6501101009', '6501101009', { deviceId: 'cookie-two-zzzzzzzzzzzzzzzz' });
+  const r2 = await c2.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', c2.csrf).send({ token: tokenOf(s.id), lsid });
+  assert.equal(r2.body.code, 'device_used');
+
+  // ผู้สอนบันทึก Manual ให้ได้เสมอ (กรณีนักศึกษาไม่มีโทรศัพท์และยืมเครื่องเพื่อน)
+  att.manualSet({ sessionId: s.id, studentId: studentId('6501101007'), status: 'present', reason: 'ไม่มีโทรศัพท์ ผู้สอนยืนยันตัวตน', actorId: teacherId });
+
+  // ปิด device lock → ไม่ปฏิเสธ แต่ยังสร้าง Risk Event
+  db.get().prepare('UPDATE courses SET device_lock = 0').run();
+  const r3 = await c2.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', c2.csrf).send({ token: tokenOf(s.id), lsid });
+  assert.equal(r3.status, 200);
+  db.get().prepare('UPDATE courses SET device_lock = 1').run();
+});
+
+test('IP: บันทึก IP และจำกัดเครือข่ายด้วย allowlist (CIDR)', async () => {
+  assert.equal(att.ipAllowed('202.28.10.55', '202.28.10.0/24'), true);
+  assert.equal(att.ipAllowed('::ffff:202.28.10.55', '202.28.10.0/24, 10.0.0.0/8'), true);
+  assert.equal(att.ipAllowed('1.2.3.4', '202.28.10.0/24'), false);
+  assert.equal(att.ipAllowed('1.2.3.4', ''), true);
+  assert.deepEqual(att.parseAllowlist('202.28.0.0/16, nope, 10.0.0.0/99').errors, ['nope', '10.0.0.0/99']);
+
+  const teacher = await login('thaksin', 'teacher1234');
+  const s = week(10);
+  await openSession(teacher, s);
+  db.get().prepare("UPDATE courses SET ip_allowlist = '203.0.113.0/24'").run();
+  const st = await login('6501101001');
+  const bad = await st.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', st.csrf).send({ token: tokenOf(s.id) });
+  assert.equal(bad.body.code, 'ip_not_allowed');
+  db.get().prepare("UPDATE courses SET ip_allowlist = '127.0.0.0/8, ::1/128'").run();
+  const ok = await st.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', st.csrf).send({ token: tokenOf(s.id) });
+  assert.equal(ok.status, 200);
+  const rec = one('SELECT ip_address FROM attendance_records WHERE session_id = ? AND student_id = ?', s.id, studentId('6501101001'));
+  assert.match(rec.ip_address, /127\.0\.0\.1|::1/);
+  db.get().prepare('UPDATE courses SET ip_allowlist = NULL').run();
+});
+
+test('GPS: ต้องส่งตำแหน่ง, ต้องแม่นยำพอ, ต้องอยู่ในรัศมีห้องเรียน', async () => {
+  const teacher = await login('thaksin', 'teacher1234');
+  const s = week(11);
+  await openSession(teacher, s);
+  // ผู้สอนตั้งจุดห้องเรียนจากเครื่องตนเอง (คณะสารสนเทศฯ แม่โจ้ — พิกัดตัวอย่าง)
+  const center = { lat: 18.8960, lng: 99.0122 };
+  const set = await teacher.post(`/teacher/sessions/${s.id}/geo`).set('Accept', 'application/json').set('X-CSRF-Token', teacher.csrf).send({ ...center, accuracy: 12 });
+  assert.equal(set.status, 200);
+  db.get().prepare('UPDATE courses SET geo_enabled = 1, geo_radius_m = 150, geo_max_accuracy_m = 100').run();
+  const send = (ag, extra) => ag.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', ag.csrf).send({ token: tokenOf(s.id), ...extra });
+
+  const st = await login('6501101002');
+  assert.equal((await send(st, {})).body.code, 'geo_required');
+  assert.equal((await send(st, { lat: center.lat, lng: center.lng, acc: 500 })).body.code, 'geo_inaccurate');
+  const far = await send(st, { lat: 18.80, lng: 98.95, acc: 20 }); // เมืองเชียงใหม่ ~12 กม.
+  assert.equal(far.body.code, 'geo_out_of_range');
+  assert.ok(one("SELECT 1 x FROM attendance_risk_events WHERE session_id = ? AND user_id = ? AND event_type = 'geo_out_of_range'", s.id, studentId('6501101002')));
+  const near = await send(st, { lat: 18.8965, lng: 99.0125, acc: 25 }); // ~65 ม.
+  assert.equal(near.status, 200);
+  const rec = one('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?', s.id, studentId('6501101002'));
+  assert.ok(rec.geo_distance_m > 40 && rec.geo_distance_m < 90, String(rec.geo_distance_m));
+  assert.equal(rec.geo_accuracy_m, 25);
+
+  assert.ok(Math.abs(att.distanceM(18.8960, 99.0122, 18.8960, 99.0122)) < 1e-6);
+  assert.ok(Math.abs(att.distanceM(0, 0, 0, 1) - 111195) < 50);
+  db.get().prepare('UPDATE courses SET geo_enabled = 0').run();
+});
+
+test('Fingerprint ซ้ำ (เช่น มือถือรุ่นเดียวกัน) → แจ้งระดับต่ำ ไม่ปฏิเสธ', async () => {
+  const teacher = await login('thaksin', 'teacher1234');
+  const s = week(12);
+  await openSession(teacher, s);
+  const a = await login('6501101003');
+  const b = await login('6501101004');
+  assert.equal((await a.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', a.csrf).send({ token: tokenOf(s.id), fp: 'iphone13-safari' })).status, 200);
+  assert.equal((await b.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', b.csrf).send({ token: tokenOf(s.id), fp: 'iphone13-safari' })).status, 200);
+  const ev = one("SELECT * FROM attendance_risk_events WHERE session_id = ? AND event_type = 'same_fingerprint'", s.id);
+  assert.equal(ev.risk_level, 'low');
 });
 
 test('TC-18 บัญชีเดียวใช้งานหลายอุปกรณ์พร้อมกัน → แจ้งเตือน', async () => {

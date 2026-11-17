@@ -25,7 +25,7 @@ function createApp() {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'same-origin');
-    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(self)');
+    res.setHeader('Permissions-Policy', 'geolocation=(self), microphone=(), camera=(self)');
     res.setHeader('Content-Security-Policy', [
       "default-src 'self'", "img-src 'self' data: blob:", "media-src 'self' blob:", "script-src 'self'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", "font-src 'self' https://fonts.gstatic.com",
@@ -112,6 +112,7 @@ function createApp() {
   app.use('/teacher', require('./routes/teacher'));
   app.use('/teacher', require('./routes/grading'));
   app.use('/teacher', require('./routes/reports'));
+  app.use('/teacher', require('./routes/mail'));
   app.use('/student', require('./routes/student'));
   app.use(require('./routes/checkin'));
   app.use('/admin', require('./routes/admin'));

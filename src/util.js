@@ -96,6 +96,8 @@ const RISK_TYPES = {
   after_close: 'พยายามเช็คชื่อหลังปิด Session',
   device_changed: 'เช็คชื่อจากอุปกรณ์ที่ไม่ใช่อุปกรณ์หลัก',
   token_reuse: 'พยายามใช้ Token ซ้ำ',
+  geo_out_of_range: 'เช็คชื่อจากนอกพื้นที่ห้องเรียน (GPS)',
+  same_fingerprint: 'ลักษณะเบราว์เซอร์ซ้ำกับบัญชีอื่น (อาจเป็นมือถือรุ่นเดียวกัน)',
 };
 
 function badge(group, key) {

@@ -1,0 +1,90 @@
+<div class="page-head">
+  <div><h1>รับงานทางอีเมล</h1><p>เชื่อมกล่องอีเมลของอาจารย์ (IMAP แบบอ่านอย่างเดียว) ระบบจะดึงอีเมลส่งงานของนักศึกษามาเป็นการส่งงานอัตโนมัติ</p></div>
+  <% if (acc) { %>
+  <div class="actions">
+    <form method="post" action="/teacher/mail/poll" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn">⟳ ตรวจอีเมลตอนนี้</button></form>
+    <form method="post" action="/teacher/mail/test" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost">ทดสอบการเชื่อมต่อ</button></form>
+  </div>
+  <% } %>
+</div>
+<% if (acc) { %>
+  <div class="flash <%= acc.last_error ? 'error' : acc.enabled ? 'success' : 'warning' %>">
+    <%= acc.enabled ? 'เปิดรับงานทางอีเมล' : 'ปิดการดึงอีเมลอัตโนมัติอยู่' %> · <%= acc.username %> · ตรวจทุก <%= acc.poll_minutes %> นาที
+    · ตรวจล่าสุด <%= acc.last_checked_at ? u.thaiDate(acc.last_checked_at, { time: true }) : 'ยังไม่เคย' %>
+    <% if (acc.last_error) { %><div>ข้อผิดพลาดล่าสุด: <%= acc.last_error %></div><% } %>
+  </div>
+<% } %>
+<div class="grid g-side">
+  <div class="card" id="inbox">
+    <h2>อีเมลส่งงาน</h2>
+    <div class="pill-tabs">
+      <a href="/teacher/mail#inbox" class="<%= !status ? 'on' : '' %>">ทั้งหมด</a>
+      <% [['unmatched','รอจัดการ'],['error','ไม่ผ่านเงื่อนไข'],['imported','นำเข้าแล้ว'],['ignored','ไม่เกี่ยวข้อง']].forEach(([k,l]) => { %>
+        <a href="/teacher/mail?status=<%= k %>#inbox" class="<%= status === k ? 'on' : '' %>"><%= l %> (<%= counts[k] || 0 %>)</a>
+      <% }) %>
+    </div>
+    <% if (!items.length) { %><div class="empty">ยังไม่มีอีเมลส่งงาน</div><% } %>
+    <% items.forEach(e => { %>
+      <div class="criterion">
+        <div class="head" style="align-items:flex-start">
+          <div>
+            <strong><%= e.subject || '(ไม่มีหัวเรื่อง)' %></strong><br>
+            <small><%= e.from_name || '' %> (<%= e.from_address %>) · ได้รับ <%= u.thaiDate(e.received_at, { time: true }) %></small>
+          </div>
+          <span><%- { imported: '<span class="badge ok">นำเข้าแล้ว</span>', unmatched: '<span class="badge warn">รอจัดการ</span>', error: '<span class="badge bad">ไม่ผ่านเงื่อนไข</span>', ignored: '<span class="badge muted">ไม่เกี่ยวข้อง</span>' }[e.status] %></span>
+        </div>
+        <% if (e.student_name || e.assignment_code) { %><small>นักศึกษา: <%= e.student_name ? e.student_code + ' ' + e.student_name : '—' %> · งาน: <%= e.assignment_code ? e.assignment_code + ' ' + e.assignment_title : '—' %></small><br><% } %>
+        <% if (e.note) { %><small class="<%= e.status === 'error' ? 'err-text' : 'muted' %>"><%= e.note %></small><br><% } %>
+        <small>แนบ <%= e.attachments.length %> ไฟล์</small>
+        <% e.attachments.forEach(f => { %> <a class="hint" href="/teacher/mail/attachment/<%= f.id %>"><%= f.file_name %> (<%= u.fileSize(f.file_size) %>)</a><% }) %>
+        <% if (e.body_text) { %><details><summary><small>เนื้อหาอีเมล</small></summary><pre style="white-space:pre-wrap;font:inherit;font-size:.85rem"><%= e.body_text.slice(0, 3000) %></pre></details><% } %>
+        <% if (e.status === 'imported' && e.assignment_id) { %><a class="btn sm ghost" href="/teacher/grading/<%= e.assignment_id %>?student=<%= e.student_id %>">ไปตรวจงาน</a><% } %>
+        <% if (e.status !== 'imported') { %>
+          <form method="post" action="/teacher/mail/<%= e.id %>/import" class="row" style="margin-top:.5rem;align-items:end">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <label><span class="l">นักศึกษา</span><select name="student_id" required><option value="">— เลือก —</option><% students.forEach(s => { %><option value="<%= s.id %>" <%= s.id === e.student_id ? 'selected' : '' %>><%= s.student_code %> <%= s.full_name %></option><% }) %></select></label>
+            <label><span class="l">งาน</span><select name="assignment_id" required><option value="">— เลือก —</option><% assignments.forEach(a => { %><option value="<%= a.id %>" <%= a.id === e.assignment_id ? 'selected' : '' %>><%= a.assignment_code %> <%= a.title %></option><% }) %></select></label>
+            <div class="actions" style="flex:0 0 auto"><button class="btn sm">นำเข้าเป็นงาน</button></div>
+          </form>
+          <% if (e.status !== 'ignored') { %><form method="post" action="/teacher/mail/<%= e.id %>/ignore" class="inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost" style="margin-top:.4rem">ไม่เกี่ยวข้อง</button></form><% } %>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+  <div>
+    <div class="card">
+      <h2>ตั้งค่าบัญชีอีเมล</h2>
+      <form method="post" action="/teacher/mail/settings" class="stack" autocomplete="off">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label><span class="l">ผู้ให้บริการ</span>
+          <select data-mail-preset><option value="">— กำหนดเอง —</option><% Object.entries(presets).forEach(([k, p]) => { %><option value="<%= k %>" data-host="<%= p.host %>" data-port="<%= p.port %>"><%= p.label %></option><% }) %></select></label>
+        <div class="row">
+          <label style="flex:2"><span class="l">IMAP host</span><input type="text" name="imap_host" value="<%= acc ? acc.imap_host : 'imap.gmail.com' %>" required></label>
+          <label style="flex:1"><span class="l">Port</span><input type="number" name="imap_port" value="<%= acc ? acc.imap_port : 993 %>"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="imap_secure" value="1" <%= !acc || acc.imap_secure ? 'checked' : '' %>><span>SSL/TLS</span></label>
+        <label><span class="l">อีเมลของอาจารย์</span><input type="email" name="username" value="<%= acc ? acc.username : '' %>" required autocomplete="off"></label>
+        <label><span class="l">App Password <%= acc && acc.has_password ? '(เว้นว่างถ้าไม่เปลี่ยน)' : '' %></span><input type="password" name="password" autocomplete="new-password" <%= acc ? '' : 'required' %>>
+          <div class="hint">เก็บแบบเข้ารหัส (AES-256-GCM) · ใช้ App Password ไม่ใช่รหัสผ่านหลัก</div></label>
+        <div class="row">
+          <label><span class="l">โฟลเดอร์</span><input type="text" name="mailbox" value="<%= acc ? acc.mailbox : 'INBOX' %>"></label>
+          <label><span class="l">ย้อนหลังครั้งแรก (วัน)</span><input type="number" name="days_back" min="1" max="120" value="<%= acc ? acc.days_back : 14 %>"></label>
+          <label><span class="l">ตรวจทุก (นาที)</span><input type="number" name="poll_minutes" min="1" max="120" value="<%= acc ? acc.poll_minutes : 5 %>"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="enabled" value="1" <%= !acc || acc.enabled ? 'checked' : '' %>><span>ดึงอีเมลอัตโนมัติ</span></label>
+        <button class="btn sm" type="submit">บันทึก</button>
+      </form>
+      <% if (acc) { %><form method="post" action="/teacher/mail/remove" data-confirm="ยกเลิกการเชื่อมต่ออีเมล?" style="margin-top:.5rem"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">ยกเลิกการเชื่อมต่อ</button></form><% } %>
+    </div>
+    <div class="card">
+      <h2>วิธีใช้</h2>
+      <ol style="padding-left:1.2rem;margin:0" class="hint">
+        <li><strong>Gmail / Google Workspace:</strong> เปิด 2-Step Verification แล้วสร้าง App Password ที่ myaccount.google.com/apppasswords</li>
+        <li><strong>Microsoft 365 (Outlook องค์กร):</strong> ส่วนใหญ่ปิดการเข้าสู่ระบบด้วยรหัสผ่านทาง IMAP แล้ว ต้องใช้ OAuth ซึ่งรุ่นนี้ยังไม่รองรับ — แนะนำให้ตั้ง Forward อีเมลส่งงานไปที่ Gmail</li>
+        <li>ให้นักศึกษาตั้งหัวเรื่อง <code>[รหัสงาน] รหัสนักศึกษา ชื่อ</code> เช่น <code>[A01] 6501101001 กมลชนก</code> แนบไฟล์ หรือวางลิงก์ Google Drive/YouTube ในเนื้อหา</li>
+        <li>ระบบเก็บเฉพาะอีเมลจากอีเมลนักศึกษาในรายวิชา หรือหัวเรื่องมีรหัสวิชา/รหัสงาน/รหัสนักศึกษา — อีเมลอื่นไม่ถูกบันทึก และไม่ลบ/ย้าย/ทำเครื่องหมายอ่านในกล่องอีเมล</li>
+        <li>เวลาส่ง = เวลาที่อีเมลถึงเซิร์ฟเวอร์ของอาจารย์ ใช้ตัดสินส่งล่าช้า และใช้เงื่อนไขเดียวกับการส่งผ่านเว็บ (ชนิดไฟล์ ขนาด จำนวนครั้ง)</li>
+      </ol>
+    </div>
+  </div>
+</div>

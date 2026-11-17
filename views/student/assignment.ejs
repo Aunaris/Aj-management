@@ -52,6 +52,9 @@
           </div>
         <% } %>
         <label><span class="l">หมายเหตุถึงผู้สอน</span><textarea name="note" maxlength="2000"></textarea></label>
+        <% if (mailAccount && mailAccount.enabled) { %>
+          <p class="hint">✉ หรือส่งทางอีเมลถึง <strong><%= mailAccount.username %></strong> โดยใส่หัวเรื่อง <code>[<%= a.assignment_code %>] <%= user.student_code %> <%= user.full_name %></code> แนบไฟล์หรือวางลิงก์ในเนื้อหา — ระบบจะบันทึกเป็นการส่งงานอัตโนมัติ (เวลาส่ง = เวลาที่อีเมลถึงอาจารย์)</p>
+        <% } %>
         <button class="btn lg" type="submit">ตรวจสอบและยืนยันส่งงาน<%= versions.length ? ' (เวอร์ชัน ' + (versions[0].version + 1) + ')' : '' %></button>
       </form>
       <% } %>
@@ -66,7 +69,7 @@
     <div class="card"><h2>ประวัติการส่ง</h2>
       <% if (!versions.length) { %><div class="empty">ยังไม่ได้ส่ง</div><% } %>
       <% versions.forEach(v => { %>
-        <details <%= v === versions[0] ? 'open' : '' %> style="margin-bottom:.6rem"><summary>v<%= v.version %> · <%= u.thaiDate(v.submitted_at, { time: true }) %> <%- u.badge('submission', v.status) %><%= v.is_late ? ' ⏰' : '' %></summary>
+        <details <%= v === versions[0] ? 'open' : '' %> style="margin-bottom:.6rem"><summary>v<%= v.version %> · <%= u.thaiDate(v.submitted_at, { time: true }) %> <%- u.badge('submission', v.status) %><%= v.source === 'email' ? ' ✉' : '' %><%= v.is_late ? ' ⏰' : '' %></summary>
           <% v.files.forEach(f => { %>
             <% if (f.kind === 'image') { %><div class="preview"><img src="/files/submission/<%= f.id %>" alt="<%= f.file_name %>" loading="lazy"></div><% } else if (f.kind === 'video') { %><div class="preview"><video src="/files/submission/<%= f.id %>" controls preload="metadata" playsinline></video></div><% } %>
             <div class="file-card"><small><%= f.file_name %> · <%= u.fileSize(f.file_size) %></small><a class="btn sm ghost" href="/files/submission/<%= f.id %>?download=1">ดาวน์โหลด</a></div>

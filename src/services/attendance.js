@@ -7,6 +7,7 @@
  * - ตรวจจับความผิดปกติแล้วสร้าง Risk Event ให้ผู้สอนพิจารณา (ไม่ลงโทษอัตโนมัติ)
  */
 const crypto = require('crypto');
+const net = require('net');
 const { get, uuid, now, tx } = require('../db');
 const { sha256 } = require('./auth');
 const audit = require('./audit');
@@ -14,7 +15,7 @@ const notify = require('./notify');
 const courseSvc = require('./course');
 const { localDateTime, localToday } = require('../util');
 
-const TOKEN_GRACE_MS = 10 * 1000; // เผื่อเวลาสแกนช่วงรอยต่อ QR
+const TOKEN_GRACE_MS = 20 * 1000; // เผื่อเวลาสแกนช่วงรอยต่อ QR และเวลาขอตำแหน่ง GPS
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX = 6;
 const SHORT_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -35,6 +36,61 @@ function shortCode() {
   const bytes = crypto.randomBytes(6);
   for (let i = 0; i < 6; i += 1) s += SHORT_ALPHABET[bytes[i] % SHORT_ALPHABET.length];
   return s;
+}
+
+/** ระยะทางระหว่างพิกัด (เมตร) — Haversine */
+function distanceM(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function normalizeIp(ip) {
+  const s = String(ip || '').trim();
+  return s.startsWith('::ffff:') && net.isIPv4(s.slice(7)) ? s.slice(7) : s;
+}
+
+/** รายการเครือข่ายที่อนุญาต เช่น "202.28.0.0/16, 10.0.0.0/8" (ว่าง = ไม่จำกัด) */
+function parseAllowlist(text) {
+  const list = new net.BlockList();
+  const errors = [];
+  let count = 0;
+  for (const raw of String(text || '').split(/[\s,]+/).filter(Boolean)) {
+    const [addr, prefixRaw] = raw.split('/');
+    const type = net.isIPv4(addr) ? 'ipv4' : net.isIPv6(addr) ? 'ipv6' : null;
+    if (!type) { errors.push(raw); continue; }
+    const prefix = prefixRaw === undefined ? (type === 'ipv4' ? 32 : 128) : Number(prefixRaw);
+    if (!Number.isInteger(prefix) || prefix < 0 || prefix > (type === 'ipv4' ? 32 : 128)) { errors.push(raw); continue; }
+    list.addSubnet(addr, prefix, type);
+    count += 1;
+  }
+  return { list, count, errors };
+}
+
+function ipAllowed(ip, allowlistText) {
+  const { list, count } = parseAllowlist(allowlistText);
+  if (!count) return true;
+  const n = normalizeIp(ip);
+  const type = net.isIPv4(n) ? 'ipv4' : net.isIPv6(n) ? 'ipv6' : null;
+  return !!type && list.check(n, type);
+}
+
+function geoCenter(session, course) {
+  if (session.geo_lat !== null && session.geo_lat !== undefined && session.geo_lng !== null && session.geo_lng !== undefined) return { lat: session.geo_lat, lng: session.geo_lng, from: 'session' };
+  if (course.geo_lat !== null && course.geo_lat !== undefined && course.geo_lng !== null && course.geo_lng !== undefined) return { lat: course.geo_lat, lng: course.geo_lng, from: 'course' };
+  return null;
+}
+
+function cleanGeo(geo) {
+  if (!geo) return null;
+  const lat = Number(geo.lat);
+  const lng = Number(geo.lng);
+  const acc = Number(geo.accuracy);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return null;
+  return { lat, lng, accuracy: Number.isFinite(acc) && acc >= 0 ? acc : null };
 }
 
 function sessionWithCourse(sessionId) {
@@ -114,9 +170,9 @@ function hasRecentRisk(sessionId, userId, eventType) {
   return !!get().prepare('SELECT 1 FROM attendance_risk_events WHERE session_id IS ? AND user_id = ? AND event_type = ?').get(sessionId, userId, eventType);
 }
 
-function recordAttempt(sessionId, userId, deviceHash, result) {
-  get().prepare('INSERT INTO attendance_attempts (id, session_id, user_id, device_id_hash, result, created_at) VALUES (?,?,?,?,?,?)')
-    .run(uuid(), sessionId || null, userId, deviceHash || null, result, now());
+function recordAttempt(sessionId, userId, deviceHash, result, extra = {}) {
+  get().prepare('INSERT INTO attendance_attempts (id, session_id, user_id, device_id_hash, result, created_at, ip_address, fingerprint_hash) VALUES (?,?,?,?,?,?,?,?)')
+    .run(uuid(), sessionId || null, userId, deviceHash || null, result, now(), extra.ip || null, extra.fp || null);
 }
 
 function computeStatus(session, course, at = new Date()) {
@@ -134,9 +190,14 @@ function computeStatus(session, course, at = new Date()) {
  * นักศึกษาเช็คชื่อ (ต้อง Login แล้ว) ด้วย token จาก QR หรือรหัสสั้น 6 ตัวที่แสดงคู่กับ QR
  * @returns {{status:string, record:object, warnings:string[]}}
  */
-function checkIn({ userId, token, code, deviceId, at = new Date() }) {
+function checkIn({ userId, token, code, deviceId, localDeviceId, fingerprint, ip, geo, at = new Date() }) {
   const db = get();
   const deviceHash = deviceId ? sha256(deviceId) : null;
+  const localHash = localDeviceId ? sha256(`local:${String(localDeviceId).slice(0, 100)}`) : null;
+  const fpHash = fingerprint ? sha256(`fp:${String(fingerprint).slice(0, 200)}`) : null;
+  const ipAddr = ip ? normalizeIp(ip) : null;
+  const extra = { ip: ipAddr, fp: fpHash };
+  const position = cleanGeo(geo);
 
   // Rate limit + ตรวจจับคำขอถี่ผิดปกติ
   const since = new Date(at.getTime() - RATE_WINDOW_MS).toISOString();
@@ -147,7 +208,7 @@ function checkIn({ userId, token, code, deviceId, at = new Date() }) {
     if (!db.prepare('SELECT 1 FROM attendance_risk_events WHERE user_id = ? AND event_type = ? AND created_at >= ?').get(userId, 'rapid_requests', since)) {
       riskEvent(sid, userId, 'rapid_requests', 'medium', { attemptsInLastMinute: recent + 1 });
     }
-    recordAttempt(sid, userId, deviceHash, 'rate_limited');
+    recordAttempt(sid, userId, deviceHash, 'rate_limited', extra);
     throw new AttendanceError('rate_limited', 'ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่', 429);
   }
 
@@ -158,30 +219,30 @@ function checkIn({ userId, token, code, deviceId, at = new Date() }) {
     challenge = db.prepare('SELECT * FROM attendance_challenges WHERE short_code_hash = ? ORDER BY issued_at DESC LIMIT 1').get(sha256(`code:${normalized}`));
   }
   if (!challenge) {
-    recordAttempt(null, userId, deviceHash, 'invalid_token');
+    recordAttempt(null, userId, deviceHash, 'invalid_token', extra);
     throw new AttendanceError('invalid_token', 'QR/รหัสไม่ถูกต้อง กรุณาสแกน QR ล่าสุดบนจอ');
   }
   const { session, course } = sessionWithCourse(challenge.session_id);
 
   if (session.attendance_state !== 'open' || challenge.status === 'revoked') {
-    recordAttempt(session.id, userId, deviceHash, 'session_closed');
+    recordAttempt(session.id, userId, deviceHash, 'session_closed', extra);
     if (!hasRecentRisk(session.id, userId, 'after_close') && courseSvc.isEnrolled(session.course_id, userId)) {
       riskEvent(session.id, userId, 'after_close', 'low', { method: token ? 'qr' : 'code' }, { notifyTeachers: false });
     }
     throw new AttendanceError('session_closed', 'คาบนี้ปิดการเช็คชื่อแล้ว หากมีเหตุจำเป็นกรุณาแจ้งผู้สอนเพื่อบันทึกแบบ Manual');
   }
   if (at.getTime() > Date.parse(challenge.expires_at) + TOKEN_GRACE_MS) {
-    recordAttempt(session.id, userId, deviceHash, 'expired_token');
+    recordAttempt(session.id, userId, deviceHash, 'expired_token', extra);
     throw new AttendanceError('expired_token', 'QR หมดอายุแล้ว กรุณาสแกน QR ใหม่บนจอ');
   }
   if (!courseSvc.isEnrolled(session.course_id, userId)) {
-    recordAttempt(session.id, userId, deviceHash, 'not_enrolled');
+    recordAttempt(session.id, userId, deviceHash, 'not_enrolled', extra);
     throw new AttendanceError('not_enrolled', 'บัญชีนี้ไม่ได้ลงทะเบียนในรายวิชานี้', 403);
   }
 
   const existing = db.prepare('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?').get(session.id, userId);
   if (existing) {
-    recordAttempt(session.id, userId, deviceHash, 'duplicate');
+    recordAttempt(session.id, userId, deviceHash, 'duplicate', extra);
     if (db.prepare('SELECT 1 FROM attendance_challenge_uses WHERE challenge_id = ? AND user_id = ?').get(challenge.id, userId)) {
       if (!hasRecentRisk(session.id, userId, 'token_reuse')) riskEvent(session.id, userId, 'token_reuse', 'low', { challengeId: challenge.id }, { notifyTeachers: false });
     }
@@ -190,15 +251,61 @@ function checkIn({ userId, token, code, deviceId, at = new Date() }) {
     throw err;
   }
 
+  // เครือข่ายที่อนุญาต (เช่น Wi-Fi มหาวิทยาลัย)
+  if (course.ip_allowlist && !ipAllowed(ipAddr, course.ip_allowlist)) {
+    recordAttempt(session.id, userId, deviceHash, 'ip_not_allowed', extra);
+    throw new AttendanceError('ip_not_allowed', `ต้องเชื่อมต่อเครือข่ายของมหาวิทยาลัย/ห้องเรียนก่อนเช็คชื่อ (IP ของคุณ: ${ipAddr || 'ไม่ทราบ'})`, 403);
+  }
+
+  // GPS: ต้องอยู่ในรัศมีห้องเรียน
+  let distance = null;
+  if (course.geo_enabled) {
+    const center = geoCenter(session, course);
+    if (center) {
+      if (!position) {
+        recordAttempt(session.id, userId, deviceHash, 'geo_missing', extra);
+        throw new AttendanceError('geo_required', 'ต้องอนุญาตการเข้าถึงตำแหน่ง (Location) ของเบราว์เซอร์เพื่อเช็คชื่อ แล้วสแกนใหม่ หากใช้ไม่ได้ให้แจ้งผู้สอน');
+      }
+      const maxAcc = course.geo_max_accuracy_m || 150;
+      if (position.accuracy !== null && position.accuracy > maxAcc) {
+        recordAttempt(session.id, userId, deviceHash, 'geo_inaccurate', extra);
+        throw new AttendanceError('geo_inaccurate', `ตำแหน่งไม่แม่นยำพอ (±${Math.round(position.accuracy)} ม.) กรุณาเปิด "ตำแหน่งที่แม่นยำ" แล้วลองใหม่`);
+      }
+      distance = Math.round(distanceM(center.lat, center.lng, position.lat, position.lng));
+      const slack = Math.min(position.accuracy || 0, course.geo_radius_m || 150);
+      if (distance - slack > (course.geo_radius_m || 150)) {
+        recordAttempt(session.id, userId, deviceHash, 'geo_out_of_range', extra);
+        if (!hasRecentRisk(session.id, userId, 'geo_out_of_range')) {
+          riskEvent(session.id, userId, 'geo_out_of_range', 'medium', { distanceM: distance, accuracyM: position.accuracy, ip: ipAddr });
+        }
+        throw new AttendanceError('geo_out_of_range', `คุณอยู่นอกพื้นที่ห้องเรียน (ห่างประมาณ ${distance} ม.) หากอยู่ในห้องจริงให้แจ้งผู้สอน`, 403);
+      }
+    }
+  }
+
+  // 1 เครื่อง เช็คชื่อได้ 1 บัญชีต่อคาบ
+  if (course.device_lock && (deviceHash || localHash)) {
+    const used = db.prepare(`SELECT student_id FROM attendance_records WHERE session_id = ? AND student_id != ? AND checkin_method != 'manual'
+      AND ((device_id_hash IS NOT NULL AND device_id_hash = ?) OR (local_device_hash IS NOT NULL AND local_device_hash = ?)) LIMIT 1`)
+      .get(session.id, userId, deviceHash, localHash);
+    if (used) {
+      recordAttempt(session.id, userId, deviceHash, 'device_used', extra);
+      riskEvent(session.id, userId, 'multi_account_device', 'high', { otherAccounts: [used.student_id], blocked: true, ip: ipAddr });
+      throw new AttendanceError('device_used', 'อุปกรณ์นี้ถูกใช้เช็คชื่อในคาบนี้แล้ว (1 เครื่อง เช็คชื่อได้ 1 คนต่อคาบ) กรุณาใช้อุปกรณ์ของตนเอง หรือแจ้งผู้สอน', 403);
+    }
+  }
+
   const warnings = [];
   const status = computeStatus(session, course, at);
   const recordId = uuid();
   tx(() => {
-    db.prepare(`INSERT INTO attendance_records (id, session_id, student_id, attendance_status, checkin_method, checkin_time, device_id_hash, updated_by, updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?)`).run(recordId, session.id, userId, status, token ? 'qr' : 'code', at.toISOString(), deviceHash, userId, at.toISOString());
+    db.prepare(`INSERT INTO attendance_records (id, session_id, student_id, attendance_status, checkin_method, checkin_time, device_id_hash, updated_by, updated_at,
+        ip_address, fingerprint_hash, local_device_hash, geo_lat, geo_lng, geo_accuracy_m, geo_distance_m)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(recordId, session.id, userId, status, token ? 'qr' : 'code', at.toISOString(), deviceHash, userId, at.toISOString(),
+      ipAddr, fpHash, localHash, position ? position.lat : null, position ? position.lng : null, position ? position.accuracy : null, distance);
     db.prepare('INSERT INTO attendance_challenge_uses (id, challenge_id, user_id, used_at) VALUES (?,?,?,?)').run(uuid(), challenge.id, userId, at.toISOString());
     db.prepare('UPDATE attendance_challenges SET use_count = use_count + 1, used_at = COALESCE(used_at, ?) WHERE id = ?').run(at.toISOString(), challenge.id);
-    recordAttempt(session.id, userId, deviceHash, 'success');
+    recordAttempt(session.id, userId, deviceHash, 'success', extra);
   });
 
   // Device Anomaly Detection (สร้าง Risk Event เท่านั้น ไม่ปฏิเสธ/ไม่หักคะแนน)
@@ -206,7 +313,7 @@ function checkIn({ userId, token, code, deviceId, at = new Date() }) {
     const others = db.prepare(`SELECT DISTINCT student_id FROM attendance_records WHERE session_id = ? AND device_id_hash = ? AND student_id != ?`)
       .all(session.id, deviceHash, userId).map((r) => r.student_id);
     if (others.length) {
-      riskEvent(session.id, userId, 'multi_account_device', 'high', { otherAccounts: others });
+      riskEvent(session.id, userId, 'multi_account_device', 'high', { otherAccounts: others, ip: ipAddr });
       warnings.push('ระบบพบว่าอุปกรณ์นี้ถูกใช้เช็คชื่อหลายบัญชี ผู้สอนจะตรวจสอบเพิ่มเติม');
     }
     const activeDevices = db.prepare(`SELECT COUNT(DISTINCT device_id) c FROM device_sessions WHERE user_id = ? AND ended_at IS NULL AND started_at >= ?`)
@@ -224,6 +331,15 @@ function checkIn({ userId, token, code, deviceId, at = new Date() }) {
         riskEvent(session.id, userId, 'device_changed', 'medium', {});
         warnings.push('อุปกรณ์นี้ไม่ใช่อุปกรณ์หลักที่ลงทะเบียนไว้ หากเปลี่ยนเครื่องให้ยื่นคำขอเปลี่ยนอุปกรณ์');
       }
+    }
+  }
+
+  // ลายนิ้วมือเบราว์เซอร์ซ้ำกับคนอื่น (อาจเป็นมือถือรุ่นเดียวกัน จึงแจ้งเตือนเท่านั้น ไม่ปฏิเสธ)
+  if (fpHash) {
+    const same = db.prepare(`SELECT student_id FROM attendance_records WHERE session_id = ? AND student_id != ? AND fingerprint_hash = ?
+      AND (device_id_hash IS NOT ? OR device_id_hash IS NULL)`).all(session.id, userId, fpHash, deviceHash).map((r) => r.student_id);
+    if (same.length && !hasRecentRisk(session.id, userId, 'same_fingerprint')) {
+      riskEvent(session.id, userId, 'same_fingerprint', 'low', { otherAccounts: same, ip: ipAddr }, { notifyTeachers: false });
     }
   }
 
@@ -392,7 +508,22 @@ function devices(userId) {
 }
 
 /** ลบข้อมูลที่หมดความจำเป็นตามระยะเวลาเก็บรักษา (Privacy by Design) */
+/** ตั้งจุดศูนย์กลางห้องเรียน (จากตำแหน่งเครื่องผู้สอน) */
+function setSessionGeo(sessionId, geo, actorId, { asDefault = false } = {}) {
+  const p = cleanGeo(geo);
+  if (!p) throw new AttendanceError('invalid_geo', 'พิกัดไม่ถูกต้อง');
+  get().prepare('UPDATE course_sessions SET geo_lat = ?, geo_lng = ? WHERE id = ?').run(p.lat, p.lng, sessionId);
+  if (asDefault) {
+    const s = courseSvc.getSession(sessionId);
+    get().prepare('UPDATE courses SET geo_lat = ?, geo_lng = ? WHERE id = ?').run(p.lat, p.lng, s.course_id);
+  }
+  audit.log(actorId, 'attendance.geo_center', 'course_session', sessionId, { lat: p.lat, lng: p.lng, accuracy: p.accuracy, asDefault });
+  return p;
+}
+
 function purgeOld(retentionDays = 180) {
+  // ลบพิกัด GPS ดิบหลัง 30 วัน (เก็บไว้เฉพาะระยะห่างจากห้องเรียน)
+  get().prepare('UPDATE attendance_records SET geo_lat = NULL, geo_lng = NULL WHERE geo_lat IS NOT NULL AND checkin_time < ?').run(new Date(Date.now() - 30 * 86400000).toISOString());
   const attemptsCut = new Date(Date.now() - 30 * 86400000).toISOString();
   const riskCut = new Date(Date.now() - retentionDays * 86400000).toISOString();
   get().prepare('DELETE FROM attendance_attempts WHERE created_at < ?').run(attemptsCut);
@@ -403,5 +534,5 @@ function purgeOld(retentionDays = 180) {
 module.exports = {
   AttendanceError, openAttendance, closeAttendance, currentChallenge, checkIn, issueVerifyCode, verifyPresence,
   manualSet, roster, summary, studentHistory, riskEvents, reviewRisk, createAppeal, appeals, reviewAppeal,
-  revokeDevices, devices, purgeOld, computeStatus, _live: liveChallenges,
+  revokeDevices, devices, purgeOld, computeStatus, setSessionGeo, distanceM, ipAllowed, parseAllowlist, normalizeIp, geoCenter, _live: liveChallenges,
 };

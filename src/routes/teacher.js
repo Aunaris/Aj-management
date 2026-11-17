@@ -134,7 +134,7 @@ router.get('/sessions/:id/live', TA, (req, res) => {
   const assignments = assignSvc.list(s.course_id).filter((a) => a.session_id === s.id || a.week_number === s.week_number || a.submission_mode === 'in_class');
   res.page('teacher/live', {
     title: `ระหว่างคาบ — สัปดาห์ ${s.week_number}`, s, roster: att.roster(s.id), summary: att.summary(s.id), assignments,
-    risks: att.riskEvents({ sessionId: s.id, status: 'pending' }), templates: assignSvc.TEMPLATES,
+    risks: att.riskEvents({ sessionId: s.id, status: 'pending' }), templates: assignSvc.TEMPLATES, center: att.geoCenter(s, course()),
   });
 });
 
@@ -165,7 +165,8 @@ router.get('/sessions/:id/roster.json', TA, (req, res) => {
   res.json({
     ok: true, summary: att.summary(s.id), state: s.attendance_state,
     roster: att.roster(s.id).map((r) => ({ id: r.id, code: r.student_code, name: r.full_name, status: r.record ? r.record.attendance_status : null,
-      method: r.record ? r.record.checkin_method : null, time: r.record ? r.record.checkin_time : null, verified: !!(r.record && r.record.verified_at), risks: r.pendingRisks })),
+      method: r.record ? r.record.checkin_method : null, time: r.record ? r.record.checkin_time : null, verified: !!(r.record && r.record.verified_at), risks: r.pendingRisks,
+      ip: r.record ? r.record.ip_address : null, distance: r.record ? r.record.geo_distance_m : null })),
   });
 });
 
@@ -206,6 +207,15 @@ router.post('/sessions/:id/attendance/bulk', T, action((req, res) => {
   }
   res.flash('success', `บันทึก ${n} รายการ`);
   res.redirect(`/teacher/sessions/${s.id}/live`);
+}));
+
+/** ตั้งจุดศูนย์กลางห้องเรียนจากตำแหน่ง GPS ของเครื่องผู้สอน */
+router.post('/sessions/:id/geo', T, action((req, res) => {
+  const s = sessionOr404(req);
+  const p = att.setSessionGeo(s.id, { lat: req.body.lat, lng: req.body.lng, accuracy: req.body.accuracy }, req.user.user_id, { asDefault: !!req.body.as_default });
+  if (wantsJson(req)) return res.json({ ok: true, ...p });
+  res.flash('success', 'ตั้งตำแหน่งห้องเรียนแล้ว');
+  return res.redirect(`/teacher/sessions/${s.id}/live`);
 }));
 
 router.post('/sessions/:id/verify-code', T, action((req, res) => {
@@ -394,7 +404,7 @@ router.post('/students/:id/enrollment', TA, action((req, res) => {
 /* ---------------- Settings (ตั้งค่ารายวิชา / โครงสร้างคะแนน) ---------------- */
 router.get('/settings', TA, (req, res) => {
   const c = course();
-  res.page('teacher/settings', { title: 'ตั้งค่ารายวิชา', c, categories: courseSvc.categories(c.id), clos: courseSvc.clos(c.id), structure: scores.structureCheck(c.id), documents: courseSvc.documents(c.id) });
+  res.page('teacher/settings', { title: 'ตั้งค่ารายวิชา', c, clientIp: att.normalizeIp(req.ip), categories: courseSvc.categories(c.id), clos: courseSvc.clos(c.id), structure: scores.structureCheck(c.id), documents: courseSvc.documents(c.id) });
 });
 
 router.post('/settings', TA, action((req, res) => {
@@ -403,9 +413,23 @@ router.post('/settings', TA, action((req, res) => {
   const ttl = Math.max(15, Math.min(600, Number(b.qr_ttl_seconds) || 45));
   const late = Math.max(0, Math.min(240, Number(b.late_after_minutes) || 0));
   const reminders = String(b.reminder_hours || '24,1').split(/[\s,]+/).map(Number).filter((n) => n > 0 && n <= 336).join(',') || '24,1';
-  get().prepare(`UPDATE courses SET contact = ?, qr_ttl_seconds = ?, late_after_minutes = ?, device_binding = ?, clo_visible_to_students = ?, reminder_hours = ? WHERE id = ?`)
-    .run(String(b.contact || '').trim() || null, ttl, late, b.device_binding ? 1 : 0, b.clo_visible_to_students ? 1 : 0, reminders, c.id);
-  audit.log(req.user.user_id, 'course.settings', 'course', c.id, { ttl, late, device_binding: !!b.device_binding, clo_visible: !!b.clo_visible_to_students, reminders });
+  const allow = String(b.ip_allowlist || '').trim();
+  const parsed = att.parseAllowlist(allow);
+  if (parsed.errors.length) throw Object.assign(new Error(`รูปแบบเครือข่ายไม่ถูกต้อง: ${parsed.errors.join(', ')} (ตัวอย่าง 202.28.10.0/24)`), { status: 400 });
+  const radius = Math.max(10, Math.min(5000, Number(b.geo_radius_m) || 150));
+  const maxAcc = Math.max(10, Math.min(5000, Number(b.geo_max_accuracy_m) || 150));
+  const lat = b.geo_lat === '' || b.geo_lat === undefined ? null : Number(b.geo_lat);
+  const lng = b.geo_lng === '' || b.geo_lng === undefined ? null : Number(b.geo_lng);
+  if ((lat !== null && !(Math.abs(lat) <= 90)) || (lng !== null && !(Math.abs(lng) <= 180)) || ((lat === null) !== (lng === null))) {
+    throw Object.assign(new Error('พิกัดห้องเรียนไม่ถูกต้อง'), { status: 400 });
+  }
+  get().prepare(`UPDATE courses SET contact = ?, qr_ttl_seconds = ?, late_after_minutes = ?, device_binding = ?, clo_visible_to_students = ?, reminder_hours = ?,
+    device_lock = ?, ip_allowlist = ?, geo_enabled = ?, geo_lat = ?, geo_lng = ?, geo_radius_m = ?, geo_max_accuracy_m = ? WHERE id = ?`)
+    .run(String(b.contact || '').trim() || null, ttl, late, b.device_binding ? 1 : 0, b.clo_visible_to_students ? 1 : 0, reminders,
+      b.device_lock ? 1 : 0, allow || null, b.geo_enabled ? 1 : 0, lat, lng, radius, maxAcc, c.id);
+  audit.log(req.user.user_id, 'course.settings', 'course', c.id, {
+    ttl, late, device_binding: !!b.device_binding, clo_visible: !!b.clo_visible_to_students, reminders, device_lock: !!b.device_lock, ip_allowlist: allow || null, geo_enabled: !!b.geo_enabled, geo: lat !== null ? [lat, lng] : null, radius, maxAcc,
+  });
   res.flash('success', 'บันทึกการตั้งค่าแล้ว');
   res.redirect('/teacher/settings');
 }));

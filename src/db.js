@@ -441,6 +441,54 @@ CREATE TABLE IF NOT EXISTS notification_deliveries (
   error_message TEXT
 );
 
+CREATE TABLE IF NOT EXISTS mail_accounts (
+  id TEXT PRIMARY KEY,
+  course_id TEXT NOT NULL UNIQUE REFERENCES courses(id),
+  imap_host TEXT NOT NULL,
+  imap_port INTEGER NOT NULL DEFAULT 993,
+  imap_secure INTEGER NOT NULL DEFAULT 1,
+  username TEXT NOT NULL,
+  password_enc TEXT,
+  mailbox TEXT NOT NULL DEFAULT 'INBOX',
+  days_back INTEGER NOT NULL DEFAULT 14,
+  poll_minutes INTEGER NOT NULL DEFAULT 5,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  uid_validity TEXT,
+  last_uid INTEGER,
+  last_checked_at TEXT,
+  last_error TEXT,
+  updated_by TEXT REFERENCES users(id),
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS inbound_emails (
+  id TEXT PRIMARY KEY,
+  course_id TEXT NOT NULL REFERENCES courses(id),
+  message_id TEXT NOT NULL UNIQUE,
+  imap_uid INTEGER,
+  from_address TEXT,
+  from_name TEXT,
+  subject TEXT,
+  body_text TEXT,
+  received_at TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('imported','unmatched','error','ignored')),
+  student_id TEXT REFERENCES users(id),
+  assignment_id TEXT REFERENCES assignments(id),
+  submission_id TEXT REFERENCES submissions(id),
+  note TEXT,
+  handled_by TEXT REFERENCES users(id),
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS inbound_email_attachments (
+  id TEXT PRIMARY KEY,
+  email_id TEXT NOT NULL REFERENCES inbound_emails(id),
+  file_name TEXT NOT NULL,
+  storage_key TEXT NOT NULL,
+  mime_type TEXT,
+  file_size INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_att_session ON attendance_records(session_id);
 CREATE INDEX IF NOT EXISTS idx_chal_session ON attendance_challenges(session_id, expires_at);
 CREATE INDEX IF NOT EXISTS idx_attempts_user ON attendance_attempts(user_id, created_at);
@@ -449,6 +497,29 @@ CREATE INDEX IF NOT EXISTS idx_sub_assign ON submissions(assignment_id, student_
 CREATE INDEX IF NOT EXISTS idx_notif_recipient ON notifications(recipient_id, read_at);
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id);
 `;
+
+// คอลัมน์ที่เพิ่มภายหลัง — เพิ่มให้ฐานข้อมูลเดิมอัตโนมัติ
+const COLUMNS = {
+  courses: {
+    geo_enabled: 'INTEGER NOT NULL DEFAULT 0', geo_lat: 'REAL', geo_lng: 'REAL', geo_radius_m: 'INTEGER NOT NULL DEFAULT 150',
+    geo_max_accuracy_m: 'INTEGER NOT NULL DEFAULT 150', device_lock: 'INTEGER NOT NULL DEFAULT 1', ip_allowlist: 'TEXT',
+  },
+  course_sessions: { geo_lat: 'REAL', geo_lng: 'REAL' },
+  attendance_records: {
+    ip_address: 'TEXT', fingerprint_hash: 'TEXT', local_device_hash: 'TEXT', geo_lat: 'REAL', geo_lng: 'REAL', geo_accuracy_m: 'REAL', geo_distance_m: 'REAL',
+  },
+  attendance_attempts: { ip_address: 'TEXT', fingerprint_hash: 'TEXT' },
+  submissions: { source: "TEXT NOT NULL DEFAULT 'web'" },
+};
+
+function migrate(conn) {
+  for (const [table, cols] of Object.entries(COLUMNS)) {
+    const have = new Set(conn.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [name, def] of Object.entries(cols)) {
+      if (!have.has(name)) conn.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${def}`);
+    }
+  }
+}
 
 let db = null;
 
@@ -459,6 +530,7 @@ function open(file) {
   conn.pragma('journal_mode = WAL');
   conn.pragma('foreign_keys = ON');
   conn.exec(SCHEMA);
+  migrate(conn);
   db = conn;
   return conn;
 }

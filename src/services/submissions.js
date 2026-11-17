@@ -44,7 +44,7 @@ function fixName(name) {
 /**
  * @param {{assignmentId, studentId, files: Array<{originalname, buffer, size}>, links: Array<{url,title,description}>, note, at}} p
  */
-function submit({ assignmentId, studentId, files = [], links = [], note, at = new Date() }) {
+function submit({ assignmentId, studentId, files = [], links = [], note, at = new Date(), source = 'web' }) {
   const a = assignSvc.getAssignment(assignmentId);
   if (!a) throw new ValidationError('ไม่พบงาน');
   if (!courseSvc.isEnrolled(a.course_id, studentId)) throw new ValidationError('คุณไม่ได้ลงทะเบียนในรายวิชานี้');
@@ -88,8 +88,8 @@ function submit({ assignmentId, studentId, files = [], links = [], note, at = ne
   const id = uuid();
   const stored = cleanFiles.map((f) => ({ f, s: storage.put(f.buffer, `submissions/${assignmentId}`), info: filesSvc.info(f.originalname) }));
   tx(() => {
-    get().prepare('INSERT INTO submissions (id, assignment_id, student_id, version, submitted_at, status, is_late, note) VALUES (?,?,?,?,?,?,?,?)')
-      .run(id, assignmentId, studentId, version, at.toISOString(), status, isLate ? 1 : 0, String(note || '').trim().slice(0, 2000) || null);
+    get().prepare('INSERT INTO submissions (id, assignment_id, student_id, version, submitted_at, status, is_late, note, source) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(id, assignmentId, studentId, version, at.toISOString(), status, isLate ? 1 : 0, String(note || '').trim().slice(0, 2000) || null, source === 'email' ? 'email' : 'web');
     for (const { f, s, info } of stored) {
       get().prepare('INSERT INTO submission_files (id, submission_id, file_name, storage_key, mime_type, file_size, sha256) VALUES (?,?,?,?,?,?,?)')
         .run(uuid(), id, f.originalname, s.key, info.mime, f.size, s.sha256);
@@ -99,12 +99,12 @@ function submit({ assignmentId, studentId, files = [], links = [], note, at = ne
     }
     if (grade) get().prepare('UPDATE grading_records SET submission_id = ? WHERE id = ?').run(id, grade.id);
   });
-  audit.log(studentId, 'submission.create', 'submission', id, { assignmentId, version, files: cleanFiles.length, links: cleanLinks.length, isLate });
+  audit.log(studentId, 'submission.create', 'submission', id, { assignmentId, version, files: cleanFiles.length, links: cleanLinks.length, isLate, source });
 
   const student = get().prepare('SELECT full_name, student_code FROM users WHERE id = ?').get(studentId);
   const teacherIds = courseSvc.teacherIds(a.course_id);
   notify.sendMany(teacherIds, {
-    eventType: 'submission_new', title: `${status === 'resubmitted' ? 'ส่งงานใหม่' : isLate ? 'ส่งงานล่าช้า' : 'ส่งงาน'}: ${a.title}`,
+    eventType: 'submission_new', title: `${status === 'resubmitted' ? 'ส่งงานใหม่' : isLate ? 'ส่งงานล่าช้า' : 'ส่งงาน'}${source === 'email' ? ' (ทางอีเมล)' : ''}: ${a.title}`,
     message: `${student.student_code || ''} ${student.full_name} (เวอร์ชัน ${version})`, link: `/teacher/grading/${assignmentId}?student=${studentId}`,
     entityType: 'submission', entityId: id, dedupeKey: `submission:${id}`,
   });
@@ -115,7 +115,7 @@ function submit({ assignmentId, studentId, files = [], links = [], note, at = ne
     });
   }
   notify.send(studentId, {
-    eventType: 'submission_status', title: `ส่งงานสำเร็จ: ${a.title}`, message: `เวอร์ชัน ${version}${isLate ? ' (ล่าช้า)' : ''}`,
+    eventType: 'submission_status', title: `${source === 'email' ? 'ระบบรับงานจากอีเมลของคุณแล้ว' : 'ส่งงานสำเร็จ'}: ${a.title}`, message: `เวอร์ชัน ${version}${isLate ? ' (ล่าช้า)' : ''}`,
     link: `/student/assignments/${assignmentId}`, entityType: 'submission', entityId: id, dedupeKey: `submitted:${id}`,
   });
   return { id, version, status, isLate };

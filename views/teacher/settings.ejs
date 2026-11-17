@@ -24,11 +24,27 @@
         <label><span class="l">อายุ QR (วินาที)</span><input type="number" name="qr_ttl_seconds" min="15" max="600" value="<%= c.qr_ttl_seconds %>"><div class="hint">แนะนำ 30–60 วินาที</div></label>
         <label><span class="l">มาสายเมื่อเกิน (นาที)</span><input type="number" name="late_after_minutes" min="0" max="240" value="<%= c.late_after_minutes %>"><div class="hint">นับจากเวลาเริ่มคาบ (หรือเวลาเปิดเช็คชื่อ)</div></label>
       </div>
+      <fieldset id="attendance"><legend>ป้องกันการเช็คชื่อแทน</legend>
+        <label class="check"><input type="checkbox" name="device_lock" value="1" <%= c.device_lock ? 'checked' : '' %>><span><strong>1 เครื่อง เช็คชื่อได้ 1 คนต่อคาบ</strong> — ปฏิเสธบัญชีที่สองที่ใช้เครื่องเดียวกัน (ตรวจจาก Device ID ในเบราว์เซอร์) และสร้าง Risk Event</span></label>
+        <label><span class="l">จำกัดเครือข่ายที่เช็คชื่อได้ (IP/CIDR คั่นด้วย , เว้นว่าง = ไม่จำกัด)</span><input type="text" name="ip_allowlist" value="<%= c.ip_allowlist || '' %>" placeholder="เช่น 202.28.10.0/24, 10.0.0.0/8">
+          <div class="hint">IP สาธารณะที่ผู้สอนใช้อยู่ตอนนี้: <code><%= clientIp %></code> — นักศึกษาที่ใช้ Wi-Fi เดียวกันจะมี IP เดียวกัน จึงใช้ IP จำกัด "เครือข่าย" ได้ แต่ใช้แยก "เครื่อง" ไม่ได้</div></label>
+        <label class="check"><input type="checkbox" name="geo_enabled" value="1" <%= c.geo_enabled ? 'checked' : '' %>><span><strong>ตรวจตำแหน่ง GPS</strong> — นักศึกษาต้องอนุญาต Location และอยู่ในรัศมีห้องเรียน (ต้องเปิดระบบผ่าน HTTPS)</span></label>
+        <div class="row">
+          <label><span class="l">ละติจูดห้องเรียน</span><input type="text" name="geo_lat" value="<%= c.geo_lat ?? '' %>" inputmode="decimal"></label>
+          <label><span class="l">ลองจิจูด</span><input type="text" name="geo_lng" value="<%= c.geo_lng ?? '' %>" inputmode="decimal"></label>
+        </div>
+        <button class="btn sm ghost" type="button" data-set-geo="fields">📍 ใช้ตำแหน่งปัจจุบันของเครื่องนี้</button> <span class="hint" data-geo-status></span>
+        <div class="row" style="margin-top:.5rem">
+          <label><span class="l">รัศมีที่อนุญาต (เมตร)</span><input type="number" name="geo_radius_m" min="10" max="5000" value="<%= c.geo_radius_m %>"></label>
+          <label><span class="l">ความคลาดเคลื่อน GPS สูงสุด (เมตร)</span><input type="number" name="geo_max_accuracy_m" min="10" max="5000" value="<%= c.geo_max_accuracy_m %>"></label>
+        </div>
+        <p class="hint">GPS ในอาคารมักคลาดเคลื่อน 20–100 ม. แนะนำรัศมี 100–200 ม. · ตั้งจุดเฉพาะคาบได้จากหน้า "ระหว่างคาบ" · พิกัด GPS ของนักศึกษาจะถูกลบหลัง 30 วัน (เก็บไว้เฉพาะระยะห่าง)</p>
+      </fieldset>
       <label class="check"><input type="checkbox" name="device_binding" value="1" <%= c.device_binding ? 'checked' : '' %>><span>เปิด Device Binding — ผูกอุปกรณ์หลักกับบัญชี และแจ้งเตือนเมื่อเปลี่ยนอุปกรณ์ (ไม่ใช่หลักฐานยืนยันตัวบุคคล)</span></label>
       <label class="check"><input type="checkbox" name="clo_visible_to_students" value="1" <%= c.clo_visible_to_students ? 'checked' : '' %>><span>เปิดให้นักศึกษาเห็นความก้าวหน้า CLO ของตนเอง</span></label>
       <label><span class="l">เตือนก่อนกำหนดส่ง (ชั่วโมง คั่นด้วย ,)</span><input type="text" name="reminder_hours" value="<%= c.reminder_hours %>"></label>
       <label><span class="l">ช่องทางติดต่อผู้สอน</span><input type="text" name="contact" value="<%= c.contact || '' %>"></label>
-      <p class="hint">Privacy by Design: ระบบไม่เก็บ GPS ภาพใบหน้า หรือข้อมูลชีวมิติ · เก็บ Device ID เป็นค่า hash · ล้างประวัติคำขอเช็คชื่อหลัง 30 วัน และ Risk Event ที่ตรวจแล้วหลัง <%= c.risk_retention_days %> วัน</p>
+      <p class="hint">Privacy: ระบบไม่เก็บภาพใบหน้าหรือข้อมูลชีวมิติ · เก็บ GPS เฉพาะเมื่อเปิดใช้ · เก็บ Device ID เป็นค่า hash · ล้างประวัติคำขอเช็คชื่อหลัง 30 วัน และ Risk Event ที่ตรวจแล้วหลัง <%= c.risk_retention_days %> วัน</p>
       <button class="btn sm" type="submit">บันทึก</button>
     </form>
   </div>

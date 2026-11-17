@@ -11,8 +11,15 @@ const S = allow('student');
 router.get('/checkin', S, (req, res) => {
   const course = courseSvc.getCourse();
   const open = courseSvc.sessions(course.id).filter((s) => s.attendance_state === 'open');
-  res.page('student/checkin', { title: 'เช็คชื่อ', token: typeof req.query.t === 'string' ? req.query.t.slice(0, 100) : '', open });
+  const geo = !!course.geo_enabled && open.some((s) => att.geoCenter(s, course));
+  res.page('student/checkin', { title: 'เช็คชื่อ', token: typeof req.query.t === 'string' ? req.query.t.slice(0, 100) : '', open, geo });
 });
+
+function clientContext(req) {
+  const b = req.body || {};
+  const geo = b.lat !== undefined && b.lat !== '' ? { lat: b.lat, lng: b.lng, accuracy: b.acc } : null;
+  return { ip: req.ip, fingerprint: b.fp ? String(b.fp).slice(0, 200) : null, localDeviceId: b.lsid ? String(b.lsid).slice(0, 100) : null, geo };
+}
 
 router.post('/checkin', S, (req, res, next) => {
   try {
@@ -21,6 +28,7 @@ router.post('/checkin', S, (req, res, next) => {
       token: req.body.token ? String(req.body.token).slice(0, 100) : null,
       code: !req.body.token && req.body.code ? String(req.body.code).slice(0, 10) : null,
       deviceId: req.deviceId,
+      ...clientContext(req),
     });
     if (wantsJson(req)) return res.json({ ok: true, status: result.status, warnings: result.warnings });
     return res.page('student/checkin_result', { title: 'ผลการเช็คชื่อ', ok: true, result, s: result.session, error: null });

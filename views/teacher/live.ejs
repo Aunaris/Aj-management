@@ -37,6 +37,21 @@
       <% } %>
     </div>
     <div class="card">
+      <h2>ตรวจตำแหน่ง & อุปกรณ์</h2>
+      <ul class="list">
+        <li><span>1 เครื่อง : 1 คน / คาบ</span><%- course.device_lock ? '<span class="badge ok">เปิด</span>' : '<span class="badge muted">ปิด</span>' %></li>
+        <li><span>จำกัดเครือข่าย (IP)</span><%- course.ip_allowlist ? '<span class="badge ok">' + course.ip_allowlist + '</span>' : '<span class="badge muted">ไม่จำกัด</span>' %></li>
+        <li><span>GPS รัศมี <%= course.geo_radius_m %> ม.</span><%- !course.geo_enabled ? '<span class="badge muted">ปิด</span>' : center ? '<span class="badge ok">เปิด (' + (center.from === 'session' ? 'จุดของคาบนี้' : 'จุดเริ่มต้นรายวิชา') + ')</span>' : '<span class="badge warn">ยังไม่ตั้งจุดห้องเรียน</span>' %></li>
+      </ul>
+      <% if (isT) { %>
+        <div class="actions" style="margin-top:.5rem">
+          <button class="btn sm ghost" type="button" data-set-geo="/teacher/sessions/<%= s.id %>/geo">📍 ใช้ตำแหน่งเครื่องนี้เป็นจุดห้องเรียน</button>
+          <button class="btn sm ghost" type="button" data-set-geo="/teacher/sessions/<%= s.id %>/geo" data-default="1">📍 …และตั้งเป็นค่าเริ่มต้นทุกคาบ</button>
+        </div>
+        <p class="hint" data-geo-status><% if (center) { %>พิกัด <%= center.lat.toFixed(5) %>, <%= center.lng.toFixed(5) %><% } %> · ตั้งค่าเพิ่มเติมที่ <a href="/teacher/settings#attendance">ตั้งค่ารายวิชา</a></p>
+      <% } %>
+    </div>
+    <div class="card">
       <h2>สรุปการเข้าเรียน</h2>
       <div class="grid g2" style="gap:.5rem">
         <div class="stat"><div class="label">มาเรียน</div><div class="value" data-sum="present"><%= summary.present %></div></div>
@@ -84,7 +99,7 @@
     <h2>รายชื่อนักศึกษา <small class="muted">เช็คแล้ว <span data-qr-count><%= summary.present + summary.late %> / <%= summary.total %></span></small></h2>
     <div class="table-wrap">
       <table data-roster="<%= s.id %>" data-state="<%= s.attendance_state %>" data-closed="<%= s.attendance_state === 'closed' ? 1 : 0 %>">
-        <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>เวลา</th><th>วิธี</th><th>สถานะ (คลิกเพื่อแก้ไข)</th></tr>
+        <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>เวลา</th><th>วิธี</th><th>IP · ระยะ</th><th>สถานะ (คลิกเพื่อแก้ไข)</th></tr>
         <% roster.forEach(r => { const st = r.record ? r.record.attendance_status : ''; %>
           <tr class="roster-row <%= st ? 'status-' + st : '' %>" data-student="<%= r.id %>" data-current="<%= st %>">
             <td><small><%= r.student_code %></small></td>
@@ -95,6 +110,7 @@
             </td>
             <td><small data-time><%= r.record && r.record.checkin_time ? u.thaiDate(r.record.checkin_time, { time: true }).split(' ').slice(-2).join(' ') : '' %></small></td>
             <td><small data-method><%= r.record ? u.label('method', r.record.checkin_method) : '' %></small></td>
+            <td><small data-ip><%= r.record && r.record.ip_address ? r.record.ip_address : '' %><%= r.record && r.record.geo_distance_m !== null && r.record.geo_distance_m !== undefined ? ' · ' + r.record.geo_distance_m + ' ม.' : '' %></small></td>
             <td>
               <% if (isT || user.role === 'admin') { %>
               <div class="seg" role="group" aria-label="สถานะการเข้าเรียน">

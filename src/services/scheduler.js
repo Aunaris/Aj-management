@@ -45,6 +45,7 @@ function start() {
       runReminders();
       const c = courseSvc.getCourse();
       att.purgeOld(c ? c.risk_retention_days : 180);
+      if (c) require('./mailin').poll(c.id).catch((e) => console.error('mail poll error', e.message));
     } catch (e) { console.error('scheduler error', e); }
   };
   setTimeout(tick, 5000).unref();
