@@ -55,15 +55,27 @@ const WEEKDAYS = ['อาทิตย์', 'จันทร์', 'อังค�
 /**
  * สร้างกลุ่มเรียน + คาบเรียน 17 สัปดาห์ (คัดลอกเนื้อหาจากกลุ่มแรกที่มีอยู่ หรือจากแผนการสอน OBE-3)
  */
+/** วันเปิดภาค (จันทร์ของสัปดาห์ที่ 1) */
+function termStart(courseId) {
+  const { DEFAULT_TERM_START } = require('../plan');
+  const c = get().prepare('SELECT term_start_date FROM courses WHERE id = ?').get(courseId);
+  return (c && c.term_start_date) || process.env.TERM_START_DATE || DEFAULT_TERM_START;
+}
+
 function ensureSection(courseId, code, { actorId = null, startDate } = {}) {
   const existing = sectionByCode(courseId, code);
   if (existing) return existing;
-  const { PLAN, addDays } = require('../plan');
-  const start = startDate || process.env.SEED_START_DATE || '2026-06-15';
+  const { PLAN, addDays, SECTION_SCHEDULE, firstOnOrAfter } = require('../plan');
+  const sched = SECTION_SCHEDULE[String(code)] || null;
+  const term = startDate || termStart(courseId);
+  const start = sched ? firstOnOrAfter(term, sched.day) : term;
+  const st = sched ? sched.start : '13:00';
+  const en = sched ? sched.end : '17:00';
+  const room = sched ? sched.location : 'InC 204';
   const id = uuid();
   tx(() => {
-    get().prepare('INSERT INTO course_sections (id, course_id, section_code, name, first_date, start_time, end_time, location, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
-      .run(id, courseId, String(code), `กลุ่ม ${code}`, start, '09:00', '13:00', 'ห้องปฏิบัติการคอมพิวเตอร์', now());
+    get().prepare('INSERT INTO course_sections (id, course_id, section_code, name, first_date, meeting_day, start_time, end_time, location, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      .run(id, courseId, String(code), `กลุ่ม ${code}`, start, new Date(`${start}T00:00:00Z`).getUTCDay(), st, en, room, now());
     const source = sections(courseId).find((x) => x.id !== id);
     const template = source ? get().prepare('SELECT * FROM course_sessions WHERE section_id = ? ORDER BY week_number, session_date').all(source.id) : [];
     const ins = get().prepare(`INSERT INTO course_sessions (id, course_id, section_id, week_number, title, session_date, start_time, end_time, location, instructor, hours, status, created_at)
@@ -74,13 +86,13 @@ function ensureSection(courseId, code, { actorId = null, startDate } = {}) {
       for (const t of template) {
         const sid = uuid();
         const l = lessonDetail(t.id);
-        ins.run(sid, courseId, id, t.week_number, t.title, addDays(start, (t.week_number - 1) * 7), '09:00', '13:00', t.location, t.instructor, t.hours, t.status === 'cancelled' ? 'cancelled' : 'published', now());
+        ins.run(sid, courseId, id, t.week_number, t.title, addDays(start, (t.week_number - 1) * 7), st, en, room, t.instructor, t.hours, t.status === 'cancelled' ? 'cancelled' : 'published', now());
         insL.run(uuid(), sid, l.objectives || null, l.topics || null, l.theory_activities || null, l.practical_activities || null, l.teaching_method || null, l.clo_codes || null);
       }
     } else {
       for (const [week, title, clo, objectives, method, theory, practical] of PLAN) {
         const sid = uuid();
-        ins.run(sid, courseId, id, week, title, addDays(start, (week - 1) * 7), '09:00', '13:00', 'ห้องปฏิบัติการคอมพิวเตอร์', 'อาจารย์ทักษิณ อินตะพิงค์', week === 17 ? null : 4, 'published', now());
+        ins.run(sid, courseId, id, week, title, addDays(start, (week - 1) * 7), st, en, room, 'อาจารย์ทักษิณ อินตะพิงค์', week === 17 ? null : 4, 'published', now());
         insL.run(uuid(), sid, objectives, title, theory, practical, method, clo);
       }
     }
@@ -93,8 +105,12 @@ function ensureSection(courseId, code, { actorId = null, startDate } = {}) {
 function updateSection(sectionId, input, actorId) {
   const sec = getSection(sectionId);
   if (!sec) throw Object.assign(new Error('ไม่พบกลุ่มเรียน'), { status: 404 });
-  const { addDays } = require('../plan');
-  const firstDate = /^\d{4}-\d{2}-\d{2}$/.test(input.first_date || '') ? input.first_date : sec.first_date;
+  const { addDays, firstOnOrAfter } = require('../plan');
+  // วันเรียนสัปดาห์ที่ 1: ระบุเอง หรือคำนวณจากวันในสัปดาห์ + วันเปิดภาค
+  const wd = input.meeting_day === undefined || input.meeting_day === '' ? null : Number(input.meeting_day);
+  let firstDate = sec.first_date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input.first_date || '')) firstDate = input.first_date;
+  else if (wd !== null && wd >= 0 && wd <= 6) firstDate = firstOnOrAfter(termStart(sec.course_id), wd);
   const time = (v, d) => (/^\d{2}:\d{2}$/.test(v || '') ? v : d);
   const row = {
     name: String(input.name || '').trim() || `กลุ่ม ${sec.section_code}`, first_date: firstDate,
@@ -118,9 +134,34 @@ function updateSection(sectionId, input, actorId) {
   return moved;
 }
 
+/** ตั้งวันเปิดภาค แล้วคำนวณวันเรียนของทุกกลุ่มใหม่ (เฉพาะคาบที่ยังไม่เริ่มเช็คชื่อ) */
+function setTermStart(courseId, date, actorId) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) throw Object.assign(new Error('วันเปิดภาคไม่ถูกต้อง'), { status: 400 });
+  get().prepare('UPDATE courses SET term_start_date = ? WHERE id = ?').run(date, courseId);
+  let moved = 0;
+  for (const sec of sections(courseId)) {
+    if (sec.meeting_day === null || sec.meeting_day === undefined) continue;
+    moved += updateSection(sec.id, { ...sec, first_date: '', meeting_day: sec.meeting_day, apply_sessions: 1 }, actorId);
+  }
+  audit.log(actorId, 'course.term_start', 'course', courseId, { date, moved });
+  return moved;
+}
+
+/** ใส่ตารางเรียนตามตาราง 2/2569 ให้กลุ่มที่ยังไม่มีวันเรียนและยังไม่เริ่มเช็คชื่อ */
+function applyDefaultSchedule(courseId) {
+  const { SECTION_SCHEDULE } = require('../plan');
+  for (const sec of sections(courseId)) {
+    const sched = SECTION_SCHEDULE[sec.section_code];
+    if (!sched || (sec.meeting_day !== null && sec.meeting_day !== undefined && sec.start_time === sched.start && sec.location === sched.location)) continue;
+    const started = get().prepare("SELECT 1 FROM course_sessions WHERE section_id = ? AND attendance_state != 'not_started'").get(sec.id);
+    if (started) continue;
+    updateSection(sec.id, { name: sec.name, meeting_day: sched.day, start_time: sched.start, end_time: sched.end, location: sched.location, instructor: sec.instructor, apply_sessions: 1 }, null);
+  }
+}
+
 /** ย้ายฐานข้อมูลรุ่นก่อน (คาบไม่มีกลุ่ม) ให้เป็นโครงสร้างแบบกลุ่มเรียน */
 function migrateSections(courseId) {
-  if (sections(courseId).length) return;
+  if (sections(courseId).length) { applyDefaultSchedule(courseId); return; }
   const legacy = get().prepare('SELECT COUNT(*) c FROM course_sessions WHERE course_id = ? AND section_id IS NULL').get(courseId).c;
   const id = uuid();
   tx(() => {
@@ -133,6 +174,7 @@ function migrateSections(courseId) {
   if (!legacy) ensureSection(courseId, '1');
   const codes = get().prepare("SELECT DISTINCT section FROM course_enrollments WHERE course_id = ? AND section IS NOT NULL AND section != ''").all(courseId).map((r) => r.section);
   for (const c of codes) ensureSection(courseId, c);
+  applyDefaultSchedule(courseId);
 }
 
 function sessions(courseId, { sectionId } = {}) {
@@ -304,7 +346,7 @@ function nextSession(courseId, { sectionId } = {}) {
 
 module.exports = {
   sections, getSection, sectionByCode, sectionLabel, sessionSectionCode, studentSectionCode, sessionVisibleTo, ensureSection, updateSection, migrateSections,
-  sessionsForStudent, parseRoster, WEEKDAYS,
+  sessionsForStudent, parseRoster, WEEKDAYS, termStart, setTermStart, applyDefaultSchedule,
   getCourse, clos, categories, sessions, getSession, lessonDetail, students, isEnrolled, teacherIds,
   enroll, importStudents, announcements, documents, materials, nextSession,
 };

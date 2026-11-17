@@ -517,7 +517,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id
 const COLUMNS = {
   courses: {
     geo_enabled: 'INTEGER NOT NULL DEFAULT 0', geo_lat: 'REAL', geo_lng: 'REAL', geo_radius_m: 'INTEGER NOT NULL DEFAULT 150',
-    geo_max_accuracy_m: 'INTEGER NOT NULL DEFAULT 150', device_lock: 'INTEGER NOT NULL DEFAULT 1', ip_allowlist: 'TEXT',
+    geo_max_accuracy_m: 'INTEGER NOT NULL DEFAULT 150', device_lock: 'INTEGER NOT NULL DEFAULT 1', ip_allowlist: 'TEXT', term_start_date: 'TEXT',
   },
   course_sessions: { geo_lat: 'REAL', geo_lng: 'REAL', section_id: 'TEXT REFERENCES course_sections(id)' },
   users: { program: 'TEXT', faculty: 'TEXT' },

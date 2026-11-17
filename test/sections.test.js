@@ -176,3 +176,38 @@ test('ย้ายฐานข้อมูลรุ่นเก่า (คาบ
   assert.deepEqual(secs.map((s) => s.section_code), ['1']);
   assert.equal(one('SELECT section_id FROM course_sessions WHERE course_id = ?', cid).section_id, secs[0].id);
 });
+
+test('ตารางเรียน 2/2569: Sec 1 อังคาร, Sec 2 ศุกร์, Sec 3 จันทร์ 13:00–17:00 ห้อง InC 204 และเปลี่ยนวันเปิดภาคได้', async () => {
+  const { firstOnOrAfter } = require('../src/plan');
+  assert.equal(firstOnOrAfter('2026-11-16', 2), '2026-11-17');
+  assert.equal(firstOnOrAfter('2026-11-16', 1), '2026-11-16');
+  assert.equal(firstOnOrAfter('2026-11-18', 1), '2026-11-23');
+
+  // สร้างกลุ่มตามตารางใหม่ในรายวิชาทดสอบแยก (ข้อมูลหลักถูกแก้ไขในเทสก่อนหน้า)
+  const { uuid } = require('../src/db');
+  const cid = uuid();
+  db.get().prepare("INSERT INTO courses (id, course_code, course_name, semester, academic_year, credit, term_start_date) VALUES (?, 'T1', 't', '2', '2569', '3', '2026-11-16')").run(cid);
+  for (const code of ['1', '2', '3']) courseSvc.ensureSection(cid, code);
+  const day = (code) => courseSvc.sectionByCode(cid, code);
+  const s = (code, w) => courseSvc.sessions(cid, { sectionId: day(code).id }).find((x) => x.week_number === w);
+  assert.equal(day('1').meeting_day, 2);
+  assert.equal(day('2').meeting_day, 5);
+  assert.equal(day('3').meeting_day, 1);
+  assert.equal(s('1', 1).session_date, '2026-11-17');
+  assert.equal(s('2', 1).session_date, '2026-11-20');
+  assert.equal(s('3', 1).session_date, '2026-11-16');
+  assert.equal(s('3', 2).session_date, '2026-11-23');
+  assert.equal(s('1', 17).session_date, '2027-03-09');
+  for (const code of ['1', '2', '3']) {
+    assert.equal(s(code, 5).start_time, '13:00');
+    assert.equal(s(code, 5).end_time, '17:00');
+    assert.equal(s(code, 5).location, 'InC 204');
+  }
+  // เปลี่ยนวันเปิดภาค → เลื่อนทุกกลุ่ม ยกเว้นคาบที่เช็คชื่อแล้ว
+  db.get().prepare("UPDATE course_sessions SET attendance_state = 'closed' WHERE id = ?").run(s('3', 1).id);
+  courseSvc.setTermStart(cid, '2026-11-23', teacherId);
+  assert.equal(s('1', 1).session_date, '2026-11-24');
+  assert.equal(s('2', 1).session_date, '2026-11-27');
+  assert.equal(s('3', 2).session_date, '2026-11-30');
+  assert.equal(s('3', 1).session_date, '2026-11-16'); // เช็คชื่อแล้ว ไม่เปลี่ยน
+});

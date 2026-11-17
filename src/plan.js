@@ -43,5 +43,24 @@ function addDays(dateStr, days) {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * ตารางเรียนภาคเรียน 2/2569 (Class Schedule — CMT Program, Elective Courses)
+ * day: 0=อาทิตย์ 1=จันทร์ ... 6=เสาร์
+ */
+const SECTION_SCHEDULE = {
+  1: { day: 2, start: '13:00', end: '17:00', location: 'InC 204' }, // อังคาร
+  2: { day: 5, start: '13:00', end: '17:00', location: 'InC 204' }, // ศุกร์
+  3: { day: 1, start: '13:00', end: '17:00', location: 'InC 204' }, // จันทร์
+};
 
-module.exports = { PLAN, addDays };
+/** วันเปิดภาคเริ่มต้น (ยังไม่ยืนยันกับปฏิทินการศึกษา — แก้ได้ที่หน้า "กลุ่มเรียน") */
+const DEFAULT_TERM_START = '2026-11-16';
+
+/** วันแรกที่ตรงกับ weekday ตั้งแต่วันที่ start เป็นต้นไป */
+function firstOnOrAfter(start, weekday) {
+  const d = new Date(`${start}T00:00:00Z`);
+  const diff = (Number(weekday) - d.getUTCDay() + 7) % 7;
+  return addDays(start, diff);
+}
+
+module.exports = { PLAN, addDays, SECTION_SCHEDULE, DEFAULT_TERM_START, firstOnOrAfter };

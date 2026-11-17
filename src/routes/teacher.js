@@ -93,8 +93,10 @@ router.get('/sections', TA, (req, res) => {
     sec, students: courseSvc.students(c.id, { section: sec.section_code }).length,
     sessions: courseSvc.sessions(c.id, { sectionId: sec.id }).filter((x) => x.section_id === sec.id),
   }));
-  res.page('teacher/sections', { title: 'กลุ่มเรียน', list, weekdays: courseSvc.WEEKDAYS });
+  res.page('teacher/sections', { title: 'กลุ่มเรียน', list, weekdays: courseSvc.WEEKDAYS, termStart: courseSvc.termStart(c.id), termSet: !!c.term_start_date });
 });
+
+
 
 router.post('/sections', T, action((req, res) => {
   const code = String(req.body.section_code || '').trim();
@@ -102,6 +104,12 @@ router.post('/sections', T, action((req, res) => {
   if (courseSvc.sectionByCode(course().id, code)) throw Object.assign(new Error(`มีกลุ่ม ${code} อยู่แล้ว`), { status: 400 });
   courseSvc.ensureSection(course().id, code, { actorId: req.user.user_id });
   res.flash('success', `สร้างกลุ่ม ${code} พร้อมคาบเรียน 17 สัปดาห์แล้ว`);
+  res.redirect('/teacher/sections');
+}));
+
+router.post('/sections/term', T, action((req, res) => {
+  const moved = courseSvc.setTermStart(course().id, req.body.term_start_date, req.user.user_id);
+  res.flash('success', `ตั้งวันเปิดภาคเป็น ${util.thaiDate(req.body.term_start_date)} แล้ว — ปรับวันที่คาบที่ยังไม่เริ่ม ${moved} คาบ`);
   res.redirect('/teacher/sections');
 }));
 

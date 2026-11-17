@@ -8,6 +8,23 @@
   </form>
   <% } %>
 </div>
+<div class="card">
+  <h2>ตารางเรียนภาคเรียน <%= course.semester %>/<%= course.academic_year %></h2>
+  <form method="post" action="/teacher/sections/term" class="row" style="align-items:end;max-width:640px">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label><span class="l">วันเปิดภาค (วันแรกของสัปดาห์ที่ 1)</span><input type="date" name="term_start_date" value="<%= termStart %>" required></label>
+    <div style="flex:0 0 auto"><button class="btn sm" <%= user.role === 'teacher' ? '' : 'disabled' %>>บันทึกและคำนวณวันเรียนทุกกลุ่ม</button></div>
+  </form>
+  <p class="hint"><% if (!termSet) { %><strong class="err-text">ยังไม่ได้ยืนยันวันเปิดภาค</strong> — ใช้ค่าชั่วคราว <%= u.thaiDate(termStart) %> · <% } %>ระบบหาวันเรียนแรกของแต่ละกลุ่มจากวันในสัปดาห์ที่ตั้งไว้ แล้วเพิ่มทีละ 7 วันจนครบ 17 สัปดาห์ · คาบที่เช็คชื่อแล้วจะไม่ถูกเปลี่ยน · วันหยุดราชการ: แก้วันที่ทีละคาบที่หน้าแก้ไขคาบ หรือเปลี่ยนสถานะเป็น "ยกเลิก"</p>
+  <table>
+    <tr><th>วัน</th><th>เวลา</th><th>กลุ่ม</th><th>ห้อง</th><th>สัปดาห์ 1</th><th>สัปดาห์ 17</th></tr>
+    <% list.slice().sort((a, b) => (a.sec.meeting_day ?? 9) - (b.sec.meeting_day ?? 9)).forEach(({ sec, sessions }) => { %>
+      <tr><td><%= sec.meeting_day !== null && sec.meeting_day !== undefined ? weekdays[sec.meeting_day] : '—' %></td><td><%= sec.start_time %>–<%= sec.end_time %></td>
+        <td><strong><%= sec.name || 'กลุ่ม ' + sec.section_code %></strong></td><td><%= sec.location || '' %></td>
+        <td><%= u.thaiDate((sessions.find(x => x.week_number === 1) || {}).session_date) %></td><td><%= u.thaiDate((sessions.find(x => x.week_number === 17) || {}).session_date) %></td></tr>
+    <% }) %>
+  </table>
+</div>
 <div class="grid g3">
   <% list.forEach(({ sec, students, sessions }) => { const started = sessions.filter(x => x.attendance_state !== 'not_started').length; %>
     <div class="card">
@@ -22,7 +39,10 @@
       <form method="post" action="/teacher/sections/<%= sec.id %>" class="stack">
         <input type="hidden" name="_csrf" value="<%= csrf %>">
         <label><span class="l">ชื่อกลุ่ม</span><input type="text" name="name" value="<%= sec.name || '' %>"></label>
-        <label><span class="l">วันที่เรียนสัปดาห์ที่ 1</span><input type="date" name="first_date" value="<%= sec.first_date || '' %>"><div class="hint">ระบบใช้วันในสัปดาห์ของวันนี้ แล้วเพิ่มทีละ 7 วันสำหรับสัปดาห์ถัดไป</div></label>
+        <label><span class="l">วันเรียน</span><select name="meeting_day"><% weekdays.forEach((w, i) => { %><option value="<%= i %>" <%= sec.meeting_day === i ? 'selected' : '' %>>วัน<%= w %></option><% }) %></select></label>
+        <details><summary><small>กำหนดวันเรียนสัปดาห์ที่ 1 เอง (ไม่บังคับ)</small></summary>
+          <label><span class="l">วันที่เรียนสัปดาห์ที่ 1</span><input type="date" name="first_date" value=""><div class="hint">ปัจจุบัน: <%= u.thaiDate(sec.first_date) %> — เว้นว่างเพื่อคำนวณจากวันเปิดภาค</div></label>
+        </details>
         <div class="row">
           <label><span class="l">เริ่ม</span><input type="time" name="start_time" value="<%= sec.start_time || '' %>"></label>
           <label><span class="l">สิ้นสุด</span><input type="time" name="end_time" value="<%= sec.end_time || '' %>"></label>

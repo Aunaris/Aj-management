@@ -43,7 +43,7 @@ const CATEGORIES = [
   ['AFFECTIVE', 'จิตพิสัย', 'จิตพิสัย', 10, 'CLO4', 'กระตือรือร้น เข้าเรียนสม่ำเสมอ ส่งงานตรงเวลา; รับฟังและเคารพความคิดเห็นของผู้อื่น; ยึดมั่นในคุณธรรม จริยธรรม และจรรยาบรรณ'],
 ];
 
-function seedBase({ startDate = process.env.SEED_START_DATE || '2026-06-15', forceChange = true } = {}) {
+function seedBase({ forceChange = true } = {}) {
   const conn = db.get();
   if (conn.prepare('SELECT COUNT(*) c FROM courses').get().c) return false;
   db.tx(() => {
@@ -73,7 +73,8 @@ function seedBase({ startDate = process.env.SEED_START_DATE || '2026-06-15', for
   // กลุ่มเรียน 1–3 พร้อมคาบเรียนกลุ่มละ 17 สัปดาห์
   const courseSvc = require('./services/course');
   const c = courseSvc.getCourse();
-  for (const code of (process.env.SEED_SECTIONS || '1,2,3').split(',')) courseSvc.ensureSection(c.id, code.trim(), { startDate });
+  db.get().prepare('UPDATE courses SET term_start_date = ? WHERE id = ?').run(process.env.TERM_START_DATE || require('./plan').DEFAULT_TERM_START, c.id);
+  for (const code of (process.env.SEED_SECTIONS || '1,2,3').split(',')) courseSvc.ensureSection(c.id, code.trim());
   return true;
 }
 
