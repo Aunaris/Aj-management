@@ -22,6 +22,25 @@
   }
   var STATUS = { present: 'มาเรียน', late: 'มาสาย', absent: 'ขาดเรียน', leave: 'ลา' };
 
+  // ---- โหมดโปรแกรม PC: เตือนเมื่อโปรแกรมไม่ตอบสนอง (เช่น หน้าต่าง Command Prompt ถูกหยุดด้วย QuickEdit) ----
+  if (document.body.dataset.desktop === '1') {
+    var stall = $('[data-stall]'), stallTimer = null;
+    var arm = function () { clearTimeout(stallTimer); stallTimer = setTimeout(function () { if (stall) stall.hidden = false; }, 6000); };
+    document.addEventListener('submit', function (e) { if (!e.defaultPrevented) arm(); });
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="/"]');
+      if (a && !a.target && !e.defaultPrevented && !a.hasAttribute('download')) arm();
+    });
+    window.addEventListener('pagehide', function () { clearTimeout(stallTimer); });
+    window.addEventListener('pageshow', function () { clearTimeout(stallTimer); if (stall) stall.hidden = true; });
+    // ตรวจทุก 20 วินาทีว่าโปรแกรมยังตอบอยู่
+    setInterval(function () {
+      var done = false;
+      var t = setTimeout(function () { if (!done && stall) stall.hidden = false; }, 5000);
+      fetch('/healthz', { cache: 'no-store' }).then(function () { done = true; clearTimeout(t); if (stall) stall.hidden = true; }).catch(function () {});
+    }, 20000);
+  }
+
   // ---- confirm ----
   document.addEventListener('submit', function (e) {
     var f = e.target;

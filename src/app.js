@@ -33,6 +33,18 @@ function createApp() {
     ].join('; '));
     next();
   });
+  // บันทึกคำขอลงไฟล์ (โหมดโปรแกรม PC) เพื่อใช้ตรวจปัญหา — เขียนแบบ async ไม่บล็อกระบบ
+  if (process.env.REQUEST_LOG) {
+    const fsMod = require('fs');
+    app.use((req, res, next) => {
+      const t0 = Date.now();
+      res.on('finish', () => {
+        if (req.path.startsWith('/static') || req.path.endsWith('/qr.json') || req.path.endsWith('/roster.json')) return;
+        fsMod.appendFile(process.env.REQUEST_LOG, `[${new Date().toISOString()}] ${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Date.now() - t0}ms ${req.ip}\n`, () => {});
+      });
+      next();
+    });
+  }
   app.use('/static', express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
   app.use(cookieParser());
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
@@ -59,6 +71,7 @@ function createApp() {
     res.locals.u = util;
     res.locals.path = req.path;
     res.locals.unread = s ? notify.unreadCount(s.user_id) : 0;
+    res.locals.studentUrl = process.env.DESKTOP_MODE ? process.env.BASE_URL : null;
     // กลุ่มเรียนที่ผู้สอนเลือกดูอยู่ (cookie "sec") — ว่าง = ทุกกลุ่ม
     req.section = null;
     res.locals.sections = [];

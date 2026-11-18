@@ -9,7 +9,10 @@
   <link rel="stylesheet" href="/static/css/app.css">
   <meta name="csrf-token" content="<%= csrf %>">
 </head>
-<body class="<%= user ? 'role-' + user.role : 'guest' %>">
+<body class="<%= user ? 'role-' + user.role : 'guest' %>"<% if (studentUrl) { %> data-desktop="1"<% } %>>
+<div class="stall-warning" data-stall hidden role="alert">
+  <strong>โปรแกรมไม่ตอบสนอง</strong> — ถ้าเผลอคลิกในหน้าต่างสีดำ (ชื่อหน้าต่างขึ้นคำว่า "Select") ให้คลิกที่หน้าต่างนั้นแล้วกด <kbd>Esc</kbd> หรือ <kbd>Enter</kbd> หน้าเว็บจะทำงานต่อทันที · ถ้าปิดหน้าต่างสีดำไปแล้ว ให้ดับเบิลคลิก Start.bat ใหม่
+</div>
 <% if (user) { %>
 <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true">
 <aside class="sidebar" aria-label="เมนูหลัก">
@@ -74,6 +77,7 @@
     <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost sm" type="submit">ออกจากระบบ</button></form>
   </header>
   <main class="content">
+    <% if (studentUrl && user.role !== 'student') { %><div class="lan-hint">📶 นักศึกษา (Wi-Fi เดียวกับเครื่องนี้) เข้าระบบได้ที่ <strong><%= studentUrl %></strong> · QR เช็คชื่อใช้ที่อยู่นี้ให้อัตโนมัติ</div><% } %>
     <% if (flash) { %>
       <div class="flash <%= flash.type %>" role="alert">
         <% flash.message.forEach(m => { %><div><%= m %></div><% }) %>

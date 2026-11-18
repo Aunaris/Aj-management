@@ -10,6 +10,7 @@ const os = require('os');
 const net = require('net');
 const path = require('path');
 const http = require('http');
+const util = require('util');
 const { spawn } = require('child_process');
 
 process.removeAllListeners('warning');
@@ -21,6 +22,29 @@ const DATA = process.env.CLASSROOM_DATA || path.join(ROOT, 'data');
 fs.mkdirSync(DATA, { recursive: true });
 process.env.DB_FILE = process.env.DB_FILE || path.join(DATA, 'classroom.db');
 process.env.STORAGE_DIR = process.env.STORAGE_DIR || path.join(DATA, 'storage');
+const LOG_DIR = path.join(DATA, 'logs');
+fs.mkdirSync(LOG_DIR, { recursive: true });
+const LOG_FILE = path.join(LOG_DIR, 'server.log');
+process.env.REQUEST_LOG = process.env.REQUEST_LOG || LOG_FILE;
+process.env.DESKTOP_MODE = '1';
+
+function writeLog(level, args) {
+  fs.appendFile(LOG_FILE, `[${new Date().toISOString()}] ${level} ${util.format(...args)}\n`, () => {});
+}
+
+/**
+ * หลังเปิดโปรแกรมเสร็จ ห้ามเขียนข้อความลงหน้าต่าง Command Prompt อีก
+ * เพราะถ้าผู้ใช้คลิกในหน้าต่าง (QuickEdit) Windows จะหยุดโปรแกรมทันทีที่มีการเขียน → ทั้งระบบค้าง
+ * ข้อความทั้งหมดจึงเขียนลงไฟล์ data/logs/server.log แทน
+ */
+function consoleToFile() {
+  console.log = (...a) => writeLog('INFO', a);
+  console.info = console.log;
+  console.warn = (...a) => writeLog('WARN', a);
+  console.error = (...a) => writeLog('ERROR', a);
+}
+process.on('uncaughtException', (e) => writeLog('FATAL', [e && e.stack ? e.stack : e]));
+process.on('unhandledRejection', (e) => writeLog('ERROR', ['unhandledRejection', e && e.stack ? e.stack : e]));
 
 function lanAddress() {
   const all = [];
@@ -88,7 +112,11 @@ async function main() {
   else console.log('  ไม่พบเครือข่าย LAN/Wi-Fi — นักศึกษาจะสแกน QR ไม่ได้จนกว่าจะต่อเครือข่าย');
   console.log(`  ข้อมูลเก็บที่ : ${DATA}`);
   console.log('  ** ห้ามปิดหน้าต่างนี้ระหว่างใช้งาน — ปิดหน้าต่างนี้ = ปิดโปรแกรม **');
+  console.log('  ** อย่าคลิกในหน้าต่างนี้ — ถ้าเผลอคลิกแล้วโปรแกรมค้าง ให้กด Esc หรือ Enter **');
+  console.log(`  บันทึกการทำงาน : ${LOG_FILE}`);
   console.log(`${line}\n`);
+  consoleToFile();
+  writeLog('INFO', [`started on ${local} (LAN ${ip || '-'}) node ${process.version} ${process.platform}`]);
   setTimeout(() => openBrowser(local), 800);
 }
 
