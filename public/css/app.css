@@ -1,5 +1,42 @@
 /* 2D Animation Classroom — Modern Academic Dashboard + Creative Studio Interface */
 .checkin-card { max-width: 520px; margin: 0 auto; }
+/* ปฏิทินคาบเรียน */
+.cal-nav { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+.cal-nav strong { font-size: 1.05rem; color: var(--navy); min-width: 9.5rem; text-align: center; }
+.cal-legend { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .6rem; }
+.cal-legend .ev { pointer-events: none; }
+.calendar { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+.cal-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cal-head div { background: #f7f9fb; color: var(--muted); font-size: .8rem; font-weight: 600; text-align: center; padding: .35rem 0; border-bottom: 1px solid var(--line); }
+.cal-head .we { color: #b0807a; }
+.cal-day { min-height: 92px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: .25rem; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cal-row .cal-day:nth-child(7) { border-right: 0; }
+.cal-row:last-child .cal-day { border-bottom: 0; }
+.cal-day.out { background: #fafbfc; } .cal-day.out .cal-date { color: #b8c1ca; } .cal-day.out .ev { opacity: .55; }
+.cal-day.we { background: #fcfbfa; }
+.cal-day.today { background: #f1faf7; box-shadow: inset 0 0 0 2px var(--teal); }
+.cal-date { font-size: .8rem; font-weight: 600; color: var(--navy); }
+.cal-dow-sm { display: none; }
+.ev { display: block; font-size: .72rem; line-height: 1.25; padding: .12rem .35rem; border-radius: 5px; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid transparent; }
+.ev .ev-t { opacity: .75; }
+.ev-sec-1 { background: #e3f4f0; color: #146b5a; border-color: #b4e0d5; }
+.ev-sec-2 { background: #e5effb; color: #1d5fa8; border-color: #c3d8f2; }
+.ev-sec-3 { background: #f1e9fb; color: #6b3fa0; border-color: #dccbf2; }
+.ev-sec-x { background: var(--mute-bg); color: var(--navy); border-color: var(--line); }
+.ev-exam { background: #fde8e6; color: #9a2b1f; border-color: #f5c2bd; }
+.ev-due { background: #fff3d6; color: #7a4f00; border-color: #f0d79a; }
+.ev-open { box-shadow: 0 0 0 2px #1f8a4c; font-weight: 700; }
+.ev-cancel { text-decoration: line-through; opacity: .6; }
+@media (max-width: 700px) {
+  /* มือถือ: แสดงเป็นรายการวันที่มีคาบ/กำหนดส่ง */
+  .cal-row { display: block; }
+  .cal-row.cal-head { display: none; }
+  .cal-day { display: none; min-height: 0; border-right: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: .3rem; padding: .45rem .6rem; }
+  .cal-day.has-ev:not(.out), .cal-day.today:not(.out) { display: flex; }
+  .cal-date { width: 100%; font-size: .9rem; }
+  .cal-dow-sm { display: inline; color: var(--muted); font-weight: 400; }
+  .ev { font-size: .82rem; white-space: normal; }
+}
 .schedule tr.today td { background: #f1faf7; }
 .schedule tr.mine td:first-child { box-shadow: inset 4px 0 0 var(--teal); }
 .schedule td { vertical-align: middle; }

@@ -41,16 +41,53 @@
       </ul>
     </div>
     <div class="card">
-      <h2>ตารางคาบเรียน (Timeline)</h2>
+      <h2><span>ตารางคาบเรียน</span>
+        <span class="actions">
+          <a class="btn sm <%= view === 'calendar' ? '' : 'ghost' %>" href="/course?view=calendar&m=<%= cal.month %>">ปฏิทิน</a>
+          <a class="btn sm <%= view === 'list' ? '' : 'ghost' %>" href="/course?view=list">รายการ</a>
+        </span></h2>
+      <% if (view === 'calendar') { %>
+        <div class="cal-nav">
+          <a class="btn sm ghost" href="/course?m=<%= cal.prev %>" aria-label="เดือนก่อนหน้า">‹</a>
+          <strong><%= cal.label %></strong>
+          <a class="btn sm ghost" href="/course?m=<%= cal.next %>" aria-label="เดือนถัดไป">›</a>
+          <% if (!cal.isCurrent) { %><a class="btn sm ghost" href="/course">เดือนนี้</a><% } %>
+        </div>
+        <div class="cal-legend">
+          <span class="ev ev-sec-1">ก.1</span><span class="ev ev-sec-2">ก.2</span><span class="ev ev-sec-3">ก.3</span>
+          <span class="ev ev-exam">สอบ</span><span class="ev ev-due">กำหนดส่งงาน</span><span class="ev ev-open">กำลังเช็คชื่อ</span>
+        </div>
+        <div class="calendar" role="table" aria-label="ปฏิทินคาบเรียน <%= cal.label %>">
+          <div class="cal-row cal-head" role="row"><% cal.dow.forEach((d, i) => { %><div role="columnheader" class="<%= i >= 5 ? 'we' : '' %>"><%= d %></div><% }) %></div>
+          <% cal.weeks.forEach(week => { %>
+            <div class="cal-row" role="row">
+              <% week.forEach(d => { %>
+                <div role="cell" class="cal-day <%= d.inMonth ? '' : 'out' %> <%= d.isToday ? 'today' : '' %> <%= d.weekend ? 'we' : '' %> <%= d.events.length ? 'has-ev' : '' %>">
+                  <div class="cal-date"><span class="cal-dow-sm"><%= cal.dow[(week.indexOf(d))] %></span> <%= d.day %><% if (d.isToday) { %> <span class="badge ok">วันนี้</span><% } %></div>
+                  <% d.events.forEach(ev => { %>
+                    <a class="ev <%= ev.type === 'due' ? 'ev-due' : ev.type === 'exam' ? 'ev-exam' : 'ev-sec-' + (ev.sec || 'x') %> <%= ev.open ? 'ev-open' : '' %> <%= ev.cancelled ? 'ev-cancel' : '' %>"
+                       href="<%= ev.href %>" title="<%= ev.title %><%= ev.time ? ' · ' + ev.time : '' %>">
+                      <%= ev.open ? '● ' : ev.done ? '✓ ' : '' %><%= ev.label %><span class="ev-t"><%= ev.time ? ' ' + ev.time : '' %></span>
+                    </a>
+                  <% }) %>
+                </div>
+              <% }) %>
+            </div>
+          <% }) %>
+        </div>
+        <% if (!cal.inMonthCount) { %><p class="empty">ไม่มีคาบเรียนหรือกำหนดส่งในเดือนนี้</p><% } %>
+        <p class="hint">กดที่รายการเพื่อดูรายละเอียดคาบ/งาน · ✓ = เช็คชื่อแล้ว · ● = กำลังเปิดเช็คชื่อ<%= user.role !== 'student' ? ' · ' + (currentSection ? 'แสดงเฉพาะ' + (currentSection.name || 'กลุ่ม ' + currentSection.section_code) : 'แสดงทุกกลุ่ม (เลือกกลุ่มที่มุมขวาบน)') : '' %></p>
+      <% } else { %>
       <ul class="timeline">
         <% sessions.forEach(s => { %>
           <li>
             <div class="week <%= s.session_date === today || s.attendance_state === 'open' ? 'now' : '' %>">W<%= s.week_number %></div>
-            <div><a href="/sessions/<%= s.id %>"><strong><%= s.title %></strong></a><br><small><%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · <%= s.location || '' %></small></div>
+            <div><a href="/sessions/<%= s.id %>"><strong><%= s.title %></strong></a><br><small><%= s.section_name ? s.section_name + ' · ' : '' %><%= u.thaiDate(s.session_date) %> <%= s.start_time || '' %>–<%= s.end_time || '' %> · <%= s.location || '' %></small></div>
             <div><%- u.badge('session', s.status) %> <% if (s.attendance_state === 'open') { %><%- u.badge('attendanceState', 'open') %><% } %></div>
           </li>
         <% }) %>
       </ul>
+      <% } %>
     </div>
   </div>
   <div>

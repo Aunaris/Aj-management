@@ -32,9 +32,12 @@ router.get('/course', allow(), (req, res) => {
     const done = published.filter((a) => submissionsSvc.latest(a.id, req.user.user_id)).length;
     progress = { done, total: published.length };
   }
+  const sessionList = isStudent ? courseSvc.sessionsForStudent(course.id, req.user.user_id).filter((s) => s.status !== 'draft') : courseSvc.sessions(course.id, { sectionId: req.section ? req.section.id : null });
+  const view = req.query.view === 'list' ? 'list' : 'calendar';
+  const cal = require('../calendar').buildMonth(req.query.m, { sessions: sessionList, assignments, studentView: isStudent, role: req.user.role });
   res.page('course_home', {
     title: 'หน้าแรกของรายวิชา', clos: courseSvc.clos(course.id), categories: courseSvc.categories(course.id),
-    sessions: isStudent ? courseSvc.sessionsForStudent(course.id, req.user.user_id).filter((s) => s.status !== 'draft') : courseSvc.sessions(course.id, { sectionId: req.section ? req.section.id : null }),
+    sessions: sessionList, cal, view,
     announcements: courseSvc.announcements(course.id), documents: courseSvc.documents(course.id),
     next: courseSvc.nextSession(course.id, { sectionId: isStudent ? (res.locals.mySection || {}).id : (req.section || {}).id }), upcoming, progress,
     studentCount: courseSvc.students(course.id, { section: isStudent || !req.section ? null : req.section.section_code }).length,
