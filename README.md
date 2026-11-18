@@ -25,6 +25,20 @@ npm test                 # ชุดทดสอบอัตโนมัติ (
 
 ทุกบัญชีถูกบังคับให้เปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก ยกเว้นข้อมูลที่สร้างด้วย `--demo` ส่วนรหัสผ่านเริ่มต้นตั้งได้ผ่าน `ADMIN_PASSWORD` และ `TEACHER_PASSWORD`
 
+## รันด้วย Docker
+
+```bash
+git clone -b claude/attendance-grading-system-0wm6ov https://github.com/Aunaris/Aj-management.git
+cd Aj-management
+docker compose up -d --build      # เปิด http://localhost:3000
+docker compose logs -f            # ดูการทำงาน
+docker compose down               # หยุด (ข้อมูลยังอยู่ใน ./data)
+```
+
+- **ข้อมูล:** ฐานข้อมูลและไฟล์งานเก็บในโฟลเดอร์ `./data` ข้าง `docker-compose.yml` ถ้าจะสำรองข้อมูล ให้คัดลอกโฟลเดอร์นี้
+- **ให้มือถือนักศึกษาสแกน QR ได้:** ตั้ง IP ของเครื่องในวง Wi-Fi ก่อนเปิด เช่น `BASE_URL=http://192.168.1.25:3000 docker compose up -d` หรือใส่ไว้ในไฟล์ `.env` ข้าง `docker-compose.yml`
+- **ใช้ฐานข้อมูล `node:sqlite`:** image ไม่ต้องคอมไพล์ native module
+
 ## โปรแกรมสำหรับ PC (ไม่ต้องติดตั้งอะไรเพิ่ม)
 
 ```bash

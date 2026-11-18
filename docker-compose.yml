@@ -1,0 +1,18 @@
+# ใช้งาน: docker compose up -d --build   แล้วเปิด http://localhost:3000
+# หยุด:   docker compose down          (ข้อมูลยังอยู่ในโฟลเดอร์ ./data)
+services:
+  classroom:
+    build: .
+    image: animation-classroom:latest
+    container_name: animation-classroom
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      # ที่อยู่ที่ใส่ใน QR เช็คชื่อ — ตั้งเป็น IP ของเครื่องในวง Wi-Fi เพื่อให้มือถือนักศึกษาสแกนได้
+      # เช่น BASE_URL: http://192.168.1.25:3000  (เว้นว่าง = ใช้ที่อยู่ที่เปิดหน้าเว็บ)
+      BASE_URL: ${BASE_URL:-}
+      TERM_START_DATE: ${TERM_START_DATE:-2026-11-16}
+      TZ: Asia/Bangkok
