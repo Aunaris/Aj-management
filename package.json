@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js --reset",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "start:desktop": "node --no-warnings src/desktop.js",
+    "build:desktop": "bash scripts/build-desktop.sh"
   },
   "repository": {
     "type": "git",

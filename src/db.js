@@ -7,7 +7,15 @@
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const Database = require('better-sqlite3');
+// ใช้ better-sqlite3 ถ้ามี (เซิร์ฟเวอร์) ไม่เช่นนั้นใช้ node:sqlite ที่มากับ Node.js (โปรแกรมสำหรับ PC)
+// บังคับเลือกได้ด้วย DB_DRIVER=node หรือ DB_DRIVER=better
+function loadDriver() {
+  if (process.env.DB_DRIVER !== 'node') {
+    try { return require('better-sqlite3'); } catch (e) { if (process.env.DB_DRIVER === 'better') throw e; }
+  }
+  return require('./sqlite-node');
+}
+const Database = loadDriver();
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS roles (
