@@ -51,7 +51,7 @@ router.get('/', TA, (req, res) => {
   const c = course();
   const code = secCode(req);
   const students = courseSvc.students(c.id, { section: code });
-  const assignments = assignSvc.list(c.id);
+  const assignments = assignSvc.list(c.id, { section: code }).map((a) => (code ? assignSvc.forSection(a, code) : a));
   const open = assignments.filter((a) => a.status === 'published');
   const counts = get().prepare(`SELECT
       (SELECT COUNT(*) FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.course_id = @c AND a.deleted_at IS NULL AND ${inSec('s.student_id')}) total_subs,
@@ -71,7 +71,7 @@ router.get('/', TA, (req, res) => {
   const sectionStats = courseSvc.scheduleSummary(c.id);
 
   res.page('teacher/dashboard', {
-    title: 'Teacher Dashboard', students, open, counts, next, todaySessions, avg, clo, structure: scores.structureCheck(c.id), sectionStats, schedule: sectionStats,
+    title: 'Teacher Dashboard', students, open, counts, next, todaySessions, avg, clo, structure: scores.structureCheck(c.id, { section: code }), sectionStats, schedule: sectionStats,
     lastSummary: lastSession ? { s: lastSession, sum: att.summary(lastSession.id) } : null,
   });
 });
@@ -185,7 +185,9 @@ router.post('/sessions/:id/materials/:mid/delete', T, (req, res) => {
 /* ---------- T-03 Classroom Session (หน้าจอระหว่างคาบ) ---------- */
 router.get('/sessions/:id/live', TA, (req, res) => {
   const s = sessionOr404(req);
-  const assignments = assignSvc.list(s.course_id).filter((a) => a.session_id === s.id || a.week_number === s.week_number || a.submission_mode === 'in_class');
+  const assignments = assignSvc.list(s.course_id, { section: s.section_code })
+    .filter((a) => a.session_id === s.id || a.week_number === s.week_number || a.submission_mode === 'in_class')
+    .map((a) => (s.section_code ? assignSvc.forSection(a, s.section_code) : a));
   res.page('teacher/live', {
     title: `ระหว่างคาบ — สัปดาห์ ${s.week_number}`, s, roster: att.roster(s.id), summary: att.summary(s.id), assignments,
     risks: att.riskEvents({ sessionId: s.id, status: 'pending' }), templates: assignSvc.TEMPLATES, center: att.geoCenter(s, course()),
@@ -307,14 +309,14 @@ router.post('/appeals/:id/review', T, action((req, res) => {
 /* ---------------- Assignments (T-05 Assignment Builder) ---------------- */
 router.get('/assignments', TA, (req, res) => {
   const c = course();
-  const list = assignSvc.list(c.id).map((a) => {
+  const list = assignSvc.list(c.id, { section: secCode(req) }).map((a) => {
     const ov = subSvc.overview(a.id, { section: secCode(req) });
     return {
       ...a, submitted: ov.filter((o) => o.submission).length, toReview: ov.filter((o) => o.submission && (!o.grade || o.grade.status === 'draft')).length,
       published: ov.filter((o) => o.grade && ['published', 'locked'].includes(o.grade.status)).length, total: ov.length,
     };
   });
-  res.page('teacher/assignments', { title: 'งานที่มอบหมาย', list, structure: scores.structureCheck(c.id), templates: assignSvc.TEMPLATES });
+  res.page('teacher/assignments', { title: 'งานที่มอบหมาย', list, structure: scores.structureCheck(c.id, { section: secCode(req) }), templates: assignSvc.TEMPLATES, allSections: courseSvc.sections(c.id) });
 });
 
 function formData(c, a, overrides = {}) {
@@ -324,6 +326,8 @@ function formData(c, a, overrides = {}) {
   return {
     clos, categories: courseSvc.categories(c.id), sessions: courseSvc.sessions(c.id), maps, rubric, a: a || null,
     usage: Object.fromEntries(courseSvc.categories(c.id).map((cat) => [cat.id, assignSvc.categoryUsage(cat.id, a ? a.id : null)])),
+    usageBySection: Object.fromEntries(courseSvc.categories(c.id).map((cat) => [cat.id, assignSvc.categoryUsageBySection(cat.id, a ? a.id : null).bySection])),
+    allSections: courseSvc.sections(c.id), secRows: a ? a.sections : [],
     templates: assignSvc.TEMPLATES, ...overrides,
   };
 }
@@ -347,13 +351,18 @@ router.get('/assignments/new', T, (req, res) => {
       cloCodes: cat ? cat.clo_reference.split(/,\s*/) : [],
     };
   }
-  res.page('teacher/assignment_form', { title: 'สร้างงาน', ...formData(c, null, { draft }) });
+  // ค่าเริ่มต้นกลุ่มเรียน: กลุ่มของคาบที่สร้างงาน > กลุ่มที่เลือกดูอยู่ > ทุกกลุ่ม
+  const preSection = (session && session.section_id) || secId(req);
+  res.page('teacher/assignment_form', { title: 'สร้างงาน', ...formData(c, null, { draft, preSection }) });
 });
 
 function bodyToInput(req) {
   const b = { ...req.body };
   b.open_at = util.fromLocalInput(b.open_at);
   b.due_date = util.fromLocalInput(b.due_date);
+  for (const k of Object.keys(b)) {
+    if (/^sec_(open|due)_/.test(k)) b[k] = util.fromLocalInput(b[k]);
+  }
   return b;
 }
 

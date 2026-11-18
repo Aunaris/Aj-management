@@ -113,7 +113,7 @@ router.get('/grading/:id/grid', T, (req, res) => {
 /* ---------------- Gradebook (FR-08) ---------------- */
 router.get('/gradebook', TA, (req, res) => {
   const c = courseSvc.getCourse();
-  res.page('teacher/gradebook', { title: 'สมุดคะแนน', gb: scores.gradebook(c.id, { section: req.section ? req.section.section_code : null }), structure: scores.structureCheck(c.id), c });
+  res.page('teacher/gradebook', { title: 'สมุดคะแนน', gb: scores.gradebook(c.id, { section: req.section ? req.section.section_code : null }), structure: scores.structureCheck(c.id, { section: req.section ? req.section.section_code : null }), c });
 });
 
 router.post('/scores/lock', T, action((req, res) => {

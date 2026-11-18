@@ -366,6 +366,14 @@
     }
   });
 
+  // ---- ฟอร์มงาน: เลือกกลุ่มเรียน ----
+  $$('[data-section-scope]').forEach(function (box) {
+    var list = $('[data-section-list]', box);
+    box.addEventListener('change', function (e) {
+      if (e.target.name === 'section_scope') list.hidden = e.target.value !== 'selected';
+    });
+  });
+
   // ---- จำรหัสนักศึกษาไว้บนเครื่องนี้ (กรอกครั้งเดียว) ----
   $$('input[data-remember-code]').forEach(function (inp) {
     try { var saved = localStorage.getItem('aj-student-code'); if (saved && !inp.value) inp.value = saved; } catch (e) { /* ignore */ }

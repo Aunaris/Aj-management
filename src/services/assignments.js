@@ -115,19 +115,57 @@ const TEMPLATES = {
   },
 };
 
-function getAssignment(id) {
-  return get().prepare(`SELECT a.*, c.category_name, c.code AS category_code, c.max_score AS category_max
-    FROM assignments a JOIN assessment_categories c ON c.id = a.category_id WHERE a.id = ? AND a.deleted_at IS NULL`).get(id);
+/* ---------- กลุ่มเรียนของงาน ---------- */
+/** แถวกลุ่มเรียนของงาน (ไม่มีแถว = มอบหมายทุกกลุ่ม) */
+function sectionRows(assignmentId) {
+  return get().prepare(`SELECT x.*, cs.section_code, cs.name AS section_name FROM assignment_sections x JOIN course_sections cs ON cs.id = x.section_id
+    WHERE x.assignment_id = ? ORDER BY CAST(cs.section_code AS INTEGER), cs.section_code`).all(assignmentId);
 }
 
-function list(courseId, { status, studentView = false, sessionId } = {}) {
+function attachSections(list) {
+  if (!list.length) return list;
+  const rows = get().prepare(`SELECT x.*, cs.section_code, cs.name AS section_name FROM assignment_sections x JOIN course_sections cs ON cs.id = x.section_id
+    ORDER BY CAST(cs.section_code AS INTEGER), cs.section_code`).all();
+  const by = {};
+  for (const r of rows) (by[r.assignment_id] = by[r.assignment_id] || []).push(r);
+  for (const a of list) a.sections = by[a.id] || [];
+  return list;
+}
+
+/** งานนี้มอบหมายให้กลุ่ม (section_code) นี้หรือไม่ */
+function appliesTo(a, sectionCode) {
+  if (!a.sections || !a.sections.length) return true;
+  return sectionCode !== null && sectionCode !== undefined && a.sections.some((r) => r.section_code === String(sectionCode));
+}
+
+/** วันเปิดรับ/กำหนดส่งที่ใช้กับกลุ่มนี้ (ค่าของกลุ่ม ถ้าไม่ตั้งใช้ค่ากลางของงาน) */
+function forSection(a, sectionCode) {
+  const row = (a.sections || []).find((r) => r.section_code === String(sectionCode));
+  return { ...a, open_at: (row && row.open_at) || a.open_at, due_date: (row && row.due_date) || a.due_date };
+}
+
+function sectionLabelOf(a) {
+  return !a.sections || !a.sections.length ? 'ทุกกลุ่ม' : a.sections.map((r) => r.section_name || `กลุ่ม ${r.section_code}`).join(', ');
+}
+
+function getAssignment(id) {
+  const a = get().prepare(`SELECT a.*, c.category_name, c.code AS category_code, c.max_score AS category_max
+    FROM assignments a JOIN assessment_categories c ON c.id = a.category_id WHERE a.id = ? AND a.deleted_at IS NULL`).get(id);
+  if (!a) return a;
+  a.sections = sectionRows(id);
+  return a;
+}
+
+/** @param {{section?: string}} opts section = section_code — แสดงเฉพาะงานที่มอบหมายให้กลุ่มนั้น (รวมงานของทุกกลุ่ม) */
+function list(courseId, { status, studentView = false, sessionId, section = null } = {}) {
   const where = ['a.course_id = ?', 'a.deleted_at IS NULL'];
   const args = [courseId];
   if (studentView) where.push("a.status IN ('published','closed')");
   if (status) { where.push('a.status = ?'); args.push(status); }
   if (sessionId) { where.push('a.session_id = ?'); args.push(sessionId); }
-  return get().prepare(`SELECT a.*, c.category_name, c.code AS category_code FROM assignments a JOIN assessment_categories c ON c.id = a.category_id
-    WHERE ${where.join(' AND ')} ORDER BY COALESCE(a.week_number, 99), a.due_date, a.created_at`).all(...args);
+  const rows = attachSections(get().prepare(`SELECT a.*, c.category_name, c.code AS category_code FROM assignments a JOIN assessment_categories c ON c.id = a.category_id
+    WHERE ${where.join(' AND ')} ORDER BY COALESCE(a.week_number, 99), a.due_date, a.created_at`).all(...args));
+  return section ? rows.filter((a) => appliesTo(a, section)) : rows;
 }
 
 function cloMaps(assignmentId) {
@@ -142,8 +180,26 @@ function rubric(assignmentId) {
   return r.criteria.length ? r : null;
 }
 
-function categoryUsage(categoryId, excludeId) {
-  return get().prepare('SELECT COALESCE(SUM(max_score),0) s FROM assignments WHERE category_id = ? AND deleted_at IS NULL AND id IS NOT ?').get(categoryId, excludeId || null).s;
+/**
+ * คะแนนเต็มที่ใช้ไปในหมวด แยกตามกลุ่มเรียน (นักศึกษาแต่ละกลุ่มต้องได้คะแนนเต็มรวมไม่เกินหมวดตาม OBE-3)
+ * @returns {{bySection: Object<string, number>, max: number}}
+ */
+function categoryUsageBySection(categoryId, excludeId) {
+  const cat = get().prepare('SELECT course_id FROM assessment_categories WHERE id = ?').get(categoryId);
+  const rows = attachSections(get().prepare('SELECT id, max_score FROM assignments WHERE category_id = ? AND deleted_at IS NULL AND id IS NOT ?').all(categoryId, excludeId || null));
+  const codes = cat ? courseSvc.sections(cat.course_id).map((x) => x.section_code) : [];
+  const bySection = {};
+  if (!codes.length) {
+    bySection['*'] = round2(rows.reduce((t, a) => t + a.max_score, 0));
+  } else {
+    for (const c of codes) bySection[c] = round2(rows.filter((a) => appliesTo(a, c)).reduce((t, a) => t + a.max_score, 0));
+  }
+  return { bySection, max: Math.max(0, ...Object.values(bySection)) };
+}
+
+function categoryUsage(categoryId, excludeId, sectionCode = null) {
+  const u = categoryUsageBySection(categoryId, excludeId);
+  return sectionCode && u.bySection[sectionCode] !== undefined ? u.bySection[sectionCode] : u.max;
 }
 
 function parseCriteria(input) {
@@ -197,10 +253,36 @@ function save(courseId, input, actorId, existingId = null) {
   if (!code || !/^[A-Za-z0-9_.-]{1,30}$/.test(code)) errors.push('รหัสงานต้องเป็นตัวอักษรอังกฤษ/ตัวเลข/ขีด ไม่เกิน 30 ตัว');
   if (!(maxScore > 0)) errors.push('คะแนนเต็มต้องมากกว่า 0');
   if (!category) errors.push('กรุณาเลือกหมวดคะแนนตาม OBE-3');
+  // กลุ่มเรียนที่ได้รับมอบหมาย
+  const allSections = courseSvc.sections(courseId);
+  const scope = input.section_scope === 'selected' ? 'selected' : 'all';
+  const pickedIds = scope === 'selected' ? [].concat(input.section_ids || []).map(String) : [];
+  const picked = allSections.filter((x) => pickedIds.includes(x.id));
+  if (scope === 'selected' && !picked.length) errors.push('กรุณาเลือกกลุ่มเรียนอย่างน้อย 1 กลุ่ม');
+  const secDates = picked.map((x) => ({
+    sec: x, open_at: input[`sec_open_${x.id}`] || null, due_date: input[`sec_due_${x.id}`] || null,
+  }));
+  for (const d of secDates) {
+    if (d.open_at && d.due_date && d.open_at > d.due_date) errors.push(`${d.sec.name || 'กลุ่ม ' + d.sec.section_code}: วันเปิดรับต้องก่อนกำหนดส่ง`);
+  }
+  if (existing && existing.sections) {
+    const before = existing.sections.length ? existing.sections.map((r) => r.section_code) : allSections.map((x) => x.section_code);
+    const after = scope === 'all' ? allSections.map((x) => x.section_code) : picked.map((x) => x.section_code);
+    for (const code of before.filter((c) => !after.includes(c))) {
+      const used = get().prepare(`SELECT COUNT(*) c FROM (SELECT student_id FROM submissions WHERE assignment_id = ? UNION SELECT student_id FROM grading_records WHERE assignment_id = ?) x
+        WHERE x.student_id IN (SELECT user_id FROM course_enrollments WHERE course_id = ? AND section = ?)`).get(existingId, existingId, courseId, code).c;
+      if (used) errors.push(`กลุ่ม ${code} มีการส่งงาน/ให้คะแนนงานนี้แล้ว จึงนำกลุ่มนี้ออกไม่ได้`);
+    }
+  }
   if (category && maxScore > 0) {
-    const used = categoryUsage(category.id, existingId);
-    if (round2(used + maxScore) > category.max_score + 1e-9) {
-      errors.push(`คะแนนเต็มรวมของหมวด "${category.category_name}" จะเกิน ${category.max_score} คะแนน (ใช้ไปแล้ว ${round2(used)} เหลือ ${round2(category.max_score - used)})`);
+    const usage = categoryUsageBySection(category.id, existingId);
+    const targets = scope === 'all' ? Object.keys(usage.bySection) : picked.map((x) => x.section_code);
+    for (const code of targets) {
+      const used = usage.bySection[code] || 0;
+      if (round2(used + maxScore) > category.max_score + 1e-9) {
+        const who = code === '*' ? '' : ` สำหรับกลุ่ม ${code}`;
+        errors.push(`คะแนนเต็มรวมของหมวด "${category.category_name}"${who} จะเกิน ${category.max_score} คะแนน (ใช้ไปแล้ว ${round2(used)} เหลือ ${round2(category.max_score - used)})`);
+      }
     }
   }
   const dup = get().prepare('SELECT id FROM assignments WHERE course_id = ? AND assignment_code = ? AND id IS NOT ?').get(courseId, code, existingId || null);
@@ -262,15 +344,21 @@ function save(courseId, input, actorId, existingId = null) {
       get().prepare('INSERT INTO assignment_clo_maps (id, assignment_id, clo_id, contribution_weight) VALUES (?,?,?,?)').run(uuid(), id, m.cloId, m.weight);
     }
     saveRubric(id, title, maxScore, criteria);
+    get().prepare('DELETE FROM assignment_sections WHERE assignment_id = ?').run(id);
+    for (const d of secDates) {
+      get().prepare('INSERT INTO assignment_sections (id, assignment_id, section_id, open_at, due_date) VALUES (?,?,?,?,?)').run(uuid(), id, d.sec.id, d.open_at, d.due_date);
+    }
   });
   audit.log(actorId, existing ? 'assignment.update' : 'assignment.create', 'assignment', id, {
     title, maxScore, category: category.code, dueDate, old: existing ? { due_date: existing.due_date, max_score: existing.max_score, instructions: existing.instructions } : null,
   });
-  if (existing && existing.status === 'published' && (existing.due_date !== dueDate || existing.instructions !== row.instructions || existing.title !== title)) {
+  const dueSig = (rows) => JSON.stringify((rows || []).map((r) => [r.section_id || (r.sec && r.sec.id), r.due_date || null]));
+  const dueChanged = existing && (existing.due_date !== dueDate || dueSig(existing.sections) !== dueSig(secDates));
+  if (existing && existing.status === 'published' && (dueChanged || existing.instructions !== row.instructions || existing.title !== title)) {
     notifyStudents(courseId, {
-      eventType: 'assignment_changed', title: `มีการแก้ไขงาน: ${title}`, message: dueDate !== existing.due_date ? 'กำหนดส่งมีการเปลี่ยนแปลง' : 'โจทย์/คำสั่งมีการเปลี่ยนแปลง',
+      eventType: 'assignment_changed', title: `มีการแก้ไขงาน: ${title}`, message: dueChanged ? 'กำหนดส่งมีการเปลี่ยนแปลง' : 'โจทย์/คำสั่งมีการเปลี่ยนแปลง',
       link: `/student/assignments/${id}`, entityType: 'assignment', entityId: id, dedupeKey: `assignment-changed:${id}:${ts}`,
-    });
+    }, id);
   }
   return id;
 }
@@ -313,8 +401,13 @@ function saveRubric(assignmentId, title, maxScore, criteria) {
   }
 }
 
-function notifyStudents(courseId, payload) {
-  for (const s of courseSvc.students(courseId)) notify.send(s.id, payload);
+/** แจ้งเตือนเฉพาะนักศึกษาในกลุ่มที่ได้รับมอบหมายงาน */
+function notifyStudents(courseId, payload, assignmentId = null) {
+  const a = assignmentId ? getAssignment(assignmentId) : null;
+  for (const s of courseSvc.students(courseId)) {
+    if (a && !appliesTo(a, s.section)) continue;
+    notify.send(s.id, payload);
+  }
 }
 
 function setStatus(id, status, actorId) {
@@ -331,7 +424,7 @@ function setStatus(id, status, actorId) {
     notifyStudents(a.course_id, {
       eventType: 'assignment_new', title: `งานใหม่: ${a.title}`, message: a.due_date ? 'มีกำหนดส่ง' : null,
       link: `/student/assignments/${id}`, entityType: 'assignment', entityId: id, dedupeKey: `assignment-new:${id}`,
-    });
+    }, id);
   }
 }
 
@@ -353,5 +446,6 @@ function isOpenForSubmission(a, at = new Date()) {
 }
 
 module.exports = {
-  ValidationError, TEMPLATES, ANIMATION_TYPES, getAssignment, list, cloMaps, rubric, categoryUsage, save, setStatus, softDelete, isOpenForSubmission,
+  ValidationError, TEMPLATES, ANIMATION_TYPES, getAssignment, list, cloMaps, rubric, categoryUsage, categoryUsageBySection, save, setStatus, softDelete, isOpenForSubmission,
+  sectionRows, attachSections, appliesTo, forSection, sectionLabelOf,
 };

@@ -21,7 +21,9 @@ router.get('/', allow(), (req, res) => {
 router.get('/course', allow(), (req, res) => {
   const course = courseSvc.getCourse();
   const isStudent = req.user.role === 'student';
-  const assignments = assignSvc.list(course.id, { studentView: isStudent });
+  const mySec = isStudent ? courseSvc.studentSectionCode(course.id, req.user.user_id) : (req.section ? req.section.section_code : null);
+  const assignments = assignSvc.list(course.id, { studentView: isStudent, section: isStudent ? (mySec || '__none__') : mySec })
+    .map((a) => (mySec ? assignSvc.forSection(a, mySec) : a));
   const upcoming = assignments.filter((a) => a.status === 'published' && a.due_date && Date.parse(a.due_date) > Date.now())
     .sort((a, b) => a.due_date.localeCompare(b.due_date)).slice(0, 5);
   let progress = null;
@@ -45,7 +47,8 @@ router.get('/sessions/:id', allow(), (req, res, next) => {
   const s = courseSvc.getSession(req.params.id);
   const isStudent = req.user.role === 'student';
   if (!s || (isStudent && (s.status === 'draft' || !courseSvc.sessionVisibleTo(s, s.course_id, req.user.user_id)))) return next();
-  const assignments = assignSvc.list(s.course_id, { sessionId: s.id, studentView: isStudent });
+  const assignments = assignSvc.list(s.course_id, { sessionId: s.id, studentView: isStudent, section: s.section_code || null })
+    .map((a) => (s.section_code ? assignSvc.forSection(a, s.section_code) : a));
   let myAttendance = null;
   if (isStudent) myAttendance = get().prepare('SELECT * FROM attendance_records WHERE session_id = ? AND student_id = ?').get(s.id, req.user.user_id);
   res.page('session_detail', {

@@ -8,27 +8,27 @@ const att = require('./attendance');
 function runReminders(at = new Date()) {
   const course = courseSvc.getCourse();
   if (!course) return 0;
+  const assignSvc = require('./assignments');
   const hours = String(course.reminder_hours || '24,1').split(',').map(Number).filter((n) => n > 0);
-  const assignments = get().prepare(`SELECT * FROM assignments WHERE course_id = ? AND status = 'published' AND submission_mode = 'online' AND deleted_at IS NULL AND due_date IS NOT NULL`).all(course.id);
+  const assignments = assignSvc.list(course.id, { status: 'published' }).filter((a) => a.submission_mode === 'online');
   const students = courseSvc.students(course.id);
   let sent = 0;
-  for (const a of assignments) {
-    const due = Date.parse(a.due_date);
-    const submitted = new Set(get().prepare('SELECT DISTINCT student_id FROM submissions WHERE assignment_id = ?').all(a.id).map((r) => r.student_id));
-    for (const h of hours) {
-      if (at.getTime() >= due - h * 3600000 && at.getTime() < due) {
-        for (const s of students) {
-          if (submitted.has(s.id)) continue;
+  for (const base of assignments) {
+    const submitted = new Set(get().prepare('SELECT DISTINCT student_id FROM submissions WHERE assignment_id = ?').all(base.id).map((r) => r.student_id));
+    for (const s of students) {
+      if (submitted.has(s.id) || !assignSvc.appliesTo(base, s.section)) continue;
+      const a = assignSvc.forSection(base, s.section); // กำหนดส่งของกลุ่มนักศึกษาคนนี้
+      if (!a.due_date) continue;
+      const due = Date.parse(a.due_date);
+      for (const h of hours) {
+        if (at.getTime() >= due - h * 3600000 && at.getTime() < due) {
           if (notify.send(s.id, {
             eventType: 'due_reminder', title: `ใกล้ครบกำหนดส่ง: ${a.title}`, message: `เหลือเวลาไม่เกิน ${h} ชั่วโมง`,
             link: `/student/assignments/${a.id}`, entityType: 'assignment', entityId: a.id, dedupeKey: `due:${a.id}:${a.due_date}:${h}`,
           })) sent += 1;
         }
       }
-    }
-    if (at.getTime() >= due && at.getTime() - due < 7 * 86400000) {
-      for (const s of students) {
-        if (submitted.has(s.id)) continue;
+      if (at.getTime() >= due && at.getTime() - due < 7 * 86400000) {
         if (notify.send(s.id, {
           eventType: 'overdue', title: `งานเลยกำหนดส่ง: ${a.title}`, message: a.late_policy === 'reject' ? 'งานนี้ไม่รับงานล่าช้า' : 'ยังส่งได้แต่จะถูกบันทึกว่าส่งล่าช้า',
           link: `/student/assignments/${a.id}`, entityType: 'assignment', entityId: a.id, dedupeKey: `overdue:${a.id}:${a.due_date}`,

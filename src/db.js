@@ -464,6 +464,16 @@ CREATE TABLE IF NOT EXISTS course_sections (
   UNIQUE (course_id, section_code)
 );
 
+-- งานที่มอบหมายเฉพาะบางกลุ่มเรียน (ไม่มีแถว = ทุกกลุ่ม) พร้อมวันเปิดรับ/กำหนดส่งของแต่ละกลุ่ม
+CREATE TABLE IF NOT EXISTS assignment_sections (
+  id TEXT PRIMARY KEY,
+  assignment_id TEXT NOT NULL REFERENCES assignments(id),
+  section_id TEXT NOT NULL REFERENCES course_sections(id),
+  open_at TEXT,
+  due_date TEXT,
+  UNIQUE (assignment_id, section_id)
+);
+
 CREATE TABLE IF NOT EXISTS mail_accounts (
   id TEXT PRIMARY KEY,
   course_id TEXT NOT NULL UNIQUE REFERENCES courses(id),

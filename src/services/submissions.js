@@ -45,9 +45,12 @@ function fixName(name) {
  * @param {{assignmentId, studentId, files: Array<{originalname, buffer, size}>, links: Array<{url,title,description}>, note, at}} p
  */
 function submit({ assignmentId, studentId, files = [], links = [], note, at = new Date(), source = 'web' }) {
-  const a = assignSvc.getAssignment(assignmentId);
-  if (!a) throw new ValidationError('ไม่พบงาน');
-  if (!courseSvc.isEnrolled(a.course_id, studentId)) throw new ValidationError('คุณไม่ได้ลงทะเบียนในรายวิชานี้');
+  const base = assignSvc.getAssignment(assignmentId);
+  if (!base) throw new ValidationError('ไม่พบงาน');
+  if (!courseSvc.isEnrolled(base.course_id, studentId)) throw new ValidationError('คุณไม่ได้ลงทะเบียนในรายวิชานี้');
+  const mySection = courseSvc.studentSectionCode(base.course_id, studentId);
+  if (!assignSvc.appliesTo(base, mySection)) throw new ValidationError(`งานนี้ไม่ได้มอบหมายให้กลุ่มเรียนของคุณ (มอบหมายให้: ${assignSvc.sectionLabelOf(base)})`);
+  const a = assignSvc.forSection(base, mySection); // ใช้วันเปิดรับ/กำหนดส่งของกลุ่มตนเอง
   const errors = [];
   if (a.status !== 'published') errors.push(a.status === 'closed' ? 'งานนี้ปิดรับแล้ว' : 'งานนี้ยังไม่เปิดรับ');
   if (a.submission_mode !== 'online') errors.push('งานนี้ให้คะแนนในชั้นเรียน ไม่ต้องส่งผ่านระบบ');
@@ -147,7 +150,7 @@ function overview(assignmentId, { section } = {}) {
   const linkIssues = get().prepare(`SELECT s.student_id, COUNT(*) c FROM submission_links l JOIN submissions s ON s.id = l.submission_id
     WHERE s.assignment_id = ? AND l.validation_status IN ('unchecked','permission_required','invalid_url') GROUP BY s.student_id`).all(assignmentId);
   const linkBy = Object.fromEntries(linkIssues.map((r) => [r.student_id, r.c]));
-  return courseSvc.students(a.course_id, { section }).map((st) => ({ student: st, submission: subBy[st.id] || null, grade: gradeBy[st.id] || null, linkIssues: linkBy[st.id] || 0 }));
+  return courseSvc.students(a.course_id, { section }).filter((st) => assignSvc.appliesTo(a, st.section)).map((st) => ({ student: st, submission: subBy[st.id] || null, grade: gradeBy[st.id] || null, linkIssues: linkBy[st.id] || 0 }));
 }
 
 function setLinkStatus(linkId, status, actorId) {

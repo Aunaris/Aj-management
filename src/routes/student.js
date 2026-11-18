@@ -16,8 +16,10 @@ const S = allow('student');
 const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB || 500);
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024, files: 20, fields: 100 } });
 
+/** งานของกลุ่มตนเอง พร้อมวันเปิดรับ/กำหนดส่งของกลุ่ม */
 function myAssignments(courseId, studentId) {
-  return assignSvc.list(courseId, { studentView: true }).map((a) => {
+  const sec = courseSvc.studentSectionCode(courseId, studentId);
+  return assignSvc.list(courseId, { studentView: true, section: sec }).map((x) => assignSvc.forSection(x, sec)).map((a) => {
     const sub = subSvc.latest(a.id, studentId);
     const g = grading.studentView(a.id, studentId);
     const overdue = !sub && a.submission_mode === 'online' && a.due_date && Date.parse(a.due_date) < Date.now();
@@ -66,8 +68,10 @@ router.get('/assignments', S, (req, res) => {
 
 /** S-04 Assignment Detail + S-05/S-06 Upload & Preview + S-08 Feedback */
 router.get('/assignments/:id', S, (req, res, next) => {
-  const a = assignSvc.getAssignment(req.params.id);
-  if (!a || a.status === 'draft') return next();
+  const base = assignSvc.getAssignment(req.params.id);
+  const sec = base ? courseSvc.studentSectionCode(base.course_id, req.user.user_id) : null;
+  if (!base || base.status === 'draft' || !assignSvc.appliesTo(base, sec)) return next();
+  const a = assignSvc.forSection(base, sec);
   const versions = subSvc.versions(a.id, req.user.user_id);
   const grade = grading.studentView(a.id, req.user.user_id);
   const prev = versions[0];

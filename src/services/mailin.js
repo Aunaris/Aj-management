@@ -118,7 +118,8 @@ function match(courseId, { fromAddress, subject }) {
     const byMail = students.filter((s) => s.email && s.email.toLowerCase() === fromAddress.toLowerCase());
     if (byMail.length === 1) { student = byMail[0]; studentBy = 'email'; }
   }
-  const assignments = assignSvc.list(courseId).filter((a) => a.status !== 'draft' && a.submission_mode === 'online');
+  // ถ้ารู้กลุ่มของนักศึกษา จับคู่เฉพาะงานที่มอบหมายให้กลุ่มนั้น
+  const assignments = assignSvc.list(courseId, { section: student ? student.section : null }).filter((a) => a.status !== 'draft' && a.submission_mode === 'online');
   const hits = assignments.filter((a) => token(a.assignment_code).test(subj));
   const assignment = hits.length === 1 ? hits[0] : null;
   const course = get().prepare('SELECT course_code FROM courses WHERE id = ?').get(courseId);

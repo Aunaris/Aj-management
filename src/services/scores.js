@@ -8,12 +8,13 @@
  */
 const { get } = require('../db');
 const courseSvc = require('./course');
+const assignSvc = require('./assignments');
 const { round2 } = require('../util');
 
 const COUNTED = ['published', 'locked'];
 
 function load(courseId) {
-  const assignments = get().prepare(`SELECT a.* FROM assignments a WHERE a.course_id = ? AND a.deleted_at IS NULL AND a.status != 'draft'`).all(courseId);
+  const assignments = assignSvc.attachSections(get().prepare(`SELECT a.* FROM assignments a WHERE a.course_id = ? AND a.deleted_at IS NULL AND a.status != 'draft'`).all(courseId));
   const grades = get().prepare(`SELECT g.* FROM grading_records g JOIN assignments a ON a.id = g.assignment_id WHERE a.course_id = ? AND a.deleted_at IS NULL`).all(courseId);
   const maps = get().prepare(`SELECT m.*, c.clo_code FROM assignment_clo_maps m JOIN clo_outcomes c ON c.id = m.clo_id JOIN assignments a ON a.id = m.assignment_id
     WHERE a.course_id = ? AND a.deleted_at IS NULL`).all(courseId);
@@ -21,21 +22,32 @@ function load(courseId) {
 }
 
 /** ตรวจสอบโครงสร้างคะแนน: คะแนนเต็มของงานในแต่ละหมวดเทียบกับหมวด (คะแนนเกิน/ขาด) */
-function structureCheck(courseId) {
+/**
+ * ตรวจสอบโครงสร้างคะแนน: คะแนนเต็มของงานในแต่ละหมวดเทียบกับหมวด (คะแนนเกิน/ขาด) — ตรวจแยกทีละกลุ่มเรียน
+ * @param {{section?: string}} opts ระบุกลุ่ม = ดูเฉพาะกลุ่มนั้น, ไม่ระบุ = ทุกกลุ่ม (planned = กลุ่มที่ใช้มากสุด)
+ */
+function structureCheck(courseId, { section = null } = {}) {
   const cats = courseSvc.categories(courseId);
-  const rows = get().prepare(`SELECT category_id, status, SUM(max_score) s, COUNT(*) n FROM assignments WHERE course_id = ? AND deleted_at IS NULL GROUP BY category_id, status`).all(courseId);
+  const all = assignSvc.attachSections(get().prepare('SELECT id, category_id, status, max_score FROM assignments WHERE course_id = ? AND deleted_at IS NULL').all(courseId));
+  const codes = section ? [String(section)] : courseSvc.sections(courseId).map((x) => x.section_code);
   const total = cats.reduce((s, c) => s + c.max_score, 0);
+  const sum = (rows) => round2(rows.reduce((t, r) => t + r.max_score, 0));
   return {
     total: round2(total),
     totalOk: Math.abs(total - 100) < 1e-9,
     categories: cats.map((c) => {
-      const mine = rows.filter((r) => r.category_id === c.id);
-      const planned = round2(mine.reduce((s, r) => s + r.s, 0));
-      const published = round2(mine.filter((r) => r.status !== 'draft').reduce((s, r) => s + r.s, 0));
-      return {
-        ...c, planned, published, count: mine.reduce((s, r) => s + r.n, 0),
-        state: planned > c.max_score + 1e-9 ? 'over' : planned < c.max_score - 1e-9 ? 'under' : 'ok',
-      };
+      const mine = all.filter((r) => r.category_id === c.id);
+      const bySection = {};
+      for (const code of codes.length ? codes : ['*']) {
+        const rows = code === '*' ? mine : mine.filter((r) => assignSvc.appliesTo(r, code));
+        bySection[code] = { planned: sum(rows), published: sum(rows.filter((r) => r.status !== 'draft')) };
+      }
+      const vals = Object.values(bySection);
+      const planned = Math.max(0, ...vals.map((v) => v.planned));
+      const published = Math.max(0, ...vals.map((v) => v.published));
+      const over = vals.some((v) => v.planned > c.max_score + 1e-9);
+      const allOk = vals.every((v) => Math.abs(v.planned - c.max_score) < 1e-9);
+      return { ...c, planned, published, count: mine.length, bySection, state: over ? 'over' : allOk ? 'ok' : 'under' };
     }),
   };
 }
@@ -59,6 +71,7 @@ function gradebook(courseId, { studentId, section } = {}) {
       let pending = 0;
       for (const c of cats) byCat[c.id] = { earned: 0, gradedMax: 0, pending: 0, draft: 0, items: [] };
       for (const a of assignments) {
+        if (!assignSvc.appliesTo(a, st.section)) continue; // งานของกลุ่มอื่น ไม่นับ
         const g = gradeKey[`${a.id}:${st.id}`];
         const bucket = byCat[a.category_id];
         if (!bucket) continue;

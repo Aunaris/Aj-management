@@ -6,6 +6,10 @@
   const draftClos = draft ? draft.cloCodes : [];
   const mode = val('submission_mode', 'online');
   const action = a ? '/teacher/assignments/' + a.id : '/teacher/assignments';
+  const pre = typeof preSection !== 'undefined' ? preSection : null;
+  const secBy = Object.fromEntries((secRows || []).map(r => [r.section_id, r]));
+  const scopeSelected = a ? (secRows || []).length > 0 : !!pre;
+  const secChecked = (id) => (a ? !!secBy[id] : pre === id);
 %>
 <div class="page-head">
   <div><h1><%= a ? 'แก้ไขงาน ' + a.assignment_code : 'สร้างงานใหม่ (Assignment Builder)' %></h1>
@@ -96,13 +100,34 @@
       </div>
     </div>
     <div>
+      <% if (allSections.length) { %>
+      <div class="card" data-section-scope>
+        <h2>มอบหมายให้กลุ่มเรียน</h2>
+        <label class="check"><input type="radio" name="section_scope" value="all" <%= scopeSelected ? '' : 'checked' %>><span><strong>ทุกกลุ่ม</strong> — ใช้วันเปิดรับ/กำหนดส่งเดียวกัน</span></label>
+        <label class="check"><input type="radio" name="section_scope" value="selected" <%= scopeSelected ? 'checked' : '' %>><span><strong>เฉพาะกลุ่มที่เลือก</strong> — ตั้งกำหนดส่งแยกแต่ละกลุ่มได้</span></label>
+        <div data-section-list <%= scopeSelected ? '' : 'hidden' %>>
+          <% allSections.forEach(x => { const r = secBy[x.id] || {}; %>
+            <fieldset style="margin:.5rem 0;padding:.5rem .7rem">
+              <label class="check" style="margin:0"><input type="checkbox" name="section_ids" value="<%= x.id %>" <%= secChecked(x.id) ? 'checked' : '' %>>
+                <span><strong><%= x.name || 'กลุ่ม ' + x.section_code %></strong> <small class="muted"><%= x.meeting_day !== null && x.meeting_day !== undefined ? 'วัน' + ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][x.meeting_day] + ' ' + (x.start_time || '') : '' %></small></span></label>
+              <div class="row" style="margin-top:.3rem">
+                <label><span class="l" style="font-weight:400;font-size:.8rem">เปิดรับ (กลุ่มนี้)</span><input type="datetime-local" name="sec_open_<%= x.id %>" value="<%= u.toLocalInput(r.open_at || null) %>"></label>
+                <label><span class="l" style="font-weight:400;font-size:.8rem">กำหนดส่ง (กลุ่มนี้)</span><input type="datetime-local" name="sec_due_<%= x.id %>" value="<%= u.toLocalInput(r.due_date || null) %>"></label>
+              </div>
+            </fieldset>
+          <% }) %>
+          <p class="hint">เว้นวันที่ว่าง = ใช้วันเปิดรับ/กำหนดส่งหลักของงาน · นักศึกษาเห็นและส่งได้เฉพาะงานของกลุ่มตนเอง · คะแนนเต็มของหมวดตรวจแยกทีละกลุ่ม</p>
+        </div>
+      </div>
+      <% } %>
       <div class="card">
         <h2>คะแนนและหมวด (OBE-3)</h2>
         <label><span class="l">หมวดคะแนน *</span>
           <select name="category_id" required><option value="">— เลือก —</option>
             <% categories.forEach(c => { %><option value="<%= c.id %>" data-hint="<%= c.rubric_hint %>" <%= val('category_id') === c.id ? 'selected' : '' %>><%= c.category_name %> (<%= c.clo_reference %>) — เหลือ <%= u.round2(c.max_score - usage[c.id]) %>/<%= c.max_score %></option><% }) %>
           </select>
-          <div class="hint" data-cat-hint><%= (categories.find(c => c.id === val('category_id')) || {}).rubric_hint || '' %></div></label>
+          <div class="hint" data-cat-hint><%= (categories.find(c => c.id === val('category_id')) || {}).rubric_hint || '' %></div>
+          <% if (allSections.length) { %><div class="hint">ใช้ไปแล้วต่อกลุ่ม: <% categories.forEach(c => { if (c.id !== val('category_id')) return; Object.entries(usageBySection[c.id] || {}).forEach(([code, used]) => { %><span class="badge muted">ก.<%= code %> <%= used %>/<%= c.max_score %></span> <% }) }) %><%= val('category_id') ? '' : '(เลือกหมวดเพื่อดู)' %></div><% } %></label>
         <label><span class="l">คะแนนเต็มของงาน *</span><input type="number" step="0.25" min="0.25" name="max_score" value="<%= val('max_score') %>" required></label>
       </div>
       <div class="card">
