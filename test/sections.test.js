@@ -7,7 +7,7 @@ const att = require('../src/services/attendance');
 const scores = require('../src/services/scores');
 
 const course = courseSvc.getCourse();
-const teacherId = one("SELECT id FROM users WHERE username = 'thaksin'").id;
+const teacherId = one("SELECT id FROM users WHERE username = 'aunalyst'").id;
 const sid = (code) => one('SELECT id FROM users WHERE student_code = ?', code).id;
 
 // ข้อมูลทดสอบรูปแบบเดียวกับไฟล์ ClassRoster ของระบบทะเบียน (ชื่อสมมติ)
@@ -32,7 +32,7 @@ test('ค่าเริ่มต้น: 3 กลุ่มเรียน กล
 });
 
 test('นำเข้าไฟล์ ClassRoster: อ่านกลุ่มจากหัวไฟล์, เก็บสาขา/คณะ, หลายไฟล์พร้อมกัน, สร้างกลุ่มใหม่อัตโนมัติ', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const r = await teacher.post('/teacher/students/import-file').field('_csrf', teacher.csrf)
     .attach('files', Buffer.from('﻿' + roster(2, [['6900000001', 'นางสาวทดสอบ หนึ่ง'], ['6900000002', 'นายทดสอบ สอง']])), 'ClassRoster_A.csv')
     .attach('files', Buffer.from(roster(3, [['6900000003', 'นางสาวทดสอบ สาม']])), 'ClassRoster_B.csv')
@@ -61,7 +61,7 @@ test('นำเข้าไฟล์ ClassRoster: อ่านกลุ่มจ
 });
 
 test('ไฟล์ภาษาไทยแบบ Windows-874 (TIS-620) อ่านได้', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   // "นายทดสอบ ห้า" ในรหัส TIS-620: อักษรไทย U+0E01–U+0E5B = 0xA1–0xFB
   const thai = 'นายทดสอบ ห้า';
   const bytes = Buffer.from([...roster(1, [['6900000005', 'X']]).replace('การสร้างภาพเคลื่อนไหวด้วยเทคนิคภาพ 2 มิติ', 'v')
@@ -72,7 +72,7 @@ test('ไฟล์ภาษาไทยแบบ Windows-874 (TIS-620) อ่า
 });
 
 test('เช็คชื่อ: ต้องเป็นคาบของกลุ่มตนเอง; รายชื่อในคาบแสดงเฉพาะกลุ่มนั้น', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s2 = weekOf(2, 1);
   await teacher.post(`/teacher/sessions/${s2.id}/attendance/open`).type('form').send({ _csrf: teacher.csrf });
   await teacher.get(`/teacher/sessions/${s2.id}/qr.json`).set('Accept', 'application/json');
@@ -111,7 +111,7 @@ test('นักศึกษาเห็นเฉพาะคาบของก�
 });
 
 test('ผู้สอนเลือกกลุ่ม → รายชื่อ/คาบ/สมุดคะแนน/รายงาน กรองตามกลุ่ม', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s3 = courseSvc.sectionByCode(course.id, '3');
   const set = await teacher.get(`/teacher/section?id=${s3.id}&back=/teacher/students`);
   assert.equal(set.status, 302);
@@ -145,7 +145,7 @@ test('ตารางการเข้าเรียนรายสัปด�
 });
 
 test('ตั้งตารางเรียนของกลุ่ม: เลื่อนวันที่คาบที่ยังไม่เริ่ม (ไม่แตะคาบที่เช็คชื่อแล้ว) และย้ายกลุ่มนักศึกษา', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s2 = courseSvc.sectionByCode(course.id, '2');
   const started = weekOf(2, 1);
   await teacher.post(`/teacher/sections/${s2.id}`).type('form')

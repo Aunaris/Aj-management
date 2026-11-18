@@ -9,7 +9,7 @@ const assignSvc = require('../src/services/assignments');
 const mailin = require('../src/services/mailin');
 
 const course = courseSvc.getCourse();
-const teacherId = one("SELECT id FROM users WHERE username = 'thaksin'").id;
+const teacherId = one("SELECT id FROM users WHERE username = 'aunalyst'").id;
 const studentId = (code) => one('SELECT id FROM users WHERE student_code = ?', code).id;
 const A01 = one("SELECT * FROM assignments WHERE assignment_code = 'A01'");
 
@@ -80,7 +80,7 @@ test('อีเมลไม่เกี่ยวข้องไม่ถูก�
   assert.match(e.note, /รหัสงาน/);
   assert.ok(one("SELECT 1 x FROM notifications WHERE recipient_id = ? AND related_entity_id = ?", teacherId, r.id));
 
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const page = await teacher.get('/teacher/mail');
   assert.equal(page.status, 200);
   assert.match(page.text, /6501101003 ส่งงานครับ/);

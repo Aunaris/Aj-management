@@ -1,12 +1,13 @@
 'use strict';
 const db = require('./db');
-const { seedBase } = require('./seed');
+const { seedBase, migrateAccounts, TEACHER_USERNAME } = require('./seed');
 
 db.open();
 if (seedBase({ forceChange: true })) {
-  console.log('สร้างข้อมูลรายวิชาตั้งต้นจาก OBE-3 แล้ว — บัญชีเริ่มต้น: admin/admin1234, thaksin/teacher1234, piriya/teacher1234 (ต้องเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก)');
+  console.log(`สร้างข้อมูลรายวิชาตั้งต้นจาก OBE-3 แล้ว — บัญชีเริ่มต้น: admin/admin1234, ${TEACHER_USERNAME}/teacher1234, piriya/teacher1234 (ต้องเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก)`);
 }
 
+if (migrateAccounts()) console.log(`เปลี่ยนชื่อผู้ใช้อาจารย์ thaksin → ${TEACHER_USERNAME} แล้ว (รหัสผ่านเดิม)`);
 require('./services/course').migrateSections(require('./services/course').getCourse().id);
 
 const { createApp } = require('./app');

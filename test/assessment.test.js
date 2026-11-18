@@ -10,7 +10,7 @@ const scheduler = require('../src/services/scheduler');
 
 const course = courseSvc.getCourse();
 const cat = (code) => courseSvc.categories(course.id).find((c) => c.code === code);
-const teacherId = one("SELECT id FROM users WHERE username = 'thaksin'").id;
+const teacherId = one("SELECT id FROM users WHERE username = 'aunalyst'").id;
 const studentId = (code) => one('SELECT id FROM users WHERE student_code = ?', code).id;
 
 function form(extra) {
@@ -26,7 +26,7 @@ function form(extra) {
 let A02;
 
 test('TC-05/12 สร้าง Draft → Publish พร้อม CLO Mapping และแจ้งเตือนนักศึกษา (TC-27)', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const r = await teacher.post('/teacher/assignments').type('form').send({ _csrf: teacher.csrf, ...form() });
   assert.equal(r.status, 302);
   A02 = one("SELECT * FROM assignments WHERE assignment_code = 'A02'");
@@ -82,7 +82,7 @@ test('TC-06/24/25/26/07 ส่งไฟล์ + URL, ตรวจชนิดไ
   assert.equal(q('SELECT * FROM submission_files f JOIN submissions s ON s.id = f.submission_id WHERE s.assignment_id = ?', A02.id).length, 2); // ไม่เขียนทับ
 
   // ไฟล์: เจ้าของ + ผู้สอนเปิดได้, นักศึกษาคนอื่นเปิดไม่ได้
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   assert.equal((await st.get(`/files/submission/${f.id}`)).status, 200);
   assert.equal((await teacher.get(`/files/submission/${f.id}`)).status, 200);
   const other = await login('6501101002');
@@ -99,7 +99,7 @@ test('URL โดเมนที่ไม่อนุญาตถูกปฏิ�
   assert.equal(q('SELECT * FROM submissions WHERE assignment_id = ? AND student_id = ?', A02.id, studentId('6501101002')).length, 0);
   await st.post(`/student/assignments/${A02.id}/submit`).field('_csrf', st.csrf).field('link_url', 'https://www.youtube.com/watch?v=abc');
   const link = one('SELECT l.* FROM submission_links l JOIN submissions s ON s.id = l.submission_id WHERE s.student_id = ?', studentId('6501101002'));
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   await teacher.post(`/teacher/links/${link.id}/status`).type('form').send({ _csrf: teacher.csrf, status: 'permission_required' });
   assert.equal(one('SELECT validation_status v FROM submission_links WHERE id = ?', link.id).v, 'permission_required');
   assert.ok(one("SELECT 1 x FROM notifications WHERE recipient_id = ? AND title LIKE '%สิทธิ์การแชร์%'", studentId('6501101002')));
@@ -115,7 +115,7 @@ test('TC-09 Rubric รวมคะแนนถูกต้อง (รวมก�
 });
 
 test('TC-10/30 Draft ไม่เห็น → Publish แล้วเห็นคะแนน+Feedback และได้รับแจ้งเตือน; TC-15 แก้คะแนนที่เผยแพร่ต้องมีเหตุผล', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const sid = studentId('6501101001');
   const rubric = assignSvc.rubric(A02.id);
   const body = { _csrf: teacher.csrf, action: 'draft', feedback: 'สัดส่วนดีมาก' };
@@ -154,7 +154,7 @@ test('TC-10/30 Draft ไม่เห็น → Publish แล้วเห็น�
 });
 
 test('ขอให้แก้ไขงาน → นักศึกษาส่งเวอร์ชันใหม่ได้แม้เคยส่งแล้ว', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const sid = studentId('6501101002');
   const r = await teacher.post(`/teacher/grading/${A02.id}/${sid}`).type('form').send({ _csrf: teacher.csrf, action: 'revision', feedback: 'กรุณาเพิ่ม Expression sheet' });
   assert.equal(r.status, 302);
@@ -166,7 +166,7 @@ test('ขอให้แก้ไขงาน → นักศึกษาส่
 });
 
 test('Quick Grid ให้คะแนนในคาบ (ไม่มีไฟล์ส่ง) + TC-11 คะแนนรวมไม่นับงานที่ยังไม่ตรวจเป็นศูนย์', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const id = assignSvc.save(course.id, {
     title: 'จิตพิสัย', assignment_code: 'AFF', max_score: '10', category_id: cat('AFFECTIVE').id, submission_mode: 'in_class', allowed_types: '',
     clo_CLO4: '1', clo_weight_CLO4: '1',
@@ -246,7 +246,7 @@ test('ส่งงานล่าช้า: บันทึกว่า late; la
 });
 
 test('TC-14 ส่งออกรายงานตามสิทธิ์ (CSV มี BOM, ภาคเรียน, วันที่ออกรายงาน)', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   for (const t of ['attendance', 'gradebook', 'submissions', 'grading', 'clo', 'progress']) {
     const r = await teacher.get(`/teacher/reports/${t}.csv`).buffer(true).parse((res, cb) => { let d = ''; res.setEncoding('utf8'); res.on('data', (c) => { d += c; }); res.on('end', () => cb(null, d)); });
     assert.equal(r.status, 200, t);
@@ -276,7 +276,7 @@ test('NFR-04 นักศึกษาเห็นเฉพาะข้อมู�
 });
 
 test('ล็อกคะแนน: ต้องไม่มี Draft ค้าง, หลังล็อกแก้คะแนนไม่ได้, ปลดล็อกต้องมีเหตุผล', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const draftId = one("SELECT g.id FROM grading_records g WHERE g.status = 'draft'");
   if (draftId) db.get().prepare("UPDATE grading_records SET status = 'published' WHERE status = 'draft'").run();
   const r = await teacher.post('/teacher/scores/lock').type('form').send({ _csrf: teacher.csrf });
@@ -305,7 +305,7 @@ test('TC-22/23 Course Home และ Session Detail แสดงตามสิ�
 });
 
 test('นำเข้ารายชื่อนักศึกษา (คัดลอกจาก Excel) และบังคับเปลี่ยนรหัสผ่านครั้งแรก', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   await teacher.post('/teacher/students/import').type('form').send({ _csrf: teacher.csrf, data: 'รหัสนักศึกษา\tชื่อ\n6601100001\tทดสอบ นำเข้า\ttest@example.com\tS2\nbad!\tx' });
   const u = one("SELECT * FROM users WHERE student_code = '6601100001'");
   assert.ok(u);
@@ -314,4 +314,25 @@ test('นำเข้ารายชื่อนักศึกษา (คัด
   const r = await st.get('/student');
   assert.equal(r.status, 302);
   assert.equal(r.headers.location, '/account/password');
+});
+
+test('ชื่อผู้ใช้อาจารย์ aunalyst; ฐานข้อมูลเดิม thaksin ถูกเปลี่ยนชื่อ (รหัสผ่านเดิม); Admin เปลี่ยนชื่อผู้ใช้ได้', async () => {
+  const seed = require('../src/seed');
+  assert.equal(seed.TEACHER_USERNAME, 'aunalyst');
+  assert.ok(one("SELECT 1 x FROM users WHERE username = 'aunalyst'"));
+  // จำลองฐานข้อมูลรุ่นเดิม
+  db.get().prepare("UPDATE users SET username = 'thaksin' WHERE username = 'aunalyst'").run();
+  assert.equal(seed.migrateAccounts(), true);
+  assert.equal(seed.migrateAccounts(), false);
+  assert.ok(one("SELECT 1 x FROM users WHERE username = 'aunalyst'"));
+  assert.equal(q("SELECT * FROM users WHERE username = 'thaksin'").length, 0);
+  await login('aunalyst', 'teacher1234');
+  const admin = await login('admin', 'admin1234');
+  const piriya = one("SELECT id FROM users WHERE username = 'piriya'").id;
+  const dup = await admin.post(`/admin/users/${piriya}/username`).set('Accept', 'application/json').set('X-CSRF-Token', admin.csrf).send({ username: 'aunalyst' });
+  assert.equal(dup.status, 400);
+  await admin.post(`/admin/users/${piriya}/username`).type('form').send({ _csrf: admin.csrf, username: 'piriya.k' });
+  await login('piriya.k', 'teacher1234');
+  const st = one("SELECT id FROM users WHERE student_code = '6501101001'").id;
+  assert.equal((await admin.post(`/admin/users/${st}/username`).set('Accept', 'application/json').set('X-CSRF-Token', admin.csrf).send({ username: 'abc' })).status, 400);
 });

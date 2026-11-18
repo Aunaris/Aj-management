@@ -43,6 +43,24 @@ const CATEGORIES = [
   ['AFFECTIVE', 'จิตพิสัย', 'จิตพิสัย', 10, 'CLO4', 'กระตือรือร้น เข้าเรียนสม่ำเสมอ ส่งงานตรงเวลา; รับฟังและเคารพความคิดเห็นของผู้อื่น; ยึดมั่นในคุณธรรม จริยธรรม และจรรยาบรรณ'],
 ];
 
+/** ชื่อผู้ใช้ของอาจารย์ผู้สอนหลัก (อาจารย์ทักษิณ อินตะพิงค์) */
+const TEACHER_USERNAME = process.env.TEACHER_USERNAME || 'aunalyst';
+const LEGACY_TEACHER_USERNAMES = ['thaksin'];
+
+/** ฐานข้อมูลรุ่นก่อนใช้ชื่อผู้ใช้ "thaksin" — เปลี่ยนเป็นชื่อใหม่ (ข้อมูล/รหัสผ่านเดิมยังอยู่ครบ) */
+function migrateAccounts() {
+  const conn = db.get();
+  if (conn.prepare('SELECT 1 FROM users WHERE username = ? OR student_code = ?').get(TEACHER_USERNAME, TEACHER_USERNAME)) return false;
+  for (const old of LEGACY_TEACHER_USERNAMES) {
+    const u = conn.prepare('SELECT id FROM users WHERE username = ?').get(old);
+    if (!u) continue;
+    conn.prepare('UPDATE users SET username = ? WHERE id = ?').run(TEACHER_USERNAME, u.id);
+    require('./services/audit').log(null, 'user.rename', 'user', u.id, { old, new: TEACHER_USERNAME });
+    return true;
+  }
+  return false;
+}
+
 function seedBase({ forceChange = true } = {}) {
   const conn = db.get();
   if (conn.prepare('SELECT COUNT(*) c FROM courses').get().c) return false;
@@ -64,7 +82,7 @@ function seedBase({ forceChange = true } = {}) {
 
     const adminPass = process.env.ADMIN_PASSWORD || 'admin1234';
     auth.createUser({ username: 'admin', fullName: 'ผู้ดูแลระบบ', password: adminPass, role: 'admin', mustChangePassword: forceChange });
-    const t1 = auth.createUser({ username: 'thaksin', fullName: 'อาจารย์ทักษิณ อินตะพิงค์', password: process.env.TEACHER_PASSWORD || 'teacher1234', role: 'teacher', mustChangePassword: forceChange });
+    const t1 = auth.createUser({ username: TEACHER_USERNAME, fullName: 'อาจารย์ทักษิณ อินตะพิงค์', password: process.env.TEACHER_PASSWORD || 'teacher1234', role: 'teacher', mustChangePassword: forceChange });
     const t2 = auth.createUser({ username: 'piriya', fullName: 'ผศ.พิริยะ กาญจนคงคา', password: process.env.TEACHER_PASSWORD || 'teacher1234', role: 'teacher', mustChangePassword: forceChange });
     for (const t of [t1, t2]) conn.prepare('INSERT INTO course_enrollments (id, course_id, user_id) VALUES (?,?,?)').run(uuid(), courseId, t);
     conn.prepare('INSERT INTO announcements (id, course_id, title, body, mandatory, created_by, created_at) VALUES (?,?,?,?,?,?,?)')
@@ -87,7 +105,7 @@ const DEMO_STUDENTS = [
 function seedDemo({ spread = false } = {}) {
   const courseSvc = require('./services/course');
   const course = courseSvc.getCourse();
-  const teacher = db.get().prepare("SELECT id FROM users WHERE username = 'thaksin'").get();
+  const teacher = db.get().prepare('SELECT id FROM users WHERE username = ?').get(TEACHER_USERNAME);
   const text = DEMO_STUDENTS.map(([c, n], i) => `${c},${n},,${spread ? (i % 3) + 1 : 1}`).join('\n');
   courseSvc.importStudents(course.id, text, teacher.id);
   db.get().prepare('UPDATE users SET must_change_password = 0').run();
@@ -125,4 +143,4 @@ if (require.main === module) {
   db.close();
 }
 
-module.exports = { seedBase, seedDemo, DEMO_STUDENTS, CATEGORIES, CLOS };
+module.exports = { seedBase, seedDemo, migrateAccounts, TEACHER_USERNAME, DEMO_STUDENTS, CATEGORIES, CLOS };

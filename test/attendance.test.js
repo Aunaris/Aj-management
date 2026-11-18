@@ -7,7 +7,7 @@ const courseSvc = require('../src/services/course');
 
 const course = courseSvc.getCourse();
 const week = (n) => courseSvc.sessions(course.id).find((s) => s.week_number === n);
-const teacherId = one("SELECT id FROM users WHERE username = 'thaksin'").id;
+const teacherId = one("SELECT id FROM users WHERE username = 'aunalyst'").id;
 const studentId = (code) => one('SELECT id FROM users WHERE student_code = ?', code).id;
 
 async function openSession(teacher, s) {
@@ -27,7 +27,7 @@ test('TC-01 RBAC: นักศึกษาเข้าหน้าผู้ส�
   assert.equal((await st.get('/teacher')).status, 403);
   assert.equal((await st.get('/teacher/gradebook')).status, 403);
   assert.equal((await st.get('/admin')).status, 403);
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   assert.equal((await teacher.get('/admin')).status, 403);
   assert.equal((await teacher.get('/teacher')).status, 200);
   const anon = require('./helpers').request(require('./helpers').app);
@@ -37,13 +37,13 @@ test('TC-01 RBAC: นักศึกษาเข้าหน้าผู้ส�
 });
 
 test('CSRF: POST ไม่มี token ถูกปฏิเสธ', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const r = await teacher.post(`/teacher/sessions/${week(1).id}/attendance/open`).type('form').send({});
   assert.equal(r.status, 403);
 });
 
 test('TC-02/04/16 QR check-in, duplicate, expired token, QR rotates', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s = week(2);
   const qr = await openSession(teacher, s);
   assert.match(qr.qr, /^data:image\/png;base64,/);
@@ -85,7 +85,7 @@ test('TC-02/04/16 QR check-in, duplicate, expired token, QR rotates', async () =
 });
 
 test('TC-19 เช็คชื่อหลังปิด Session ถูกปฏิเสธ; Manual ย้อนหลังต้องมีเหตุผล', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s = week(3);
   await openSession(teacher, s);
   const token = tokenOf(s.id);
@@ -120,7 +120,7 @@ test('TC-03/15 Manual attendance บันทึกผู้แก้ไข ค�
 });
 
 test('TC-17 อุปกรณ์เดียว: 1 เครื่อง เช็คชื่อได้ 1 คนต่อคาบ (device lock) + Risk Event', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s = week(5);
   await openSession(teacher, s);
   const device = 'shared-device-abcdefghijklmnop';
@@ -161,7 +161,7 @@ test('IP: บันทึก IP และจำกัดเครือข่า
   assert.equal(att.ipAllowed('1.2.3.4', ''), true);
   assert.deepEqual(att.parseAllowlist('202.28.0.0/16, nope, 10.0.0.0/99').errors, ['nope', '10.0.0.0/99']);
 
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s = week(10);
   await openSession(teacher, s);
   db.get().prepare("UPDATE courses SET ip_allowlist = '203.0.113.0/24'").run();
@@ -177,7 +177,7 @@ test('IP: บันทึก IP และจำกัดเครือข่า
 });
 
 test('GPS: ต้องส่งตำแหน่ง, ต้องแม่นยำพอ, ต้องอยู่ในรัศมีห้องเรียน', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s = week(11);
   await openSession(teacher, s);
   // ผู้สอนตั้งจุดห้องเรียนจากเครื่องตนเอง (คณะสารสนเทศฯ แม่โจ้ — พิกัดตัวอย่าง)
@@ -205,7 +205,7 @@ test('GPS: ต้องส่งตำแหน่ง, ต้องแม่น�
 });
 
 test('Fingerprint ซ้ำ (เช่น มือถือรุ่นเดียวกัน) → แจ้งระดับต่ำ ไม่ปฏิเสธ', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s = week(12);
   await openSession(teacher, s);
   const a = await login('6501101003');
@@ -217,7 +217,7 @@ test('Fingerprint ซ้ำ (เช่น มือถือรุ่นเด�
 });
 
 test('TC-18 บัญชีเดียวใช้งานหลายอุปกรณ์พร้อมกัน → แจ้งเตือน', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s = week(6);
   await openSession(teacher, s);
   await login('6501101008', '6501101008', { deviceId: 'device-one-aaaaaaaaaaaaaaaa' });
@@ -260,7 +260,7 @@ test('Random in-class verification code', async () => {
 
 test('TC-20 Device binding: เปลี่ยนอุปกรณ์ → Risk Event; ยกเลิกอุปกรณ์เดิมแล้วลงทะเบียนใหม่', async () => {
   db.get().prepare('UPDATE courses SET device_binding = 1').run();
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const s7 = week(7);
   await openSession(teacher, s7);
   const sid = studentId('6501101010');
@@ -286,7 +286,7 @@ test('TC-20 Device binding: เปลี่ยนอุปกรณ์ → Risk 
 });
 
 test('TC-21 ผู้สอนตรวจสอบเหตุการณ์เสี่ยง: ต้องมีเหตุผล บันทึกผู้ตรวจ เวลา ผล', async () => {
-  const teacher = await login('thaksin', 'teacher1234');
+  const teacher = await login('aunalyst', 'teacher1234');
   const ev = one("SELECT * FROM attendance_risk_events WHERE event_type = 'multi_account_device'");
   const bad = await teacher.post(`/teacher/risk/${ev.id}/review`).set('Accept', 'application/json').set('X-CSRF-Token', teacher.csrf).send({ decision: 'dismissed' });
   assert.equal(bad.status, 400);

@@ -45,6 +45,21 @@ router.post('/users/:id/status', A, action((req, res) => {
   res.redirect('/admin');
 }));
 
+router.post('/users/:id/username', A, action((req, res) => {
+  const username = String(req.body.username || '').trim();
+  const u = get().prepare('SELECT u.*, r.role_name AS role FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ?').get(req.params.id);
+  if (!u) throw Object.assign(new Error('ไม่พบผู้ใช้'), { status: 404 });
+  if (u.role === 'student') throw Object.assign(new Error('ชื่อผู้ใช้ของนักศึกษาคือรหัสนักศึกษา เปลี่ยนไม่ได้'), { status: 400 });
+  if (!/^[A-Za-z0-9._-]{3,40}$/.test(username)) throw Object.assign(new Error('ชื่อผู้ใช้ต้องเป็นอักษรอังกฤษ/ตัวเลข/._- ยาว 3–40 ตัว'), { status: 400 });
+  if (get().prepare('SELECT 1 FROM users WHERE (username = ? OR student_code = ?) AND id != ?').get(username, username, u.id)) {
+    throw Object.assign(new Error(`ชื่อผู้ใช้ ${username} ถูกใช้แล้ว`), { status: 400 });
+  }
+  get().prepare('UPDATE users SET username = ? WHERE id = ?').run(username, u.id);
+  audit.log(req.user.user_id, 'user.rename', 'user', u.id, { old: u.username, new: username });
+  res.flash('success', `เปลี่ยนชื่อผู้ใช้ ${u.username} → ${username} แล้ว (รหัสผ่านเดิม)`);
+  res.redirect('/admin');
+}));
+
 router.post('/users/:id/password', A, action((req, res) => {
   const password = String(req.body.password || '');
   if (password.length < 8) throw Object.assign(new Error('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร'), { status: 400 });
