@@ -1,0 +1,23 @@
+<div class="card checkin-card">
+  <div class="brand-mark" style="margin-bottom:.6rem">2D</div>
+  <h1>เช็คชื่อเข้าเรียน</h1>
+  <p class="muted"><%= course.course_code %> <%= course.course_name %></p>
+  <% if (!open.length) { %><div class="flash warning">ขณะนี้ยังไม่มีคาบที่เปิดเช็คชื่อ</div><% } %>
+  <form method="post" action="/checkin" class="stack" data-checkin data-public-checkin data-geo="<%= geo ? 1 : 0 %>">
+    <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="acc"><input type="hidden" name="fp"><input type="hidden" name="lsid">
+    <input type="hidden" name="_ck" value="<%= ck %>">
+    <% if (token) { %><input type="hidden" name="token" value="<%= token %>"><% } %>
+    <label><span class="l">รหัสนักศึกษา</span>
+      <input type="text" name="student_code" inputmode="numeric" autocomplete="off" required maxlength="20" pattern="[0-9A-Za-z\-]{3,20}"
+        style="font-size:1.6rem;letter-spacing:.12em;text-align:center" placeholder="เช่น 6918102538" data-remember-code autofocus></label>
+    <% if (!token) { %>
+      <label><span class="l">รหัสเช็คชื่อ 6 ตัว (แสดงใต้ QR บนจอ)</span>
+        <input type="text" name="code" maxlength="6" autocomplete="off" autocapitalize="characters" required style="font-size:1.4rem;letter-spacing:.3em;text-align:center;text-transform:uppercase" placeholder="XXXXXX"></label>
+    <% } %>
+    <button class="btn lg" type="submit" style="width:100%">เช็คชื่อ</button>
+    <p class="hint" data-checkin-status><%= token ? 'สแกน QR แล้ว — กรอกรหัสนักศึกษาแล้วกดเช็คชื่อ (QR มีอายุสั้น กรุณากดภายใน 1 นาที)' : '' %></p>
+  </form>
+  <% if (geo) { %><p class="hint">📍 คาบนี้ตรวจตำแหน่ง GPS — กด "อนุญาต" เมื่อเบราว์เซอร์ขอตำแหน่ง</p><% } %>
+  <p class="hint">⚠️ กรอกรหัสนักศึกษาของตนเองเท่านั้น — ระบบบันทึกอุปกรณ์และ IP ที่ใช้ และ 1 เครื่องเช็คชื่อได้ 1 คนต่อคาบ การเช็คชื่อแทนผู้อื่นถือเป็นการทุจริต</p>
+  <p class="hint">โทรศัพท์เสีย แบตหมด หรือเช็คชื่อไม่ได้? แจ้งผู้สอนเพื่อบันทึกแบบ Manual · <a href="/login">เข้าสู่ระบบ (สำหรับส่งงาน/ดูคะแนน)</a></p>
+</div>

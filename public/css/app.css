@@ -1,4 +1,6 @@
 /* 2D Animation Classroom — Modern Academic Dashboard + Creative Studio Interface */
+.checkin-card { max-width: 520px; margin: 0 auto; }
+.guest-wrap .checkin-card { width: min(520px, 100%); }
 :root {
   --navy: #152A3A; --navy-2: #1f3b50; --teal: #269A83; --teal-2: #1f826e; --teal-soft: #e3f4f0;
   --bg: #F3F5F7; --surface: #FFFFFF; --line: #dfe4ea; --text: #1d2a35; --muted: #5d6b78;

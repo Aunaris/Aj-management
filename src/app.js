@@ -121,6 +121,8 @@ function createApp() {
   app.use((req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD') return next();
     if (req.path === '/login') return next();
+    // หน้าเช็คชื่อแบบไม่ต้องมีบัญชี ใช้ token ของตัวเอง (double-submit cookie) — ตรวจใน routes/checkin.js
+    if (!req.user && (req.path === '/checkin' || req.path === '/checkin/verify')) return next();
     if ((req.get('content-type') || '').startsWith('multipart/form-data')) return next();
     return verifyCsrf(req, res, next);
   });

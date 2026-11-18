@@ -512,11 +512,11 @@ router.post('/settings', TA, action((req, res) => {
     throw Object.assign(new Error('พิกัดห้องเรียนไม่ถูกต้อง'), { status: 400 });
   }
   get().prepare(`UPDATE courses SET contact = ?, qr_ttl_seconds = ?, late_after_minutes = ?, device_binding = ?, clo_visible_to_students = ?, reminder_hours = ?,
-    device_lock = ?, ip_allowlist = ?, geo_enabled = ?, geo_lat = ?, geo_lng = ?, geo_radius_m = ?, geo_max_accuracy_m = ? WHERE id = ?`)
+    device_lock = ?, ip_allowlist = ?, geo_enabled = ?, geo_lat = ?, geo_lng = ?, geo_radius_m = ?, geo_max_accuracy_m = ?, checkin_mode = ? WHERE id = ?`)
     .run(String(b.contact || '').trim() || null, ttl, late, b.device_binding ? 1 : 0, b.clo_visible_to_students ? 1 : 0, reminders,
-      b.device_lock ? 1 : 0, allow || null, b.geo_enabled ? 1 : 0, lat, lng, radius, maxAcc, c.id);
+      b.device_lock ? 1 : 0, allow || null, b.geo_enabled ? 1 : 0, lat, lng, radius, maxAcc, b.checkin_mode === 'login' ? 'login' : 'student_code', c.id);
   audit.log(req.user.user_id, 'course.settings', 'course', c.id, {
-    ttl, late, device_binding: !!b.device_binding, clo_visible: !!b.clo_visible_to_students, reminders, device_lock: !!b.device_lock, ip_allowlist: allow || null, geo_enabled: !!b.geo_enabled, geo: lat !== null ? [lat, lng] : null, radius, maxAcc,
+    ttl, late, device_binding: !!b.device_binding, clo_visible: !!b.clo_visible_to_students, reminders, device_lock: !!b.device_lock, checkin_mode: b.checkin_mode === 'login' ? 'login' : 'student_code', ip_allowlist: allow || null, geo_enabled: !!b.geo_enabled, geo: lat !== null ? [lat, lng] : null, radius, maxAcc,
   });
   res.flash('success', 'บันทึกการตั้งค่าแล้ว');
   res.redirect('/teacher/settings');

@@ -1,16 +1,28 @@
-<div class="card" style="max-width:520px;margin:0 auto;text-align:center">
+<% const pub = typeof publicMode !== 'undefined' && publicMode; const verifyOpen = ok && s && s.verify_code_expires_at && s.verify_code_expires_at > new Date().toISOString(); %>
+<div class="card checkin-card" style="text-align:center">
   <% if (ok) { %>
     <div style="font-size:3rem">✅</div>
-    <h1>เช็คชื่อสำเร็จ</h1>
+    <h1><%= typeof verifiedOnly !== 'undefined' && verifiedOnly ? 'ยืนยันการอยู่ในห้องแล้ว' : 'เช็คชื่อสำเร็จ' %></h1>
+    <% if (who) { %><p style="font-size:1.15rem"><strong><%= who.code %></strong><br><%= who.name %></p><p class="hint">ถ้าชื่อไม่ใช่คุณ แสดงว่ากรอกรหัสผิด — แจ้งผู้สอนทันที</p><% } %>
     <p><%= s.section_name ? s.section_name + ' · ' : '' %>สัปดาห์ <%= s.week_number %>: <%= s.title %></p>
-    <p><%- u.badge('attendance', result.status) %> เวลา <%= u.thaiDate(result.record.checkin_time, { time: true }) %></p>
-    <% result.warnings.forEach(w => { %><div class="flash warning"><%= w %></div><% }) %>
-    <a class="btn" href="/sessions/<%= s.id %>">ดูรายละเอียดคาบ / ยืนยันรหัสในห้อง</a>
+    <p><%- u.badge('attendance', result.status || result.record.attendance_status) %> เวลา <%= u.thaiDate(result.record.checkin_time, { time: true }) %>
+      <% if (result.record.verified_at) { %><span class="badge ok">✓ ยืนยันในห้อง</span><% } %></p>
+    <% (result.warnings || []).forEach(w => { %><div class="flash warning"><%= w %></div><% }) %>
+    <% if (verifyOpen && !result.record.verified_at) { %>
+      <form method="post" action="/checkin/verify" class="row" style="max-width:360px;margin:.8rem auto 0">
+        <% if (pub) { %><input type="hidden" name="_ck" value="<%= ck %>"><input type="hidden" name="student_code" value="<%= who.code %>"><% } else { %><input type="hidden" name="_csrf" value="<%= csrf %>"><% } %>
+        <input type="hidden" name="session_id" value="<%= s.id %>">
+        <input type="text" name="code" inputmode="numeric" maxlength="4" placeholder="รหัสยืนยัน 4 หลักบนจอ" required>
+        <button class="btn" type="submit">ยืนยัน</button>
+      </form>
+    <% } %>
+    <% if (!pub) { %><a class="btn ghost" href="/sessions/<%= s.id %>" style="margin-top:.6rem">ดูรายละเอียดคาบ</a><% } %>
   <% } else { %>
     <div style="font-size:3rem"><%= error.code === 'duplicate' ? 'ℹ️' : '⚠️' %></div>
     <h1><%= error.code === 'duplicate' ? 'เช็คชื่อแล้ว' : 'เช็คชื่อไม่สำเร็จ' %></h1>
     <p><%= error.message %></p>
     <% if (result && result.record) { %><p><%- u.badge('attendance', result.record.attendance_status) %> <%= u.thaiDate(result.record.checkin_time, { time: true }) %></p><% } %>
-    <div class="actions" style="justify-content:center"><a class="btn" href="/checkin">ลองอีกครั้ง (กรอกรหัส)</a><% if (s) { %><a class="btn ghost" href="/sessions/<%= s.id %>">รายละเอียดคาบ</a><% } %></div>
+    <div class="actions" style="justify-content:center"><a class="btn" href="/checkin">ลองอีกครั้ง</a><% if (s && !pub) { %><a class="btn ghost" href="/sessions/<%= s.id %>">รายละเอียดคาบ</a><% } %></div>
+    <% if (pub && ['expired_token', 'invalid_token'].includes(error.code)) { %><p class="hint">QR หมดอายุแล้ว — สแกน QR ล่าสุดบนจออีกครั้ง หรือกด "ลองอีกครั้ง" แล้วกรอกรหัส 6 ตัวใต้ QR</p><% } %>
   <% } %>
 </div>

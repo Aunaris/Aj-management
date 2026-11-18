@@ -366,6 +366,12 @@
     }
   });
 
+  // ---- จำรหัสนักศึกษาไว้บนเครื่องนี้ (กรอกครั้งเดียว) ----
+  $$('input[data-remember-code]').forEach(function (inp) {
+    try { var saved = localStorage.getItem('aj-student-code'); if (saved && !inp.value) inp.value = saved; } catch (e) { /* ignore */ }
+    inp.form.addEventListener('submit', function () { try { localStorage.setItem('aj-student-code', inp.value.trim()); } catch (e) { /* ignore */ } });
+  });
+
   // ---- ผู้สอน: ตั้งตำแหน่งห้องเรียนจาก GPS ของเครื่องนี้ ----
   $$('[data-set-geo]').forEach(function (btn) {
     btn.addEventListener('click', function (e) {

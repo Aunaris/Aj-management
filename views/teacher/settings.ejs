@@ -36,6 +36,10 @@
         <label><span class="l">อายุ QR (วินาที)</span><input type="number" name="qr_ttl_seconds" min="15" max="600" value="<%= c.qr_ttl_seconds %>"><div class="hint">แนะนำ 30–60 วินาที</div></label>
         <label><span class="l">มาสายเมื่อเกิน (นาที)</span><input type="number" name="late_after_minutes" min="0" max="240" value="<%= c.late_after_minutes %>"><div class="hint">นับจากเวลาเริ่มคาบ (หรือเวลาเปิดเช็คชื่อ)</div></label>
       </div>
+      <fieldset><legend>วิธีเช็คชื่อของนักศึกษา</legend>
+        <label class="check"><input type="radio" name="checkin_mode" value="student_code" <%= (c.checkin_mode || 'student_code') === 'student_code' ? 'checked' : '' %>><span><strong>กรอกรหัสนักศึกษา (ไม่ต้องมีบัญชี)</strong> — สแกน QR แล้วพิมพ์รหัสนักศึกษา สะดวกที่สุด แต่ยืนยันตัวตนได้น้อยกว่า ควรเปิด "1 เครื่อง 1 คนต่อคาบ" และใช้ "สุ่มรหัสยืนยันในห้อง" ร่วมด้วย</span></label>
+        <label class="check"><input type="radio" name="checkin_mode" value="login" <%= c.checkin_mode === 'login' ? 'checked' : '' %>><span><strong>ต้องเข้าสู่ระบบ</strong> — นักศึกษาเข้าสู่ระบบด้วยบัญชีของตนเองก่อนสแกน (ยืนยันตัวตนได้ดีกว่า)</span></label>
+      </fieldset>
       <fieldset id="attendance"><legend>ป้องกันการเช็คชื่อแทน</legend>
         <label class="check"><input type="checkbox" name="device_lock" value="1" <%= c.device_lock ? 'checked' : '' %>><span><strong>1 เครื่อง เช็คชื่อได้ 1 คนต่อคาบ</strong> — ปฏิเสธบัญชีที่สองที่ใช้เครื่องเดียวกัน (ตรวจจาก Device ID ในเบราว์เซอร์) และสร้าง Risk Event</span></label>
         <label><span class="l">จำกัดเครือข่ายที่เช็คชื่อได้ (IP/CIDR คั่นด้วย , เว้นว่าง = ไม่จำกัด)</span><input type="text" name="ip_allowlist" value="<%= c.ip_allowlist || '' %>" placeholder="เช่น 202.28.10.0/24, 10.0.0.0/8">

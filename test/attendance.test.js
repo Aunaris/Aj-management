@@ -31,9 +31,13 @@ test('TC-01 RBAC: นักศึกษาเข้าหน้าผู้ส�
   assert.equal((await teacher.get('/admin')).status, 403);
   assert.equal((await teacher.get('/teacher')).status, 200);
   const anon = require('./helpers').request(require('./helpers').app);
+  assert.equal((await anon.get('/teacher')).status, 302);
+  // โหมดเข้าสู่ระบบ: ผู้ที่ไม่ได้ล็อกอินถูกส่งไปหน้า login
+  db.get().prepare("UPDATE courses SET checkin_mode = 'login'").run();
   const r = await anon.get('/checkin?t=abc');
   assert.equal(r.status, 302);
   assert.match(r.headers.location, /^\/login\?next=/);
+  db.get().prepare("UPDATE courses SET checkin_mode = 'student_code'").run();
 });
 
 test('CSRF: POST ไม่มี token ถูกปฏิเสธ', async () => {
