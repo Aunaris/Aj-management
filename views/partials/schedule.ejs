@@ -1,0 +1,29 @@
+<%
+  // ตารางสอนรายสัปดาห์ — ใช้ข้อมูลจาก "กลุ่มเรียน (Section)"
+  const DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  const EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const rows = schedule.slice().sort((a, b) => ((a.sec.meeting_day ?? 9) + 6) % 7 - ((b.sec.meeting_day ?? 9) + 6) % 7);
+  const today = new Date(Date.now() + 7 * 3600000).getUTCDay();
+  const mine = typeof mySection !== 'undefined' && mySection ? mySection.id : null;
+%>
+<div class="card schedule-card">
+  <h2><span>ตารางสอน <small class="muted">ภาคเรียน <%= course.semester %>/<%= course.academic_year %></small></span>
+    <% if (user.role !== 'student') { %><a class="btn sm ghost" href="/teacher/sections">แก้ไขตาราง</a><% } %></h2>
+  <div class="table-wrap">
+    <table class="schedule">
+      <tr><th>วัน</th><th>เวลา</th><th>กลุ่ม</th><th>ห้อง</th><th class="hide-sm">ผู้เรียน</th><th>คาบถัดไป</th></tr>
+      <% rows.forEach(({ sec, n, next }) => { const d = sec.meeting_day; const isToday = d === today; %>
+        <tr class="<%= mine === sec.id ? 'mine' : '' %> <%= isToday ? 'today' : '' %>">
+          <td><strong><%= d !== null && d !== undefined ? DAYS[d] : '—' %></strong> <small class="muted"><%= d !== null && d !== undefined ? EN[d] + '.' : '' %></small>
+            <% if (isToday) { %><span class="badge ok">วันนี้</span><% } %></td>
+          <td><%= sec.start_time || '' %>–<%= sec.end_time || '' %></td>
+          <td><span class="badge info"><%= sec.name || 'กลุ่ม ' + sec.section_code %></span> <small class="muted">Sec <%= sec.section_code %></small><% if (mine === sec.id) { %> <span class="badge ok">กลุ่มของฉัน</span><% } %></td>
+          <td><%= sec.location || '—' %></td>
+          <td class="hide-sm"><%= n %> คน</td>
+          <td><% if (next) { %><small><%= next.attendance_state === 'open' ? '🟢 กำลังเช็คชื่อ · ' : '' %>สัปดาห์ <%= next.week_number %> · <%= u.thaiDate(next.session_date) %></small><% } else { %><small class="muted">—</small><% } %></td>
+        </tr>
+      <% }) %>
+    </table>
+  </div>
+  <% if (!rows.length) { %><div class="empty">ยังไม่มีกลุ่มเรียน</div><% } %>
+</div>

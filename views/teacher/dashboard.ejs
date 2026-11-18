@@ -31,6 +31,7 @@
   <div class="stat"><div class="label">งานเปิดรับส่ง</div><div class="value"><%= open.length %></div><div class="sub">ส่งแล้วทั้งหมด <%= counts.total_subs %> ครั้ง</div></div>
   <div class="stat"><div class="label">งานรอตรวจ</div><div class="value" style="color:<%= counts.to_review ? 'var(--warn)' : 'inherit' %>"><%= counts.to_review %></div><div class="sub">คะแนนเฉลี่ยสะสม <%= u.fmtScore(avg) %></div></div>
 </div>
+<%- include('../partials/schedule', { schedule }) %>
 <% if (counts.risks || counts.appeals) { %>
   <div class="flash warning">มีเหตุการณ์เสี่ยงการเช็คชื่อรอตรวจสอบ <%= counts.risks %> รายการ และคำร้อง <%= counts.appeals %> รายการ — <a href="/teacher/risk">ตรวจสอบ</a></div>
 <% } %>

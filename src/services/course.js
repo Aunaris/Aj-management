@@ -183,6 +183,13 @@ function sessions(courseId, { sectionId } = {}) {
     ORDER BY s.week_number, CAST(cs.section_code AS INTEGER), s.session_date, s.created_at`).all(...(sectionId ? [courseId, sectionId] : [courseId]));
 }
 
+/** ตารางสอนรายสัปดาห์: กลุ่ม + จำนวนนักศึกษา + คาบถัดไป */
+function scheduleSummary(courseId) {
+  return sections(courseId).map((sec) => ({
+    sec, n: students(courseId, { section: sec.section_code }).length, next: nextSession(courseId, { sectionId: sec.id }),
+  }));
+}
+
 /** คาบที่นักศึกษาคนนี้เห็น (กลุ่มของตนเอง + คาบรวม) */
 function sessionsForStudent(courseId, userId) {
   const sec = sectionByCode(courseId, studentSectionCode(courseId, userId) || '');
@@ -346,7 +353,7 @@ function nextSession(courseId, { sectionId } = {}) {
 
 module.exports = {
   sections, getSection, sectionByCode, sectionLabel, sessionSectionCode, studentSectionCode, sessionVisibleTo, ensureSection, updateSection, migrateSections,
-  sessionsForStudent, parseRoster, WEEKDAYS, termStart, setTermStart, applyDefaultSchedule,
+  sessionsForStudent, parseRoster, WEEKDAYS, scheduleSummary, termStart, setTermStart, applyDefaultSchedule,
   getCourse, clos, categories, sessions, getSession, lessonDetail, students, isEnrolled, teacherIds,
   enroll, importStudents, announcements, documents, materials, nextSession,
 };

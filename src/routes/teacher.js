@@ -68,13 +68,10 @@ router.get('/', TA, (req, res) => {
   const avg = gb.rows.length ? util.round2(gb.rows.reduce((s, r) => s + r.total, 0) / gb.rows.length) : null;
   const clo = scores.cloScores(c.id, { section: code }).summary;
   const lastSession = all.filter((s) => s.attendance_state !== 'not_started').sort((a, b) => String(a.attendance_opened_at).localeCompare(String(b.attendance_opened_at))).pop();
-  const sectionStats = courseSvc.sections(c.id).map((sec) => {
-    const n = courseSvc.students(c.id, { section: sec.section_code }).length;
-    const nx = courseSvc.nextSession(c.id, { sectionId: sec.id });
-    return { sec, n, next: nx };
-  });
+  const sectionStats = courseSvc.scheduleSummary(c.id);
+
   res.page('teacher/dashboard', {
-    title: 'Teacher Dashboard', students, open, counts, next, todaySessions, avg, clo, structure: scores.structureCheck(c.id), sectionStats,
+    title: 'Teacher Dashboard', students, open, counts, next, todaySessions, avg, clo, structure: scores.structureCheck(c.id), sectionStats, schedule: sectionStats,
     lastSummary: lastSession ? { s: lastSession, sum: att.summary(lastSession.id) } : null,
   });
 });

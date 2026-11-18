@@ -14,6 +14,7 @@
   <div class="stat"><div class="label">การเข้าเรียน</div><div class="value"><%= attendance.attended %>/<%= attendance.total %></div><div class="sub">คาบที่มีการเช็คชื่อ</div></div>
   <div class="stat"><div class="label">คาบถัดไป</div><div class="value" style="font-size:1.1rem"><%= next ? 'สัปดาห์ ' + next.week_number : '—' %></div><div class="sub"><%= next ? u.thaiDate(next.session_date) + ' ' + (next.start_time || '') : '' %></div></div>
 </div>
+<%- include('../partials/schedule', { schedule }) %>
 <div class="grid g-side">
   <div class="card">
     <h2>งานที่ต้องทำ</h2>

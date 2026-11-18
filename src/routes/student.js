@@ -38,7 +38,7 @@ router.get('/', S, (req, res) => {
   res.page('student/dashboard', {
     title: 'หน้าหลักนักศึกษา', pending, graded: graded.slice(-5).reverse(), myOpen, next: courseSvc.nextSession(c.id, { sectionId: (res.locals.mySection || {}).id || '__none__' }), row: gb.rows[0], gb,
     attendance: { total: hist.length, attended: hist.filter((h) => ['present', 'late'].includes(h.attendance_status)).length },
-    announcements: courseSvc.announcements(c.id, 3),
+    announcements: courseSvc.announcements(c.id, 3), schedule: courseSvc.scheduleSummary(c.id),
   });
 });
 

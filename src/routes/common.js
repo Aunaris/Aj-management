@@ -36,6 +36,7 @@ router.get('/course', allow(), (req, res) => {
     announcements: courseSvc.announcements(course.id), documents: courseSvc.documents(course.id),
     next: courseSvc.nextSession(course.id, { sectionId: isStudent ? (res.locals.mySection || {}).id : (req.section || {}).id }), upcoming, progress,
     studentCount: courseSvc.students(course.id, { section: isStudent || !req.section ? null : req.section.section_code }).length,
+    schedule: courseSvc.scheduleSummary(course.id),
   });
 });
 
