@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><%= title %></title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap"><link rel="stylesheet" href="/static/css/app.css"></head>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap"><link rel="stylesheet" href="/static/css/app.css?v=<%= assetV %>"></head>
 <body class="print-page">
   <div class="no-print actions" style="margin-bottom:1rem"><button class="btn" data-print>พิมพ์ / บันทึกเป็น PDF</button></div>
   <h1><%= title %></h1>
@@ -10,5 +10,5 @@
     <tr><% data.headers.forEach(h => { %><th><%= h %></th><% }) %></tr>
     <% data.rows.forEach(r => { %><tr><% r.forEach(c => { %><td><%= c %></td><% }) %></tr><% }) %>
   </table>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=<%= assetV %>"></script>
 </body></html>

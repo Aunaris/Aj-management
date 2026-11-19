@@ -6,7 +6,7 @@
   <title><%= title ? title + ' · ' : '' %>2D Animation Classroom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/app.css?v=<%= assetV %>">
   <meta name="csrf-token" content="<%= csrf %>">
 </head>
 <body class="<%= user ? 'role-' + user.role : 'guest' %>"<% if (studentUrl) { %> data-desktop="1"<% } %>>
@@ -92,6 +92,6 @@
     <%- body %>
   </main>
 <% } %>
-<script src="/static/js/app.js"></script>
+<script src="/static/js/app.js?v=<%= assetV %>"></script>
 </body>
 </html>

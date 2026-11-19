@@ -45,7 +45,13 @@ function createApp() {
       next();
     });
   }
-  app.use('/static', express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
+  // เวอร์ชันไฟล์ CSS/JS: เปลี่ยนเมื่อเนื้อไฟล์เปลี่ยน เบราว์เซอร์จะโหลดไฟล์ใหม่ทันทีหลังอัปเดต
+  const pub = path.join(__dirname, '..', 'public');
+  const assetV = require('crypto').createHash('sha1')
+    .update(['css/app.css', 'js/app.js'].map((f) => { try { return require('fs').readFileSync(path.join(pub, f)); } catch { return ''; } }).join('|'))
+    .digest('hex').slice(0, 10);
+  app.use((req, res, next) => { res.locals.assetV = assetV; next(); });
+  app.use('/static', express.static(pub, { maxAge: '1h', setHeaders: (res, _p) => { if (res.req.query.v) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); } }));
   app.use(cookieParser());
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.use(express.json({ limit: '1mb' }));
