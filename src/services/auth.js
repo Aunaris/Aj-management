@@ -27,6 +27,9 @@ function roleId(name) {
   return get().prepare('SELECT id FROM roles WHERE role_name = ?').get(name).id;
 }
 
+/** รหัสผ่านเริ่มต้นของบัญชีนักศึกษา (บังคับเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก) */
+const STUDENT_DEFAULT_PASSWORD = process.env.STUDENT_DEFAULT_PASSWORD || '123456';
+
 function createUser({ username, fullName, email, password, role, studentCode, mustChangePassword = 0 }) {
   const id = uuid();
   get()
@@ -94,5 +97,5 @@ function changePassword(userId, newPassword) {
 
 module.exports = {
   sha256, hashPassword, verifyPassword, createUser, findUserByLogin, getUser,
-  createSession, resolveSession, endSession, changePassword, roleId,
+  createSession, resolveSession, endSession, changePassword, roleId, STUDENT_DEFAULT_PASSWORD,
 };

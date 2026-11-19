@@ -8,7 +8,7 @@
 %>
 <div class="card schedule-card">
   <h2><span>ตารางสอน <small class="muted">ภาคเรียน <%= course.semester %>/<%= course.academic_year %></small></span>
-    <% if (user.role !== 'student') { %><a class="btn sm ghost" href="/teacher/sections">แก้ไขตาราง</a><% } %></h2>
+    <% if (user && user.role !== 'student') { %><a class="btn sm ghost" href="/teacher/sections">แก้ไขตาราง</a><% } %></h2>
   <div class="table-wrap">
     <table class="schedule">
       <tr><th>วัน</th><th>เวลา</th><th>กลุ่ม</th><th>ห้อง</th><th class="hide-sm">ผู้เรียน</th><th>คาบถัดไป</th></tr>

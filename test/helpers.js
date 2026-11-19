@@ -17,7 +17,7 @@ const { createApp } = require('../src/app');
 
 const app = createApp();
 
-async function login(username, password = username, { deviceId } = {}) {
+async function login(username, password = /^\d+$/.test(username) ? '123456' : username, { deviceId } = {}) {
   const agent = request.agent(app);
   if (deviceId) agent.jar.setCookie(`did=${deviceId}; Path=/`, '127.0.0.1');
   const res = await agent.post('/login').type('form').send({ login: username, password, next: '/' });

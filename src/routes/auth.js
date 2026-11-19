@@ -48,7 +48,7 @@ router.post('/login', (req, res) => {
 router.post('/logout', (req, res) => {
   auth.endSession(req.cookies.sid);
   res.clearCookie('sid');
-  res.redirect('/login');
+  res.redirect('/');
 });
 
 router.get('/account/password', allow(), (req, res) => res.page('password', { title: 'เปลี่ยนรหัสผ่าน' }));

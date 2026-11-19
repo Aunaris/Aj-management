@@ -460,11 +460,11 @@ router.get('/students/:id', TA, (req, res, next) => {
 router.post('/students/:id/reset-password', TA, action((req, res) => {
   const u = auth.getUser(req.params.id);
   if (!u || u.role !== 'student') throw Object.assign(new Error('ไม่พบนักศึกษา'), { status: 404 });
-  auth.changePassword(u.id, u.student_code || u.username);
+  auth.changePassword(u.id, auth.STUDENT_DEFAULT_PASSWORD);
   get().prepare('UPDATE users SET must_change_password = 1 WHERE id = ?').run(u.id);
   get().prepare('UPDATE auth_sessions SET ended_at = ? WHERE user_id = ? AND ended_at IS NULL').run(now(), u.id);
   audit.log(req.user.user_id, 'user.reset_password', 'user', u.id);
-  res.flash('success', 'รีเซ็ตรหัสผ่านเป็นรหัสนักศึกษาแล้ว (บังคับเปลี่ยนเมื่อเข้าสู่ระบบ)');
+  res.flash('success', `รีเซ็ตรหัสผ่านเป็น ${auth.STUDENT_DEFAULT_PASSWORD} แล้ว (บังคับเปลี่ยนเมื่อเข้าสู่ระบบ)`);
   res.redirect(`/teacher/students/${u.id}`);
 }));
 

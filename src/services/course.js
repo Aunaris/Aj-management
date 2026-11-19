@@ -287,7 +287,7 @@ function parseRoster(text, defaultSection = null) {
 }
 
 /**
- * นำเข้ารายชื่อ — รหัสผ่านเริ่มต้น = รหัสนักศึกษา และบังคับเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก
+ * นำเข้ารายชื่อ — ชื่อผู้ใช้ = รหัสนักศึกษา, รหัสผ่านเริ่มต้น = 123456 (auth.STUDENT_DEFAULT_PASSWORD) และบังคับเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก
  * กลุ่มเรียนที่ยังไม่มีในระบบจะถูกสร้างพร้อมคาบเรียน 17 สัปดาห์โดยอัตโนมัติ
  */
 function importStudents(courseId, text, actorId, { section = null } = {}) {
@@ -311,7 +311,7 @@ function importStudents(courseId, text, actorId, { section = null } = {}) {
       let user = get().prepare('SELECT u.id, u.full_name, r.role_name FROM users u JOIN roles r ON r.id = u.role_id WHERE u.student_code = ? OR u.username = ?').get(code, code);
       if (user && user.role_name !== 'student') { result.errors.push(`บรรทัด ${r.line}: ${code} เป็นบัญชีที่ไม่ใช่นักศึกษา`); continue; }
       if (!user) {
-        const id = auth.createUser({ username: code, studentCode: code, fullName: name, email: r.email, password: code, role: 'student', mustChangePassword: 1 });
+        const id = auth.createUser({ username: code, studentCode: code, fullName: name, email: r.email, password: auth.STUDENT_DEFAULT_PASSWORD, role: 'student', mustChangePassword: 1 });
         user = { id };
         result.created += 1;
       } else {

@@ -310,7 +310,7 @@ test('นำเข้ารายชื่อนักศึกษา (คัด
   const u = one("SELECT * FROM users WHERE student_code = '6601100001'");
   assert.ok(u);
   assert.equal(u.must_change_password, 1);
-  const st = await login('6601100001');
+  const st = await login('6601100001', '123456');
   const r = await st.get('/student');
   assert.equal(r.status, 302);
   assert.equal(r.headers.location, '/account/password');

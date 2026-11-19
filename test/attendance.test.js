@@ -128,8 +128,8 @@ test('TC-17 อุปกรณ์เดียว: 1 เครื่อง เช
   const s = week(5);
   await openSession(teacher, s);
   const device = 'shared-device-abcdefghijklmnop';
-  const a = await login('6501101006', '6501101006', { deviceId: device });
-  const b = await login('6501101007', '6501101007', { deviceId: device });
+  const a = await login('6501101006', '123456', { deviceId: device });
+  const b = await login('6501101007', '123456', { deviceId: device });
   assert.equal((await a.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', a.csrf).send({ token: tokenOf(s.id) })).status, 200);
   const rb = await b.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', b.csrf).send({ token: tokenOf(s.id) });
   assert.equal(rb.status, 403);
@@ -142,9 +142,9 @@ test('TC-17 อุปกรณ์เดียว: 1 เครื่อง เช
 
   // ล้าง cookie แต่ใช้เบราว์เซอร์เดิม (localStorage ID เดิม) ก็ยังถูกปฏิเสธ
   const lsid = 'local-storage-id-123';
-  const c1 = await login('6501101008', '6501101008', { deviceId: 'cookie-one-zzzzzzzzzzzzzzzz' });
+  const c1 = await login('6501101008', '123456', { deviceId: 'cookie-one-zzzzzzzzzzzzzzzz' });
   assert.equal((await c1.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', c1.csrf).send({ token: tokenOf(s.id), lsid })).status, 200);
-  const c2 = await login('6501101009', '6501101009', { deviceId: 'cookie-two-zzzzzzzzzzzzzzzz' });
+  const c2 = await login('6501101009', '123456', { deviceId: 'cookie-two-zzzzzzzzzzzzzzzz' });
   const r2 = await c2.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', c2.csrf).send({ token: tokenOf(s.id), lsid });
   assert.equal(r2.body.code, 'device_used');
 
@@ -224,8 +224,8 @@ test('TC-18 บัญชีเดียวใช้งานหลายอุ�
   const teacher = await login('aunalyst', 'teacher1234');
   const s = week(6);
   await openSession(teacher, s);
-  await login('6501101008', '6501101008', { deviceId: 'device-one-aaaaaaaaaaaaaaaa' });
-  const second = await login('6501101008', '6501101008', { deviceId: 'device-two-bbbbbbbbbbbbbbbb' });
+  await login('6501101008', '123456', { deviceId: 'device-one-aaaaaaaaaaaaaaaa' });
+  const second = await login('6501101008', '123456', { deviceId: 'device-two-bbbbbbbbbbbbbbbb' });
   const r = await second.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', second.csrf).send({ token: tokenOf(s.id) });
   assert.equal(r.status, 200);
   assert.ok(one("SELECT 1 x FROM attendance_risk_events WHERE session_id = ? AND user_id = ? AND event_type = 'multi_device_account'", s.id, studentId('6501101008')));
@@ -268,14 +268,14 @@ test('TC-20 Device binding: เปลี่ยนอุปกรณ์ → Risk 
   const s7 = week(7);
   await openSession(teacher, s7);
   const sid = studentId('6501101010');
-  const phone1 = await login('6501101010', '6501101010', { deviceId: 'phone-1-xxxxxxxxxxxxxxxxxxx' });
+  const phone1 = await login('6501101010', '123456', { deviceId: 'phone-1-xxxxxxxxxxxxxxxxxxx' });
   assert.equal((await phone1.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', phone1.csrf).send({ token: tokenOf(s7.id) })).status, 200);
   assert.equal(q("SELECT * FROM trusted_devices WHERE user_id = ? AND status = 'active'", sid).length, 1);
   await phone1.post('/logout').type('form').send({ _csrf: phone1.csrf });
 
   const s8 = week(8);
   await openSession(teacher, s8);
-  const phone2 = await login('6501101010', '6501101010', { deviceId: 'phone-2-yyyyyyyyyyyyyyyyyyy' });
+  const phone2 = await login('6501101010', '123456', { deviceId: 'phone-2-yyyyyyyyyyyyyyyyyyy' });
   const r = await phone2.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', phone2.csrf).send({ token: tokenOf(s8.id) });
   assert.equal(r.status, 200);
   assert.ok(one("SELECT 1 x FROM attendance_risk_events WHERE user_id = ? AND event_type = 'device_changed'", sid));

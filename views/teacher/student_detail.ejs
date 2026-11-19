@@ -6,7 +6,7 @@
       <select name="section_id" aria-label="ย้ายกลุ่ม"><% sections.forEach(x => { %><option value="<%= x.id %>" <%= x.section_code === st.section ? 'selected' : '' %>><%= x.name || 'กลุ่ม ' + x.section_code %></option><% }) %></select>
       <button class="btn sm ghost">ย้ายกลุ่ม</button>
     </form>
-    <form method="post" action="/teacher/students/<%= st.id %>/reset-password" class="inline" data-confirm="รีเซ็ตรหัสผ่านเป็นรหัสนักศึกษา?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">รีเซ็ตรหัสผ่าน</button></form>
+    <form method="post" action="/teacher/students/<%= st.id %>/reset-password" class="inline" data-confirm="รีเซ็ตรหัสผ่านเป็นรหัสเริ่มต้น (123456)?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm ghost">รีเซ็ตรหัสผ่าน</button></form>
     <form method="post" action="/teacher/students/<%= st.id %>/enrollment" class="inline" data-confirm="เปลี่ยนสถานะการลงทะเบียน?"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="<%= st.enrollment_status === 'active' ? 'withdrawn' : 'active' %>"><button class="btn sm ghost"><%= st.enrollment_status === 'active' ? 'ถอนรายวิชา' : 'คืนสถานะ' %></button></form>
   </div>
 </div>

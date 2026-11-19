@@ -87,7 +87,7 @@ test('เช็คชื่อ: ต้องเป็นคาบของกล
   assert.throws(() => att.manualSet({ sessionId: s2.id, studentId: sid('6501101001'), status: 'present', actorId: teacherId }), /กลุ่มเรียน/);
 
   db.get().prepare("UPDATE users SET must_change_password = 0 WHERE student_code = '6900000002'").run();
-  const mine = await login('6900000002');
+  const mine = await login('6900000002', '123456');
   const ok = await mine.post('/checkin').set('Accept', 'application/json').set('X-CSRF-Token', mine.csrf).send({ token: tokenOf(s2.id) });
   assert.equal(ok.status, 200);
 

@@ -1,6 +1,6 @@
 'use strict';
 const db = require('./db');
-const { seedBase, migrateAccounts, TEACHER_USERNAME } = require('./seed');
+const { seedBase, migrateAccounts, migrateStudentPasswords, TEACHER_USERNAME } = require('./seed');
 
 db.open();
 if (seedBase({ forceChange: true })) {
@@ -8,6 +8,8 @@ if (seedBase({ forceChange: true })) {
 }
 
 if (migrateAccounts()) console.log(`เปลี่ยนชื่อผู้ใช้อาจารย์ thaksin → ${TEACHER_USERNAME} แล้ว (รหัสผ่านเดิม)`);
+const migrated = migrateStudentPasswords();
+if (migrated) console.log(`ตั้งรหัสผ่านเริ่มต้นของนักศึกษาที่ยังไม่เคยเข้าใช้งานเป็น 123456 แล้ว (${migrated} บัญชี)`);
 require('./services/course').migrateSections(require('./services/course').getCourse().id);
 
 const { createApp } = require('./app');

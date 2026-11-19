@@ -1,0 +1,50 @@
+<div class="home">
+  <header class="home-hero">
+    <div class="brand-mark">2D</div>
+    <div>
+      <small><%= course ? course.course_code + ' · ภาคเรียน ' + course.semester + '/' + course.academic_year : '' %></small>
+      <h1><%= course ? course.course_name : '2D Animation Classroom' %></h1>
+      <p><%= course ? course.course_name_en : '' %><%= course && course.program ? ' — ' + course.program : '' %></p>
+    </div>
+  </header>
+
+  <div class="home-grid">
+    <section class="login-card home-login" aria-labelledby="h-login">
+      <h2 id="h-login">เข้าสู่ระบบนักศึกษา</h2>
+      <form method="post" action="/login" class="stack" autocomplete="on">
+        <input type="hidden" name="next" value="/">
+        <label><span class="l">ชื่อผู้ใช้ (รหัสนักศึกษา)</span><input type="text" name="login" value="<%= login %>" required inputmode="numeric" autocomplete="username" placeholder="เช่น 6918102538"></label>
+        <label><span class="l">รหัสผ่าน</span><input type="password" name="password" required autocomplete="current-password"></label>
+        <button class="btn lg" type="submit" style="width:100%">เข้าสู่ระบบ</button>
+      </form>
+      <div class="home-note">
+        <strong>เข้าใช้งานครั้งแรก</strong>
+        <ol>
+          <li>ชื่อผู้ใช้คือ <strong>รหัสนักศึกษา</strong> 10 หลัก</li>
+          <li>รหัสผ่านครั้งแรกคือ <code>123456</code></li>
+          <li>ระบบจะให้ตั้งรหัสผ่านใหม่ทันที (อย่างน้อย 8 ตัวอักษร)</li>
+        </ol>
+        <small class="muted">ลืมรหัสผ่าน: แจ้งอาจารย์ผู้สอนเพื่อรีเซ็ตกลับเป็นรหัสผ่านเริ่มต้น</small>
+      </div>
+    </section>
+
+    <div class="stack">
+      <section class="card home-checkin">
+        <h2>เช็คชื่อเข้าเรียน</h2>
+        <p>สแกน QR Code บนจอหน้าห้องด้วยกล้องโทรศัพท์ แล้วกรอกรหัสนักศึกษา หรือกดปุ่มด้านล่างแล้วพิมพ์รหัส 6 ตัวที่แสดงใต้ QR</p>
+        <a class="btn lg" href="/checkin">เช็คชื่อ</a>
+      </section>
+      <% if (schedule.length) { %><%- include('partials/schedule', { schedule, user: null }) %><% } %>
+      <section class="card">
+        <h2>ในระบบนี้นักศึกษาทำอะไรได้บ้าง</h2>
+        <ul class="home-features">
+          <li><strong>งานที่มอบหมาย</strong><small>ดูโจทย์ กำหนดส่ง และส่งงานออนไลน์ (ไฟล์/ลิงก์)</small></li>
+          <li><strong>คะแนนและ Feedback</strong><small>ดูคะแนนที่อาจารย์เผยแพร่ และคำแนะนำรายงาน</small></li>
+          <li><strong>ประวัติเข้าเรียน</strong><small>ตรวจสอบการเช็คชื่อแต่ละสัปดาห์ และยื่นคำร้อง</small></li>
+          <li><strong>ตารางคาบเรียน</strong><small>ปฏิทินคาบเรียนและวันส่งงานของกลุ่มตนเอง</small></li>
+        </ul>
+      </section>
+    </div>
+  </div>
+  <p class="home-foot"><a href="/login">อาจารย์ / ผู้ดูแลระบบ เข้าสู่ระบบ</a></p>
+</div>

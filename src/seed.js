@@ -61,6 +61,23 @@ function migrateAccounts() {
   return false;
 }
 
+/**
+ * ครั้งเดียว: นักศึกษาที่ยังไม่เคยเปลี่ยนรหัสผ่าน (ยังใช้รหัสเริ่มต้นแบบเดิม = รหัสนักศึกษา)
+ * เปลี่ยนรหัสผ่านเริ่มต้นเป็น 123456 — ผู้ที่เปลี่ยนรหัสผ่านแล้วไม่ถูกแตะต้อง
+ */
+function migrateStudentPasswords() {
+  const conn = db.get();
+  const MARK = 'migrate.student_default_password';
+  if (conn.prepare('SELECT 1 FROM audit_logs WHERE action = ?').get(MARK)) return 0;
+  const auth = require('./services/auth');
+  const rows = conn.prepare(`SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id
+    WHERE r.role_name = 'student' AND u.must_change_password = 1`).all();
+  const upd = conn.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
+  db.tx(() => { for (const r of rows) upd.run(auth.hashPassword(auth.STUDENT_DEFAULT_PASSWORD), r.id); });
+  require('./services/audit').log(null, MARK, 'user', null, { count: rows.length });
+  return rows.length;
+}
+
 function seedBase({ forceChange = true } = {}) {
   const conn = db.get();
   if (conn.prepare('SELECT COUNT(*) c FROM courses').get().c) return false;
@@ -143,4 +160,4 @@ if (require.main === module) {
   db.close();
 }
 
-module.exports = { seedBase, seedDemo, migrateAccounts, TEACHER_USERNAME, DEMO_STUDENTS, CATEGORIES, CLOS };
+module.exports = { seedBase, seedDemo, migrateAccounts, migrateStudentPasswords, TEACHER_USERNAME, DEMO_STUDENTS, CATEGORIES, CLOS };

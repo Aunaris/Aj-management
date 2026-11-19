@@ -12,6 +12,15 @@ const { allow, action } = require('./guard');
 
 const router = express.Router();
 
+/** หน้าแรกสาธารณะ (ยังไม่เข้าสู่ระบบ): เข้าสู่ระบบนักศึกษา + เช็คชื่อ + ตารางเรียน */
+router.get('/', (req, res, next) => {
+  if (req.user) return next();
+  const course = courseSvc.getCourse();
+  return res.page('home', {
+    title: 'หน้าแรกนักศึกษา', schedule: course ? courseSvc.scheduleSummary(course.id) : [], login: '', error: null,
+  });
+});
+
 router.get('/', allow(), (req, res) => {
   const r = req.user.role;
   res.redirect(r === 'student' ? '/student' : r === 'admin' ? '/admin' : '/teacher');
