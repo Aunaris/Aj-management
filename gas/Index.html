@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D animation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --line: #e3e8ef;
+  --text: #1c2533;
+  --muted: #667085;
+  --primary: #4f46e5;
+  --primary-2: #4338ca;
+  --primary-soft: #eef2ff;
+  --side: #131a2b;
+  --side-2: #1c2540;
+  --side-text: #c7cfe2;
+  --ok: #0f9d6b;
+  --ok-soft: #e6f6ef;
+  --warn: #b7791f;
+  --warn-soft: #fdf3e1;
+  --bad: #d63c3c;
+  --bad-soft: #fdecec;
+  --info: #2563eb;
+  --info-soft: #e8f0fe;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  --shadow-lg: 0 20px 50px rgba(16, 24, 40, .25);
+  --side-w: 252px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: 'Sarabun', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 15px; color: var(--text); background: var(--bg); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--primary); }
+[hidden] { display: none !important; }
+h1, h2, h3 { margin: 0; line-height: 1.3; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+.nowrap { white-space: nowrap; }
+.right { text-align: right; }
+
+/* ---------- Loading bar / overlay ---------- */
+.topbar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 200; overflow: hidden; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.topbar.active { opacity: 1; }
+.topbar::after { content: ''; position: absolute; top: 0; left: -40%; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--primary), transparent); animation: bar 1s linear infinite; }
+@keyframes bar { to { left: 100%; } }
+.overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, .7); display: grid; place-items: center; z-index: 180; backdrop-filter: blur(2px); }
+.overlay-box { text-align: center; color: var(--muted); }
+.spinner { width: 38px; height: 38px; border: 3px solid var(--primary-soft); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto .6rem; }
+.btn .spin { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: .35rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Skeleton ---------- */
+.sk { background: linear-gradient(90deg, #e9edf3 25%, #f4f6f9 50%, #e9edf3 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.sk-line { height: 14px; margin: .55rem 0; }
+.sk-card { height: 96px; }
+.sk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+
+/* ---------- Login ---------- */
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; background: radial-gradient(circle at 20% 20%, #312e81, #131a2b 60%); }
+.login-card { width: min(420px, 100%); background: var(--surface); border-radius: 18px; padding: 2.2rem 2rem; box-shadow: var(--shadow-lg); }
+.brand-mark { width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff; display: grid; place-items: center; font-weight: 700; letter-spacing: -.5px; flex: none; }
+.login-card .brand-mark { margin-bottom: 1rem; width: 54px; height: 54px; font-size: 1.15rem; }
+.login-card h1 { font-size: 1.5rem; }
+.login-card p { margin: .3rem 0 1.4rem; }
+
+/* ---------- App shell ---------- */
+.app { display: flex; min-height: 100vh; }
+.sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: var(--side-w); background: var(--side); color: var(--side-text); display: flex; flex-direction: column; z-index: 120; transition: transform .25s, width .25s; }
+.side-brand { display: flex; align-items: center; gap: .7rem; padding: 1.1rem 1.1rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.side-brand strong { color: #fff; font-size: 1.05rem; display: block; }
+.side-brand small { color: #8f9bb8; display: block; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.nav { flex: 1; overflow-y: auto; padding: .7rem .6rem; }
+.nav-group { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: #69769a; padding: .9rem .7rem .3rem; }
+.nav button { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .62rem .75rem; border: 0; background: transparent; color: var(--side-text); border-radius: 9px; cursor: pointer; text-align: left; font-size: .95rem; }
+.nav button:hover { background: var(--side-2); color: #fff; }
+.nav button.active { background: var(--primary); color: #fff; }
+.nav .ico { width: 22px; text-align: center; font-size: 1.05rem; flex: none; }
+.side-user { padding: .9rem 1rem; border-top: 1px solid rgba(255, 255, 255, .06); font-size: .85rem; }
+.side-user strong { color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 110; }
+.main { flex: 1; margin-left: var(--side-w); min-width: 0; display: flex; flex-direction: column; transition: margin .25s; }
+.header { position: sticky; top: 0; z-index: 90; display: flex; align-items: center; gap: .8rem; padding: .8rem 1.4rem; background: rgba(243, 245, 249, .92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.header h1 { font-size: 1.2rem; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header .org { font-size: .82rem; color: var(--muted); display: block; font-weight: 400; }
+.menu-btn { display: none; border: 0; background: var(--surface); width: 40px; height: 40px; border-radius: 10px; box-shadow: var(--shadow); cursor: pointer; font-size: 1.2rem; }
+.header-actions { display: flex; align-items: center; gap: .5rem; }
+.chip-user { display: flex; flex-direction: column; text-align: right; font-size: .82rem; line-height: 1.25; }
+.chip-user strong { font-size: .9rem; }
+.content { padding: 1.4rem; max-width: 1440px; width: 100%; }
+
+/* ---------- Components ---------- */
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.15rem 1.25rem; margin-bottom: 1rem; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: .8rem; margin-bottom: .9rem; flex-wrap: wrap; }
+.card-head h2 { font-size: 1.05rem; }
+.grid { display: grid; gap: 1rem; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.stat { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem 1.15rem; position: relative; overflow: hidden; }
+.stat .label { color: var(--muted); font-size: .85rem; }
+.stat .value { font-size: 1.55rem; font-weight: 700; margin-top: .15rem; word-break: break-word; }
+.stat .sub { font-size: .8rem; color: var(--muted); }
+.stat.accent { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; }
+.stat.accent .label, .stat.accent .sub { color: rgba(255, 255, 255, .8); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; border: 1px solid transparent; background: var(--surface-2); color: var(--text); padding: .5rem .95rem; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: .9rem; white-space: nowrap; text-decoration: none; transition: background .15s, border-color .15s; }
+.btn:hover { border-color: var(--line); }
+.btn.primary { background: var(--primary); color: #fff; }
+.btn.primary:hover { background: var(--primary-2); }
+.btn.danger { background: var(--bad-soft); color: var(--bad); }
+.btn.success { background: var(--ok-soft); color: var(--ok); }
+.btn.ghost { background: transparent; border-color: var(--line); }
+.btn.sm { padding: .3rem .6rem; font-size: .82rem; border-radius: 7px; }
+.btn.block { width: 100%; padding: .7rem; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-row { display: flex; gap: .4rem; flex-wrap: wrap; }
+.toolbar { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+.toolbar .grow { flex: 1; min-width: 180px; }
+.badge { display: inline-block; padding: .12rem .55rem; border-radius: 99px; font-size: .78rem; font-weight: 600; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.bad { background: var(--bad-soft); color: var(--bad); }
+.badge.info { background: var(--info-soft); color: var(--info); }
+.badge.primary { background: var(--primary-soft); color: var(--primary); }
+.bar { height: 8px; background: #eaeef5; border-radius: 99px; overflow: hidden; min-width: 80px; }
+.bar span { display: block; height: 100%; background: var(--primary); border-radius: 99px; }
+.bar.ok span { background: var(--ok); }
+.bar.warn span { background: var(--warn); }
+.bar.bad span { background: var(--bad); }
+.bar-label { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: .2rem; gap: .5rem; }
+.empty { text-align: center; padding: 2.2rem 1rem; color: var(--muted); }
+.empty .ico { font-size: 2rem; display: block; margin-bottom: .3rem; }
+.error-box { text-align: center; padding: 2rem 1rem; }
+.error-box p { color: var(--bad); }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; justify-content: space-between; gap: .8rem; padding: .6rem 0; border-bottom: 1px solid var(--line); align-items: center; }
+.list li:last-child { border-bottom: 0; }
+.kv { display: grid; grid-template-columns: 160px 1fr; gap: .35rem 1rem; font-size: .92rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; word-break: break-word; }
+.tabs { display: flex; gap: .3rem; border-bottom: 1px solid var(--line); margin-bottom: 1rem; overflow-x: auto; }
+.tabs button { border: 0; background: none; padding: .6rem .9rem; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+.donut { width: 150px; height: 150px; border-radius: 50%; position: relative; flex: none; }
+.donut::after { content: ''; position: absolute; inset: 26px; background: var(--surface); border-radius: 50%; }
+.donut-center { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1; text-align: center; font-weight: 700; font-size: 1.3rem; line-height: 1.1; }
+.donut-center small { display: block; font-size: .72rem; color: var(--muted); font-weight: 400; }
+.legend { list-style: none; padding: 0; margin: 0; font-size: .88rem; }
+.legend li { display: flex; align-items: center; gap: .5rem; padding: .18rem 0; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.chart-row { display: flex; gap: 1.4rem; align-items: center; flex-wrap: wrap; }
+.dept-bars .item { margin-bottom: .75rem; }
+
+/* ---------- Table ---------- */
+.table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+table.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; background: var(--surface); }
+.tbl th { text-align: left; font-weight: 600; color: var(--muted); background: var(--surface-2); padding: .65rem .75rem; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: .82rem; }
+.tbl td { padding: .65rem .75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl tbody tr:hover td { background: #fafbfe; }
+.tbl .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tbl tfoot td { font-weight: 700; background: var(--surface-2); }
+.cell-title { font-weight: 600; }
+.cell-sub { font-size: .8rem; color: var(--muted); }
+
+/* ---------- Forms ---------- */
+.field { display: flex; flex-direction: column; gap: .3rem; }
+.field label { font-weight: 600; font-size: .88rem; }
+.field label .req { color: var(--bad); }
+.input, select.input, textarea.input { width: 100%; padding: .58rem .75rem; border: 1px solid #d0d7e2; border-radius: 9px; background: #fff; outline: none; transition: border-color .15s, box-shadow .15s; }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+textarea.input { min-height: 90px; resize: vertical; }
+.help { font-size: .78rem; color: var(--muted); }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem 1rem; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-error { background: var(--bad-soft); color: var(--bad); padding: .65rem .8rem; border-radius: 9px; margin-top: 1rem; font-size: .9rem; }
+.stack { display: flex; flex-direction: column; gap: .9rem; }
+.switch { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; }
+
+/* ---------- Modal / confirm ---------- */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .5); z-index: 150; display: flex; align-items: flex-start; justify-content: center; padding: 4vh 1rem; overflow-y: auto; }
+.modal { background: var(--surface); border-radius: 16px; width: min(720px, 100%); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; max-height: 92vh; animation: pop .18s ease-out; }
+.modal.lg { width: min(1040px, 100%); }
+.modal.sm { width: min(440px, 100%); }
+@keyframes pop { from { transform: translateY(10px) scale(.98); opacity: 0; } }
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); gap: 1rem; }
+.modal-head h3 { font-size: 1.08rem; }
+.modal-close { border: 0; background: var(--surface-2); width: 34px; height: 34px; border-radius: 9px; cursor: pointer; font-size: 1.1rem; flex: none; }
+.modal-body { padding: 1.2rem 1.25rem; overflow-y: auto; }
+.modal-foot { padding: .9rem 1.25rem; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+.confirm-text { font-size: 1rem; margin: 0; }
+
+/* ---------- Toast ---------- */
+.toasts { position: fixed; right: 1rem; bottom: 1rem; z-index: 220; display: flex; flex-direction: column; gap: .5rem; max-width: min(380px, calc(100vw - 2rem)); }
+.toast { background: #1f2937; color: #fff; padding: .75rem 1rem; border-radius: 10px; box-shadow: var(--shadow-lg); font-size: .92rem; display: flex; gap: .6rem; align-items: flex-start; animation: pop .2s ease-out; }
+.toast.success { background: #0f766e; }
+.toast.error { background: #b42318; }
+.toast.warn { background: #9a6700; }
+.toast button { margin-left: auto; background: none; border: 0; color: inherit; cursor: pointer; opacity: .7; font-size: 1rem; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1180px) {
+  .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1024px) and (min-width: 769px) {
+  :root { --side-w: 76px; }
+  .side-brand { justify-content: center; padding: 1rem .5rem; }
+  .side-brand > div:not(.brand-mark), .nav .label, .nav-group, .side-user { display: none; }
+  .nav button { justify-content: center; padding: .7rem 0; }
+  .nav .ico { font-size: 1.2rem; }
+}
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); width: 270px; box-shadow: var(--shadow-lg); }
+  .app.menu-open .sidebar { transform: none; }
+  .main { margin-left: 0; }
+  .menu-btn { display: inline-grid; place-items: center; }
+  .header { padding: .7rem .9rem; }
+  .chip-user { display: none; }
+  .content { padding: .9rem; }
+  .grid-2, .grid-3, .form-grid { grid-template-columns: 1fr; }
+  .kv { grid-template-columns: 1fr; }
+  .kv dt { margin-top: .4rem; }
+  .stat .value { font-size: 1.3rem; }
+  .table-wrap.cards { border: 0; overflow: visible; }
+  .cards table.tbl, .cards .tbl tbody, .cards .tbl tr, .cards .tbl td { display: block; width: 100%; }
+  .cards .tbl thead { display: none; }
+  .cards .tbl tr { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; margin-bottom: .7rem; padding: .3rem .2rem; }
+  .cards .tbl td { border: 0; display: flex; justify-content: space-between; gap: 1rem; padding: .35rem .7rem; text-align: right; }
+  .cards .tbl td::before { content: attr(data-label); color: var(--muted); font-size: .8rem; text-align: left; flex: none; max-width: 45%; }
+  .cards .tbl td.num { white-space: normal; }
+  .cards .tbl tfoot { display: block; }
+  .cards .tbl tfoot tr { background: var(--surface-2); }
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal, .modal.lg, .modal.sm { width: 100%; max-height: 94vh; border-radius: 16px 16px 0 0; }
+  .toasts { left: 1rem; right: 1rem; max-width: none; }
+}
+@media print {
+  .sidebar, .header, .toolbar, .btn, .toasts { display: none !important; }
+  .main { margin: 0; }
+}
+</style>
+</head>
+<body>
+<div id="topbar" class="topbar" aria-hidden="true"></div>
+
+<!-- ===================== Login View ===================== -->
+<section id="login-view" class="login-wrap">
+  <div class="login-card">
+    <div class="brand-mark">2D</div>
+    <h1>2D animation</h1>
+    <p class="muted">ระบบบริหารโครงการ กิจกรรม งบประมาณ และเอกสาร</p>
+    <form id="login-form" class="stack" novalidate>
+      <div class="field">
+        <label for="login-username">ชื่อผู้ใช้ <span class="req">*</span></label>
+        <input id="login-username" class="input" name="username" autocomplete="username" required maxlength="50">
+      </div>
+      <div class="field">
+        <label for="login-password">รหัสผ่าน <span class="req">*</span></label>
+        <input id="login-password" class="input" name="password" type="password" autocomplete="current-password" required maxlength="100">
+      </div>
+      <div id="login-error" class="form-error" hidden></div>
+      <button id="login-submit" class="btn primary block" type="submit">เข้าสู่ระบบ</button>
+    </form>
+  </div>
+</section>
+
+<!-- ===================== App Shell ===================== -->
+<div id="app" class="app" hidden>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar" aria-label="เมนูหลัก">
+    <div class="side-brand">
+      <div class="brand-mark">2D</div>
+      <div><strong>2D animation</strong><small id="side-org"></small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-user"><strong id="side-user-name"></strong><span id="side-user-role" class="muted"></span></div>
+  </aside>
+  <div class="backdrop" id="backdrop" data-act="menu-close" hidden></div>
+
+  <div class="main">
+    <!-- Header -->
+    <header class="header">
+      <button class="menu-btn" type="button" data-act="menu-toggle" aria-label="เปิดเมนู">☰</button>
+      <h1><span id="view-title">แดชบอร์ด</span><span class="org" id="header-org"></span></h1>
+      <div class="header-actions">
+        <div class="chip-user"><strong id="hdr-user-name"></strong><span class="muted" id="hdr-user-role"></span></div>
+        <button class="btn ghost sm" type="button" data-act="refresh" title="โหลดข้อมูลใหม่">⟳</button>
+        <button class="btn ghost sm" type="button" data-act="logout">ออกจากระบบ</button>
+      </div>
+    </header>
+    <!-- Main Content -->
+    <main class="content" id="view" aria-live="polite"></main>
+  </div>
+</div>
+
+<!-- ===================== Modal ===================== -->
+<div id="modal-root" class="modal-backdrop" hidden>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head"><h3 id="modal-title"></h3><button class="modal-close" type="button" data-act="modal-close" aria-label="ปิด">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<!-- ===================== Confirmation Dialog ===================== -->
+<div id="confirm-root" class="modal-backdrop" hidden>
+  <div class="modal sm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal-head"><h3 id="confirm-title">ยืนยันการทำรายการ</h3></div>
+    <div class="modal-body"><p class="confirm-text" id="confirm-text"></p></div>
+    <div class="modal-foot">
+      <button class="btn ghost" type="button" id="confirm-cancel">ยกเลิก</button>
+      <button class="btn danger" type="button" id="confirm-ok">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== Toast ===================== -->
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<!-- ===================== Loading ===================== -->
+<div class="overlay" id="loading" hidden><div class="overlay-box"><div class="spinner"></div><div id="loading-text">กำลังโหลด</div></div></div>
+
+<script>
+'use strict';
+/* =========================================================================
+ * STATE (เก็บในหน่วยความจำของหน้าเว็บเท่านั้น ไม่บันทึกลงเบราว์เซอร์)
+ * ========================================================================= */
+var S = {
+  token: '', user: null, settings: {}, meta: {}, departments: [], lookups: { projects: [], activities: [] },
+  appUrl: '', view: 'dashboard', params: {}, data: {}, filters: {}, reg: {}, pending: 0, seq: 0, bootDashboard: null, detailTab: 'activities'
+};
+
+var MENU = [
+  { group: 'ภาพรวม' },
+  { id: 'dashboard', label: 'แดชบอร์ด', icon: '▦' },
+  { group: 'งานโครงการ' },
+  { id: 'projects', label: 'โครงการ', icon: '◫' },
+  { id: 'activities', label: 'กิจกรรม', icon: '☷' },
+  { id: 'expenses', label: 'เบิกจ่าย', icon: '฿' },
+  { id: 'progress', label: 'ความก้าวหน้า', icon: '↗' },
+  { id: 'reports', label: 'รายงาน', icon: '▤' },
+  { id: 'files', label: 'ไฟล์เอกสาร', icon: '⎘' },
+  { group: 'ระบบ' },
+  { id: 'users', label: 'ผู้ใช้งาน', icon: '☺', roles: ['admin'] },
+  { id: 'departments', label: 'หน่วยงาน', icon: '⌂', roles: ['admin'] },
+  { id: 'settings', label: 'ตั้งค่า', icon: '⚙' },
+  { id: 'logs', label: 'บันทึกการใช้งาน', icon: '≡', roles: ['admin'] }
+];
+
+var TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+var STATUS_CLASS = {
+  planning: 'info', active: 'primary', on_hold: 'warn', completed: 'ok', cancelled: 'bad',
+  not_started: '', in_progress: 'primary', pending: 'warn', approved: 'ok', rejected: 'bad', inactive: 'bad'
+};
+var CHART_COLORS = ['#3b82f6', '#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#14b8a6'];
+
+/* =========================================================================
+ * SERVER CALLS — google.script.run พร้อม Success/Failure Handler + Loading
+ * ========================================================================= */
+function serverCall(fn, args) {
+  return new Promise(function (resolve, reject) {
+    setBusy(1);
+    var runner = google.script.run
+      .withSuccessHandler(function (res) {
+        setBusy(-1);
+        if (res && res.success) { resolve(res); return; }
+        var message = (res && res.message) || 'เกิดข้อผิดพลาด';
+        if (res && res.code === 'SESSION_EXPIRED') sessionExpired(message);
+        reject(new Error(message));
+      })
+      .withFailureHandler(function () {
+        setBusy(-1);
+        reject(new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'));
+      });
+    runner[fn].apply(runner, args || []);
+  });
+}
+
+function api(fn) {
+  var args = [S.token];
+  for (var i = 1; i < arguments.length; i++) args.push(arguments[i]);
+  return serverCall(fn, args);
+}
+
+function setBusy(delta) {
+  S.pending = Math.max(0, S.pending + delta);
+  el('topbar').classList.toggle('active', S.pending > 0);
+}
+
+function withButton(btn, promise) {
+  if (!btn) return promise;
+  var html = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>' + html;
+  var restore = function () { btn.disabled = false; btn.innerHTML = html; };
+  return promise.then(function (r) { restore(); return r; }, function (e) { restore(); throw e; });
+}
+
+function showLoading(text) { el('loading-text').textContent = text || 'กำลังโหลด'; el('loading').hidden = false; }
+function hideLoading() { el('loading').hidden = true; }
+
+function sessionExpired(message) {
+  if (!S.token) return;
+  resetSession();
+  toast(message, 'warn');
+}
+
+/* =========================================================================
+ * UTILITIES
+ * ========================================================================= */
+function el(id) { return document.getElementById(id); }
+function esc(v) {
+  return String(v === undefined || v === null ? '' : v).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+var MONEY_FMT = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+var NUM_FMT = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
+function money(n) { return MONEY_FMT.format(Number(n) || 0); }
+function num(n) { return NUM_FMT.format(Number(n) || 0); }
+function cur() { return S.settings.currency || 'บาท'; }
+function dateTH(s) {
+  if (!s) return '-';
+  var p = String(s).slice(0, 10).split('-');
+  if (p.length !== 3) return esc(s);
+  return Number(p[2]) + ' ' + TH_MONTHS[Number(p[1]) - 1] + ' ' + (Number(p[0]) + 543);
+}
+function dateTimeTH(s) {
+  if (!s) return '-';
+  return dateTH(s) + ' ' + String(s).slice(11, 16);
+}
+function todayISO() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function badge(status, label) { return '<span class="badge ' + (STATUS_CLASS[status] || '') + '">' + esc(label || status) + '</span>'; }
+function pctBar(pct, label) {
+  var v = Math.max(0, Math.min(100, Number(pct) || 0));
+  var cls = v >= 100 ? 'bad' : v >= 85 ? 'warn' : '';
+  return (label ? '<div class="bar-label"><span>' + label + '</span><span>' + num(pct) + '%</span></div>' : '') + '<div class="bar ' + cls + '"><span style="width:' + v + '%"></span></div>';
+}
+function progressBar(pct) {
+  var v = Math.max(0, Math.min(100, Number(pct) || 0));
+  return '<div class="bar-label"><span></span><span>' + num(v) + '%</span></div><div class="bar ok"><span style="width:' + v + '%"></span></div>';
+}
+function fileSize(b) {
+  var n = Number(b) || 0;
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(1) + ' MB';
+}
+function isAdmin() { return S.user && S.user.role === 'admin'; }
+function isManager() { return S.user && (S.user.role === 'admin' || S.user.role === 'manager'); }
+function projectLookup(id) { return S.lookups.projects.filter(function (p) { return p.id === id; })[0] || null; }
+function activityLookup(id) { return S.lookups.activities.filter(function (a) { return a.id === id; })[0] || null; }
+function canManageProject(id) { var p = projectLookup(id); return !!p && !!p.canManage; }
+function deptName(id) { var d = S.departments.filter(function (x) { return x.id === id; })[0]; return d ? d.name : ''; }
+function mapOptions(map) { return Object.keys(map || {}).map(function (k) { return { value: k, label: map[k] }; }); }
+function register(kind, items) { S.reg[kind] = {}; (items || []).forEach(function (it) { S.reg[kind][it.id] = it; }); }
+function item(kind, id) { return (S.reg[kind] || {})[id] || null; }
+function applyLookups(data) { if (data && data.lookups) S.lookups = data.lookups; }
+function matchText(obj, keys, q) {
+  if (!q) return true;
+  var hay = keys.map(function (k) { return obj[k] || ''; }).join(' ').toLowerCase();
+  return hay.indexOf(q.toLowerCase()) >= 0;
+}
+function filter(view) { S.filters[view] = S.filters[view] || {}; return S.filters[view]; }
+
+/* =========================================================================
+ * TOAST / CONFIRMATION DIALOG / MODAL
+ * ========================================================================= */
+function toast(message, type) {
+  var t = document.createElement('div');
+  t.className = 'toast ' + (type || '');
+  t.innerHTML = '<span>' + esc(message) + '</span><button type="button" aria-label="ปิด">✕</button>';
+  t.querySelector('button').addEventListener('click', function () { t.remove(); });
+  var box = el('toasts');
+  box.appendChild(t);
+  while (box.children.length > 3) box.removeChild(box.firstChild);
+  setTimeout(function () { t.remove(); }, type === 'error' ? 7000 : 4000);
+}
+
+function confirmBox(message, opts) {
+  opts = opts || {};
+  return new Promise(function (resolve) {
+    el('confirm-title').textContent = opts.title || 'ยืนยันการทำรายการ';
+    el('confirm-text').textContent = message;
+    var ok = el('confirm-ok');
+    ok.textContent = opts.okText || 'ยืนยัน';
+    ok.className = 'btn ' + (opts.danger === false ? 'primary' : 'danger');
+    el('confirm-root').hidden = false;
+    var done = function (v) {
+      el('confirm-root').hidden = true;
+      ok.onclick = null;
+      el('confirm-cancel').onclick = null;
+      resolve(v);
+    };
+    ok.onclick = function () { done(true); };
+    el('confirm-cancel').onclick = function () { done(false); };
+    ok.focus();
+  });
+}
+
+function openModal(opts) {
+  el('modal-title').textContent = opts.title || '';
+  el('modal-body').innerHTML = opts.body || '';
+  el('modal-foot').innerHTML = opts.footer === undefined ? '<button class="btn ghost" type="button" data-act="modal-close">ปิด</button>' : opts.footer;
+  el('modal-foot').hidden = opts.footer === '';
+  el('modal').className = 'modal ' + (opts.size || '');
+  el('modal-root').hidden = false;
+}
+function closeModal() { el('modal-root').hidden = true; el('modal-body').innerHTML = ''; }
+
+/* ---------- Generic form ---------- */
+function fieldHtml(f, values) {
+  var v = values[f.name] !== undefined && values[f.name] !== null ? values[f.name] : (f.value !== undefined ? f.value : '');
+  var id = 'f-' + f.name;
+  var attrs = ' id="' + id + '" name="' + f.name + '"' + (f.required ? ' required' : '') + (f.maxlength ? ' maxlength="' + f.maxlength + '"' : '') + (f.disabled ? ' disabled' : '');
+  var input;
+  if (f.type === 'select') {
+    input = '<select class="input"' + attrs + '>' + (f.placeholder !== undefined ? '<option value="">' + esc(f.placeholder) + '</option>' : '') +
+      (f.options || []).map(function (o) { return '<option value="' + esc(o.value) + '"' + (String(o.value) === String(v) ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select>';
+  } else if (f.type === 'textarea') {
+    input = '<textarea class="input"' + attrs + ' rows="' + (f.rows || 3) + '">' + esc(v) + '</textarea>';
+  } else if (f.type === 'file') {
+    input = '<input class="input" type="file"' + attrs + (f.accept ? ' accept="' + esc(f.accept) + '"' : '') + '>';
+  } else {
+    var type = f.type === 'money' || f.type === 'number' ? 'number' : (f.type || 'text');
+    var extra = (f.type === 'money' ? ' step="0.01" inputmode="decimal"' : '') + (f.min !== undefined ? ' min="' + f.min + '"' : '') + (f.max !== undefined ? ' max="' + f.max + '"' : '') + (f.step ? ' step="' + f.step + '"' : '') + (f.autocomplete ? ' autocomplete="' + f.autocomplete + '"' : '');
+    input = '<input class="input" type="' + type + '"' + attrs + extra + ' value="' + esc(v) + '"' + (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>';
+  }
+  return '<div class="field' + (f.full ? ' full' : '') + '" data-field="' + f.name + '"' + (f.hidden ? ' hidden' : '') + '><label for="' + id + '">' + esc(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</label>' + input +
+    '<span class="help" id="help-' + f.name + '">' + esc(f.help || '') + '</span></div>';
+}
+
+function collectForm(form, fields) {
+  var data = {};
+  fields.forEach(function (f) {
+    var input = form.elements[f.name];
+    if (!input) return;
+    if (f.type === 'file') data[f.name] = input.files && input.files[0] ? input.files[0] : null;
+    else data[f.name] = String(input.value === undefined ? '' : input.value).trim();
+  });
+  return data;
+}
+
+function validateFields(fields, data, form) {
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    var wrap = form.querySelector('[data-field="' + f.name + '"]');
+    if (wrap && wrap.hidden) continue;
+    var v = data[f.name];
+    var required = typeof f.required === 'function' ? f.required(data) : f.required;
+    if (required && (v === null || v === undefined || v === '')) return 'กรุณากรอก "' + f.label + '"';
+    if (v && (f.type === 'money' || f.type === 'number')) {
+      if (!/^-?\d+(\.\d+)?$/.test(v)) return '"' + f.label + '" ต้องเป็นตัวเลข';
+      var n = Number(v);
+      if (f.min !== undefined && n < f.min) return '"' + f.label + '" ต้องไม่น้อยกว่า ' + f.min;
+      if (f.max !== undefined && n > f.max) return '"' + f.label + '" ต้องไม่เกิน ' + f.max;
+      if (f.positive && n <= 0) return '"' + f.label + '" ต้องมากกว่า 0';
+    }
+    if (v && f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+    if (v && f.type === 'file') {
+      var max = (Number(S.settings.maxUploadMB) || 10) * 1048576;
+      if (v.size > max) return 'ไฟล์มีขนาดเกิน ' + S.settings.maxUploadMB + ' MB';
+    }
+  }
+  if (data.startDate && data.endDate && data.endDate < data.startDate) return 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม';
+  return '';
+}
+
+function openForm(cfg) {
+  var values = cfg.values || {};
+  openModal({
+    title: cfg.title,
+    size: cfg.size || '',
+    body: '<form id="modal-form" novalidate><div class="form-grid">' + cfg.fields.map(function (f) { return fieldHtml(f, values); }).join('') + '</div><div class="form-error" id="form-error" hidden></div></form>',
+    footer: '<button class="btn ghost" type="button" data-act="modal-close">ยกเลิก</button><button class="btn primary" type="submit" form="modal-form" id="modal-submit">' + esc(cfg.submitText || 'บันทึก') + '</button>'
+  });
+  var form = el('modal-form');
+  var errBox = el('form-error');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errBox.hidden = true;
+    var data = collectForm(form, cfg.fields);
+    var err = validateFields(cfg.fields, data, form) || (cfg.validate ? cfg.validate(data) : '');
+    if (err) { errBox.textContent = err; errBox.hidden = false; return; }
+    withButton(el('modal-submit'), Promise.resolve().then(function () { return cfg.onSubmit(data); }))
+      .then(function (res) {
+        closeModal();
+        toast((res && res.message) || 'บันทึกแล้ว', 'success');
+        if (cfg.after) cfg.after(res);
+      })
+      .catch(function (error) { errBox.textContent = error.message; errBox.hidden = false; });
+  });
+  if (cfg.onReady) cfg.onReady(form);
+  var first = form.querySelector('input:not([type=hidden]):not([disabled]), select, textarea');
+  if (first) first.focus();
+}
+
+function readUpload(file) {
+  return new Promise(function (resolve, reject) {
+    if (!file) { resolve(null); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var s = String(reader.result || '');
+      resolve({ name: file.name, mimeType: file.type || 'application/octet-stream', data: s.slice(s.indexOf(',') + 1) });
+    };
+    reader.onerror = function () { reject(new Error('อ่านไฟล์ไม่สำเร็จ')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* =========================================================================
+ * RENDER HELPERS
+ * ========================================================================= */
+function table(columns, rows, opts) {
+  opts = opts || {};
+  if (!rows.length) return emptyState(opts.empty || 'ยังไม่มีข้อมูล', opts.emptyIcon);
+  var head = '<tr>' + columns.map(function (c) { return '<th class="' + (c.num ? 'num' : '') + '">' + esc(c.label) + '</th>'; }).join('') + '</tr>';
+  var body = rows.map(function (r) {
+    return '<tr>' + columns.map(function (c) { return '<td data-label="' + esc(c.label) + '" class="' + (c.num ? 'num' : '') + '">' + c.render(r) + '</td>'; }).join('') + '</tr>';
+  }).join('');
+  var foot = opts.footer ? '<tfoot><tr>' + columns.map(function (c, i) { var v = opts.footer[i]; return '<td data-label="' + esc(c.label) + '" class="' + (c.num ? 'num' : '') + '">' + (v === undefined ? '' : v) + '</td>'; }).join('') + '</tr></tfoot>' : '';
+  return '<div class="table-wrap cards"><table class="tbl"><thead>' + head + '</thead><tbody>' + body + '</tbody>' + foot + '</table></div>';
+}
+function emptyState(msg, icon) { return '<div class="empty"><span class="ico">' + (icon || '◌') + '</span>' + esc(msg) + '</div>'; }
+function errorState(msg) { return '<div class="card error-box"><p>' + esc(msg) + '</p><button class="btn primary" type="button" data-act="refresh">ลองใหม่</button></div>'; }
+function skeleton() {
+  var cards = '<div class="sk-grid">' + [1, 2, 3, 4].map(function () { return '<div class="sk sk-card"></div>'; }).join('') + '</div>';
+  var lines = '<div class="card">' + [80, 95, 70, 90, 60, 85, 75].map(function (w) { return '<div class="sk sk-line" style="width:' + w + '%"></div>'; }).join('') + '</div>';
+  return cards + lines;
+}
+function selectFilter(name, value, options, placeholder) {
+  return '<select class="input" data-filter="' + name + '" style="width:auto;min-width:160px">' + '<option value="">' + esc(placeholder) + '</option>' +
+    options.map(function (o) { return '<option value="' + esc(o.value) + '"' + (String(o.value) === String(value || '') ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select>';
+}
+function searchFilter(value, placeholder) {
+  return '<input class="input grow" type="search" data-filter="q" value="' + esc(value || '') + '" placeholder="' + esc(placeholder || 'ค้นหา') + '">';
+}
+function projectOptions(onlyManageable) {
+  return S.lookups.projects.filter(function (p) { return !onlyManageable || p.canManage; })
+    .map(function (p) { return { value: p.id, label: (p.code ? p.code + ' · ' : '') + p.name }; });
+}
+function activityOptions(projectId) {
+  return S.lookups.activities.filter(function (a) { return a.projectId === projectId; }).map(function (a) { return { value: a.id, label: a.name }; });
+}
+function departmentOptions() { return S.departments.map(function (d) { return { value: d.id, label: d.name }; }); }
+function fillSelect(select, options, placeholder, value) {
+  select.innerHTML = '<option value="">' + esc(placeholder) + '</option>' + options.map(function (o) {
+    return '<option value="' + esc(o.value) + '"' + (String(o.value) === String(value || '') ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+  }).join('');
+}
+function actionButtons(btns) {
+  return '<div class="btn-row">' + btns.filter(Boolean).map(function (b) {
+    return '<button type="button" class="btn sm ' + (b.cls || 'ghost') + '" data-act="' + b.act + '" data-id="' + esc(b.id) + '"' + (b.extra || '') + '>' + esc(b.label) + '</button>';
+  }).join('') + '</div>';
+}
+
+/* =========================================================================
+ * NAVIGATION (SPA — เปลี่ยนเฉพาะเนื้อหา ไม่ Reload หน้า)
+ * ========================================================================= */
+function allowed(item) { return !item.roles || item.roles.indexOf(S.user.role) >= 0; }
+
+function renderNav() {
+  el('nav').innerHTML = MENU.filter(function (m) { return m.group || allowed(m); }).map(function (m) {
+    if (m.group) return '<div class="nav-group">' + esc(m.group) + '</div>';
+    return '<button type="button" data-act="nav" data-view="' + m.id + '" title="' + esc(m.label) + '"><span class="ico">' + m.icon + '</span><span class="label">' + esc(m.label) + '</span></button>';
+  }).join('');
+}
+
+function navigate(id, params) {
+  var menuId = id === 'project' ? 'projects' : id;
+  var m = MENU.filter(function (x) { return x.id === menuId; })[0];
+  if (!VIEWS[id] || !m || !allowed(m)) { id = 'dashboard'; menuId = 'dashboard'; }
+  S.view = id;
+  S.params = params || {};
+  Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (b) { b.classList.toggle('active', b.getAttribute('data-view') === menuId); });
+  el('view-title').textContent = VIEWS[id].title;
+  closeMenu();
+  window.scrollTo(0, 0);
+  loadView(false);
+}
+
+function loadView(silent) {
+  var id = S.view;
+  var v = VIEWS[id];
+  var seq = ++S.seq;
+  if (!silent) el('view').innerHTML = skeleton();
+  return v.load(S.params).then(function (data) {
+    if (seq !== S.seq) return;
+    S.data[id] = data;
+    applyLookups(data);
+    v.render(data);
+  }).catch(function (err) {
+    if (seq !== S.seq || !S.token) return;
+    if (silent) toast(err.message, 'error');
+    else el('view').innerHTML = errorState(err.message);
+  });
+}
+
+function refreshView() { return loadView(true); }
+function closeMenu() { el('app').classList.remove('menu-open'); el('backdrop').hidden = true; }
+
+/* =========================================================================
+ * VIEWS
+ * ========================================================================= */
+var VIEWS = {};
+
+/* ---------- Dashboard ---------- */
+VIEWS.dashboard = {
+  title: 'แดชบอร์ด',
+  load: function () {
+    if (S.bootDashboard) { var d = S.bootDashboard; S.bootDashboard = null; return Promise.resolve(d); }
+    return api('getDashboard').then(function (r) { return r.data; });
+  },
+  render: function (d) {
+    var t = d.totals;
+    var stats = '<div class="stats">' +
+      '<div class="stat accent"><div class="label">งบประมาณรวม (' + esc(cur()) + ')</div><div class="value">' + money(t.budget) + '</div><div class="sub">' + t.projects + ' โครงการ · ดำเนินการ ' + t.activeProjects + '</div></div>' +
+      '<div class="stat"><div class="label">เบิกจ่ายอนุมัติแล้ว</div><div class="value">' + money(t.spent) + '</div><div class="sub">รออนุมัติ ' + money(t.pending) + '</div></div>' +
+      '<div class="stat"><div class="label">งบคงเหลือ</div><div class="value">' + money(t.remaining) + '</div><div class="sub">ใช้ไปแล้ว ' + num(t.usedPct) + '%</div></div>' +
+      '<div class="stat"><div class="label">รายการรออนุมัติ</div><div class="value">' + t.pendingCount + '</div><div class="sub">กิจกรรมทั้งหมด ' + t.activities + ' · ความก้าวหน้าเฉลี่ย ' + num(t.avgProgress) + '%</div></div>' +
+      '</div>';
+    var totalCount = d.byStatus.reduce(function (s, x) { return s + x.count; }, 0);
+    var acc = 0;
+    var stops = d.byStatus.map(function (x, i) {
+      var start = totalCount ? acc / totalCount * 100 : 0;
+      acc += x.count;
+      var end = totalCount ? acc / totalCount * 100 : 0;
+      return CHART_COLORS[i % CHART_COLORS.length] + ' ' + start + '% ' + end + '%';
+    }).join(', ');
+    var donut = '<div class="chart-row"><div class="donut" style="background:' + (totalCount ? 'conic-gradient(' + stops + ')' : '#eaeef5') + '"><div class="donut-center"><div>' + totalCount + '<small>โครงการ</small></div></div></div>' +
+      '<ul class="legend">' + d.byStatus.map(function (x, i) { return '<li><i style="background:' + CHART_COLORS[i % CHART_COLORS.length] + '"></i>' + esc(x.label) + ' <strong>' + x.count + '</strong></li>'; }).join('') + '</ul></div>';
+    var depts = d.byDepartment.length ? '<div class="dept-bars">' + d.byDepartment.map(function (x) {
+      return '<div class="item">' + pctBar(x.usedPct, esc(x.name) + ' · ' + money(x.committed) + ' / ' + money(x.budget)) + '</div>';
+    }).join('') + '</div>' : emptyState('ยังไม่มีโครงการ');
+    var deadline = function (list, overdue) {
+      if (!list.length) return emptyState(overdue ? 'ไม่มีโครงการที่เลยกำหนด' : 'ไม่มีโครงการที่ใกล้สิ้นสุดใน 30 วัน', '✓');
+      return '<ul class="list">' + list.map(function (p) {
+        return '<li><div><a href="#" data-act="project-open" data-id="' + esc(p.id) + '"><strong>' + esc(p.name) + '</strong></a><div class="cell-sub">' + esc(p.departmentName) + ' · สิ้นสุด ' + dateTH(p.endDate) + '</div></div>' + badge(overdue ? 'cancelled' : 'pending', overdue ? 'เลยกำหนด' : 'ใกล้สิ้นสุด') + '</li>';
+      }).join('') + '</ul>';
+    };
+    var top = d.topProjects.length ? d.topProjects.map(function (p) {
+      return '<div class="item" style="margin-bottom:.75rem">' + pctBar(p.usedPct, '<a href="#" data-act="project-open" data-id="' + esc(p.id) + '">' + esc(p.name) + '</a>') + '</div>';
+    }).join('') : emptyState('ยังไม่มีโครงการ');
+    var recent = table([
+      { label: 'วันที่', render: function (e) { return '<span class="nowrap">' + dateTH(e.expenseDate) + '</span>'; } },
+      { label: 'รายการ', render: function (e) { return '<div class="cell-title">' + esc(e.description) + '</div><div class="cell-sub">' + esc(e.projectName) + '</div>'; } },
+      { label: 'สถานะ', render: function (e) { return badge(e.status, e.statusLabel); } },
+      { label: 'จำนวนเงิน', num: true, render: function (e) { return money(e.amount); } }
+    ], d.recentExpenses, { empty: 'ยังไม่มีรายการเบิกจ่าย' });
+    var progress = d.recentProgress.length ? '<ul class="list">' + d.recentProgress.map(function (r) {
+      return '<li><div><strong>' + esc(r.projectName) + '</strong>' + (r.activityName ? ' · ' + esc(r.activityName) : '') + '<div class="cell-sub">' + dateTH(r.reportDate) + ' · ' + esc(r.createdBy) + '</div></div><span class="badge ok">' + num(r.percent) + '%</span></li>';
+    }).join('') + '</ul>' : emptyState('ยังไม่มีรายงานความก้าวหน้า');
+    el('view').innerHTML = stats +
+      '<div class="card">' + pctBar(t.usedPct, 'ใช้งบประมาณรวม ' + money(t.committed) + ' จาก ' + money(t.budget) + ' ' + esc(cur())) + '</div>' +
+      '<div class="grid grid-3">' +
+      '<div class="card"><div class="card-head"><h2>สถานะโครงการ</h2></div>' + donut + '</div>' +
+      '<div class="card"><div class="card-head"><h2>การใช้งบตามหน่วยงาน</h2></div>' + depts + '</div>' +
+      '<div class="card"><div class="card-head"><h2>โครงการที่ใช้งบสูงสุด</h2></div>' + top + '</div>' +
+      '</div>' +
+      '<div class="grid grid-2">' +
+      '<div class="card"><div class="card-head"><h2>ใกล้สิ้นสุด (30 วัน)</h2></div>' + deadline(d.upcoming, false) + '</div>' +
+      '<div class="card"><div class="card-head"><h2>เลยกำหนดแต่ยังไม่ปิด</h2></div>' + deadline(d.overdue, true) + '</div>' +
+      '</div>' +
+      '<div class="grid grid-2">' +
+      '<div class="card"><div class="card-head"><h2>การเบิกจ่ายล่าสุด</h2><button class="btn sm ghost" type="button" data-act="nav" data-view="expenses">ดูทั้งหมด</button></div>' + recent + '</div>' +
+      '<div class="card"><div class="card-head"><h2>ความก้าวหน้าล่าสุด</h2><button class="btn sm ghost" type="button" data-act="nav" data-view="progress">ดูทั้งหมด</button></div>' + progress + '</div>' +
+      '</div><p class="muted small">ข้อมูล ณ ' + dateTimeTH(d.generatedAt) + '</p>';
+  }
+};
+
+/* ---------- Projects ---------- */
+VIEWS.projects = {
+  title: 'โครงการ',
+  load: function () { return api('listProjects').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('projects');
+    register('project', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหารหัส ชื่อโครงการ ผู้รับผิดชอบ') +
+      selectFilter('status', f.status, mapOptions(S.meta.projectStatus), 'ทุกสถานะ') +
+      (isAdmin() ? selectFilter('departmentId', f.departmentId, departmentOptions(), 'ทุกหน่วยงาน') : '') +
+      (isManager() ? '<button class="btn primary" type="button" data-act="project-new">+ เพิ่มโครงการ</button>' : '') +
+      '</div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('projects');
+    var rows = d.items.filter(function (p) {
+      return matchText(p, ['code', 'name', 'ownerName', 'departmentName'], f.q) && (!f.status || p.status === f.status) && (!f.departmentId || p.departmentId === f.departmentId);
+    });
+    var sum = function (k) { return rows.reduce(function (s, p) { return s + p[k]; }, 0); };
+    el('list').innerHTML = table([
+      { label: 'โครงการ', render: function (p) { return '<a href="#" class="cell-title" data-act="project-open" data-id="' + esc(p.id) + '">' + esc(p.name) + '</a><div class="cell-sub">' + esc(p.code || '-') + ' · ' + esc(p.departmentName) + '</div>'; } },
+      { label: 'ระยะเวลา', render: function (p) { return '<span class="nowrap">' + dateTH(p.startDate) + '</span><div class="cell-sub">ถึง ' + dateTH(p.endDate) + '</div>'; } },
+      { label: 'สถานะ', render: function (p) { return badge(p.status, p.statusLabel); } },
+      { label: 'งบประมาณ', num: true, render: function (p) { return money(p.budget); } },
+      { label: 'เบิกจ่าย', num: true, render: function (p) { return money(p.committed) + '<div style="margin-top:.3rem">' + pctBar(p.usedPct) + '</div>'; } },
+      { label: 'คงเหลือ', num: true, render: function (p) { return money(p.remaining); } },
+      { label: 'ความก้าวหน้า', render: function (p) { return progressBar(p.progress); } },
+      { label: '', render: function (p) {
+        var canEdit = canManageProject(p.id);
+        return actionButtons([{ act: 'project-open', id: p.id, label: 'ดู' }, canEdit && { act: 'project-edit', id: p.id, label: 'แก้ไข' }, canEdit && { act: 'project-delete', id: p.id, label: 'ลบ', cls: 'danger' }]);
+      } }
+    ], rows, { empty: 'ยังไม่มีโครงการ', footer: rows.length ? ['รวม ' + rows.length + ' โครงการ', '', '', money(sum('budget')), money(sum('committed')), money(sum('remaining')), '', ''] : null });
+  }
+};
+
+/* ---------- Project detail ---------- */
+VIEWS.project = {
+  title: 'รายละเอียดโครงการ',
+  load: function (params) { return api('getProjectDetail', params.id).then(function (r) { return r.data; }); },
+  render: function (d) {
+    var p = d.project;
+    register('project', [p]);
+    register('activity', d.activities);
+    register('expense', d.expenses);
+    register('progress', d.progress);
+    register('file', d.files);
+    el('view-title').textContent = p.name;
+    var tab = S.detailTab;
+    var tabs = [['activities', 'กิจกรรม (' + d.activities.length + ')'], ['expenses', 'เบิกจ่าย (' + d.expenses.length + ')'], ['progress', 'ความก้าวหน้า (' + d.progress.length + ')'], ['files', 'ไฟล์ (' + d.files.length + ')']];
+    el('view').innerHTML =
+      '<div class="toolbar"><button class="btn ghost" type="button" data-act="nav" data-view="projects">← กลับรายการโครงการ</button>' +
+      (d.canManage ? '<button class="btn" type="button" data-act="project-edit" data-id="' + esc(p.id) + '">แก้ไขโครงการ</button><button class="btn danger" type="button" data-act="project-delete" data-id="' + esc(p.id) + '">ลบโครงการ</button>' : '') + '</div>' +
+      '<div class="stats">' +
+      '<div class="stat accent"><div class="label">งบประมาณ (' + esc(cur()) + ')</div><div class="value">' + money(p.budget) + '</div><div class="sub">จัดสรรกิจกรรม ' + money(p.activityBudget) + '</div></div>' +
+      '<div class="stat"><div class="label">อนุมัติแล้ว</div><div class="value">' + money(p.spent) + '</div><div class="sub">รออนุมัติ ' + money(p.pending) + '</div></div>' +
+      '<div class="stat"><div class="label">คงเหลือ</div><div class="value">' + money(p.remaining) + '</div><div class="sub">ยังไม่จัดสรร ' + money(p.unallocated) + '</div></div>' +
+      '<div class="stat"><div class="label">ความก้าวหน้า</div><div class="value">' + num(p.progress) + '%</div><div class="sub">' + badge(p.status, p.statusLabel) + '</div></div>' +
+      '</div>' +
+      '<div class="card"><dl class="kv">' +
+      '<dt>รหัสโครงการ</dt><dd>' + esc(p.code || '-') + '</dd><dt>หน่วยงาน</dt><dd>' + esc(p.departmentName) + '</dd>' +
+      '<dt>ผู้รับผิดชอบ</dt><dd>' + esc(p.ownerName || '-') + '</dd><dt>ระยะเวลา</dt><dd>' + dateTH(p.startDate) + ' ถึง ' + dateTH(p.endDate) + '</dd>' +
+      '<dt>รายละเอียด</dt><dd style="white-space:pre-line">' + esc(p.description || '-') + '</dd>' +
+      '<dt>การใช้งบ</dt><dd>' + pctBar(p.usedPct) + '</dd></dl></div>' +
+      '<div class="card"><div class="tabs">' + tabs.map(function (t) { return '<button type="button" data-act="detail-tab" data-id="' + t[0] + '" class="' + (t[0] === tab ? 'active' : '') + '">' + esc(t[1]) + '</button>'; }).join('') + '</div><div id="detail-tab"></div></div>';
+    this.renderTab(d);
+  },
+  renderTab: function (d) {
+    var p = d.project;
+    var tab = S.detailTab;
+    var html = '';
+    if (tab === 'activities') {
+      html = (d.canManage ? '<div class="toolbar"><button class="btn primary sm" type="button" data-act="activity-new" data-id="' + esc(p.id) + '">+ เพิ่มกิจกรรม</button></div>' : '') + activityTable(d.activities, false);
+    } else if (tab === 'expenses') {
+      html = '<div class="toolbar"><button class="btn primary sm" type="button" data-act="expense-new" data-id="' + esc(p.id) + '">+ บันทึกเบิกจ่าย</button></div>' + expenseTable(d.expenses, false);
+    } else if (tab === 'progress') {
+      html = '<div class="toolbar"><button class="btn primary sm" type="button" data-act="progress-new" data-id="' + esc(p.id) + '">+ รายงานความก้าวหน้า</button></div>' + progressTable(d.progress, false);
+    } else {
+      html = '<div class="toolbar"><button class="btn primary sm" type="button" data-act="file-upload" data-id="' + esc(p.id) + '">+ อัปโหลดไฟล์</button></div>' + fileTable(d.files, false);
+    }
+    el('detail-tab').innerHTML = html;
+  }
+};
+
+/* ---------- Activities ---------- */
+function activityTable(rows, showProject) {
+  return table([
+    { label: 'กิจกรรม', render: function (a) { return '<div class="cell-title">' + esc(a.name) + '</div>' + (showProject ? '<div class="cell-sub"><a href="#" data-act="project-open" data-id="' + esc(a.projectId) + '">' + esc(a.projectName) + '</a></div>' : '') + (a.responsible ? '<div class="cell-sub">ผู้รับผิดชอบ: ' + esc(a.responsible) + '</div>' : ''); } },
+    { label: 'ระยะเวลา', render: function (a) { return '<span class="nowrap">' + dateTH(a.startDate) + '</span><div class="cell-sub">ถึง ' + dateTH(a.endDate) + '</div>'; } },
+    { label: 'สถานะ', render: function (a) { return badge(a.status, a.statusLabel); } },
+    { label: 'งบประมาณ', num: true, render: function (a) { return money(a.budget); } },
+    { label: 'เบิกจ่าย', num: true, render: function (a) { return money(a.committed) + '<div style="margin-top:.3rem">' + pctBar(a.usedPct) + '</div>'; } },
+    { label: 'คงเหลือ', num: true, render: function (a) { return money(a.remaining); } },
+    { label: '', render: function (a) {
+      var can = canManageProject(a.projectId);
+      return can ? actionButtons([{ act: 'activity-edit', id: a.id, label: 'แก้ไข' }, { act: 'activity-delete', id: a.id, label: 'ลบ', cls: 'danger' }]) : '';
+    } }
+  ], rows, { empty: 'ยังไม่มีกิจกรรม' });
+}
+
+VIEWS.activities = {
+  title: 'กิจกรรม',
+  load: function () { return api('listActivities', '').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('activities');
+    register('activity', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหากิจกรรม ผู้รับผิดชอบ') +
+      selectFilter('projectId', f.projectId, projectOptions(false), 'ทุกโครงการ') +
+      selectFilter('status', f.status, mapOptions(S.meta.activityStatus), 'ทุกสถานะ') +
+      (isManager() ? '<button class="btn primary" type="button" data-act="activity-new" data-id="">+ เพิ่มกิจกรรม</button>' : '') +
+      '</div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('activities');
+    var rows = d.items.filter(function (a) { return matchText(a, ['name', 'responsible', 'projectName'], f.q) && (!f.projectId || a.projectId === f.projectId) && (!f.status || a.status === f.status); });
+    el('list').innerHTML = activityTable(rows, true);
+  }
+};
+
+/* ---------- Expenses ---------- */
+function expenseTable(rows, showProject) {
+  var total = rows.filter(function (e) { return e.status !== 'rejected'; }).reduce(function (s, e) { return s + e.amount; }, 0);
+  return table([
+    { label: 'วันที่', render: function (e) { return '<span class="nowrap">' + dateTH(e.expenseDate) + '</span>'; } },
+    { label: 'รายการ', render: function (e) {
+      return '<div class="cell-title">' + esc(e.description) + '</div>' + (showProject ? '<div class="cell-sub"><a href="#" data-act="project-open" data-id="' + esc(e.projectId) + '">' + esc(e.projectName) + '</a></div>' : '') +
+        (e.activityName ? '<div class="cell-sub">กิจกรรม: ' + esc(e.activityName) + '</div>' : '') + (e.payee ? '<div class="cell-sub">ผู้รับเงิน: ' + esc(e.payee) + (e.receiptNo ? ' · เลขที่ ' + esc(e.receiptNo) : '') + '</div>' : '');
+    } },
+    { label: 'หลักฐาน', render: function (e) { return e.fileId ? '<a href="' + esc(e.fileUrl) + '" target="_blank" rel="noopener">เปิด</a> · <a href="#" data-act="file-download" data-id="' + esc(e.fileId) + '">ดาวน์โหลด</a>' : '<span class="muted">-</span>'; } },
+    { label: 'สถานะ', render: function (e) { return badge(e.status, e.statusLabel) + (e.approvedBy ? '<div class="cell-sub">' + esc(e.approvedBy) + '</div>' : ''); } },
+    { label: 'จำนวนเงิน', num: true, render: function (e) { return money(e.amount); } },
+    { label: '', render: function (e) {
+      var manager = canManageProject(e.projectId);
+      var own = e.createdBy === S.user.username && e.status === 'pending';
+      return actionButtons([
+        manager && e.status !== 'approved' && { act: 'expense-status', id: e.id, label: 'อนุมัติ', cls: 'success', extra: ' data-status="approved"' },
+        manager && e.status !== 'rejected' && { act: 'expense-status', id: e.id, label: 'ไม่อนุมัติ', cls: 'ghost', extra: ' data-status="rejected"' },
+        manager && e.status !== 'pending' && { act: 'expense-status', id: e.id, label: 'รออนุมัติ', cls: 'ghost', extra: ' data-status="pending"' },
+        (manager || own) && { act: 'expense-edit', id: e.id, label: 'แก้ไข' },
+        (manager || own) && { act: 'expense-delete', id: e.id, label: 'ลบ', cls: 'danger' }
+      ]);
+    } }
+  ], rows, { empty: 'ยังไม่มีรายการเบิกจ่าย', footer: rows.length ? ['รวม (ไม่นับที่ไม่อนุมัติ)', '', '', '', money(total), ''] : null });
+}
+
+VIEWS.expenses = {
+  title: 'เบิกจ่าย',
+  load: function () { return api('listExpenses').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('expenses');
+    register('expense', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหารายการ ผู้รับเงิน เลขที่เอกสาร') +
+      selectFilter('projectId', f.projectId, projectOptions(false), 'ทุกโครงการ') +
+      selectFilter('status', f.status, mapOptions(S.meta.expenseStatus), 'ทุกสถานะ') +
+      '<input class="input" type="date" data-filter="from" value="' + esc(f.from || '') + '" style="width:auto" title="ตั้งแต่วันที่">' +
+      '<input class="input" type="date" data-filter="to" value="' + esc(f.to || '') + '" style="width:auto" title="ถึงวันที่">' +
+      '<button class="btn primary" type="button" data-act="expense-new" data-id="">+ บันทึกเบิกจ่าย</button>' +
+      '</div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('expenses');
+    var rows = d.items.filter(function (e) {
+      return matchText(e, ['description', 'payee', 'receiptNo', 'projectName', 'activityName'], f.q) && (!f.projectId || e.projectId === f.projectId) && (!f.status || e.status === f.status) &&
+        (!f.from || e.expenseDate >= f.from) && (!f.to || e.expenseDate <= f.to);
+    });
+    el('list').innerHTML = expenseTable(rows, true);
+  }
+};
+
+/* ---------- Progress ---------- */
+function progressTable(rows, showProject) {
+  return table([
+    { label: 'วันที่', render: function (r) { return '<span class="nowrap">' + dateTH(r.reportDate) + '</span><div class="cell-sub">' + esc(r.createdBy) + '</div>'; } },
+    { label: 'โครงการ / กิจกรรม', render: function (r) { return (showProject ? '<a href="#" data-act="project-open" data-id="' + esc(r.projectId) + '" class="cell-title">' + esc(r.projectName) + '</a>' : '') + '<div class="cell-sub">' + esc(r.activityName || 'ภาพรวมโครงการ') + '</div>'; } },
+    { label: 'ร้อยละ', render: function (r) { return progressBar(r.percent); } },
+    { label: 'รายละเอียด', render: function (r) { return '<div style="white-space:pre-line">' + esc(r.detail) + '</div>' + (r.problems ? '<div class="cell-sub">ปัญหา: ' + esc(r.problems) + '</div>' : '') + (r.nextSteps ? '<div class="cell-sub">ขั้นต่อไป: ' + esc(r.nextSteps) + '</div>' : ''); } },
+    { label: '', render: function (r) {
+      var can = canManageProject(r.projectId) || r.createdBy === S.user.username;
+      return can ? actionButtons([{ act: 'progress-edit', id: r.id, label: 'แก้ไข' }, { act: 'progress-delete', id: r.id, label: 'ลบ', cls: 'danger' }]) : '';
+    } }
+  ], rows, { empty: 'ยังไม่มีรายงานความก้าวหน้า' });
+}
+
+VIEWS.progress = {
+  title: 'ความก้าวหน้า',
+  load: function () { return api('listProgress').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('progress');
+    register('progress', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหารายละเอียด ปัญหา') +
+      selectFilter('projectId', f.projectId, projectOptions(false), 'ทุกโครงการ') +
+      '<button class="btn primary" type="button" data-act="progress-new" data-id="">+ รายงานความก้าวหน้า</button>' +
+      '</div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('progress');
+    var rows = d.items.filter(function (r) { return matchText(r, ['detail', 'problems', 'nextSteps', 'projectName', 'activityName'], f.q) && (!f.projectId || r.projectId === f.projectId); });
+    el('list').innerHTML = progressTable(rows, true);
+  }
+};
+
+/* ---------- Reports ---------- */
+VIEWS.reports = {
+  title: 'รายงาน',
+  load: function () { return api('listReports').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('reports');
+    register('report', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาชื่อรายงาน') +
+      selectFilter('reportType', f.reportType, mapOptions(S.meta.reportTypes), 'ทุกประเภท') +
+      (isManager() ? '<button class="btn primary" type="button" data-act="report-new">+ สร้างรายงาน</button>' : '') +
+      '</div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('reports');
+    var rows = d.items.filter(function (r) { return matchText(r, ['title', 'projectName', 'departmentName', 'note'], f.q) && (!f.reportType || r.reportType === f.reportType); });
+    el('list').innerHTML = table([
+      { label: 'รายงาน', render: function (r) { return '<a href="#" class="cell-title" data-act="report-view" data-id="' + esc(r.id) + '">' + esc(r.title) + '</a><div class="cell-sub">' + esc(r.reportTypeLabel) + '</div>'; } },
+      { label: 'ขอบเขต', render: function (r) { return esc(r.projectName || r.departmentName || 'ทุกหน่วยงาน') + '<div class="cell-sub">' + (r.startDate || r.endDate ? dateTH(r.startDate) + ' ถึง ' + dateTH(r.endDate) : 'ทุกช่วงเวลา') + '</div>'; } },
+      { label: 'ไฟล์ใน Drive', render: function (r) { return r.fileUrl ? '<a href="' + esc(r.fileUrl) + '" target="_blank" rel="noopener">เปิดไฟล์</a><div class="cell-sub">' + dateTimeTH(r.generatedAt) + '</div>' : '<span class="muted">ยังไม่สร้าง</span>'; } },
+      { label: 'ผู้สร้าง', render: function (r) { return esc(r.createdBy) + '<div class="cell-sub">' + dateTimeTH(r.createdAt) + '</div>'; } },
+      { label: '', render: function (r) {
+        return actionButtons([{ act: 'report-view', id: r.id, label: 'ดูรายงาน' }, isManager() && { act: 'report-generate', id: r.id, label: 'สร้างไฟล์', cls: 'success' }, isManager() && { act: 'report-edit', id: r.id, label: 'แก้ไข' }, isManager() && { act: 'report-delete', id: r.id, label: 'ลบ', cls: 'danger' }]);
+      } }
+    ], rows, { empty: 'ยังไม่มีรายงาน' });
+  }
+};
+
+/* ---------- Files ---------- */
+function fileTable(rows, showProject) {
+  return table([
+    { label: 'ไฟล์', render: function (f) { return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener" class="cell-title">' + esc(f.name) + '</a><div class="cell-sub">' + fileSize(f.size) + (f.refType === 'expense' ? ' · หลักฐานเบิกจ่าย' : '') + '</div>'; } },
+    showProject && { label: 'โครงการ', render: function (f) { return f.projectId ? '<a href="#" data-act="project-open" data-id="' + esc(f.projectId) + '">' + esc(f.projectName) + '</a>' : '<span class="muted">เอกสารทั่วไป</span>'; } },
+    { label: 'คำอธิบาย', render: function (f) { return esc(f.description || '-'); } },
+    { label: 'อัปโหลดโดย', render: function (f) { return esc(f.uploadedBy) + '<div class="cell-sub">' + dateTimeTH(f.createdAt) + '</div>'; } },
+    { label: '', render: function (f) {
+      var canDelete = isAdmin() || f.uploadedBy === S.user.username || (f.projectId ? canManageProject(f.projectId) : false);
+      return actionButtons([{ act: 'file-download', id: f.id, label: 'ดาวน์โหลด' }, canDelete && { act: 'file-delete', id: f.id, label: 'ลบ', cls: 'danger' }]);
+    } }
+  ].filter(Boolean), rows, { empty: 'ยังไม่มีไฟล์' });
+}
+
+VIEWS.files = {
+  title: 'ไฟล์เอกสาร',
+  load: function () { return api('listFiles').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('files');
+    register('file', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาชื่อไฟล์ คำอธิบาย') +
+      selectFilter('projectId', f.projectId, [{ value: '__general', label: 'เอกสารทั่วไป' }].concat(projectOptions(false)), 'ทุกโครงการ') +
+      '<button class="btn primary" type="button" data-act="file-upload" data-id="">+ อัปโหลดไฟล์</button>' +
+      '</div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('files');
+    var rows = d.items.filter(function (x) {
+      var proj = !f.projectId || (f.projectId === '__general' ? !x.projectId : x.projectId === f.projectId);
+      return proj && matchText(x, ['name', 'description', 'projectName', 'uploadedBy'], f.q);
+    });
+    el('list').innerHTML = fileTable(rows, true);
+  }
+};
+
+/* ---------- Users ---------- */
+VIEWS.users = {
+  title: 'ผู้ใช้งาน',
+  load: function () { return api('listUsers').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('users');
+    register('user', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาชื่อผู้ใช้ ชื่อ อีเมล') +
+      selectFilter('role', f.role, mapOptions(S.meta.roles), 'ทุกบทบาท') +
+      selectFilter('departmentId', f.departmentId, departmentOptions(), 'ทุกหน่วยงาน') +
+      '<button class="btn primary" type="button" data-act="user-new">+ เพิ่มผู้ใช้</button></div>' +
+      '<div class="card" id="list"></div><p class="muted small">บัญชีผู้ดูแลระบบหลัก "admin" กำหนดใน Code.gs และไม่แสดงในรายการนี้</p>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('users');
+    var rows = d.items.filter(function (u) { return matchText(u, ['username', 'fullName', 'email'], f.q) && (!f.role || u.role === f.role) && (!f.departmentId || u.departmentId === f.departmentId); });
+    el('list').innerHTML = table([
+      { label: 'ผู้ใช้', render: function (u) { return '<div class="cell-title">' + esc(u.fullName) + '</div><div class="cell-sub">' + esc(u.username) + (u.email ? ' · ' + esc(u.email) : '') + '</div>'; } },
+      { label: 'บทบาท', render: function (u) { return badge(u.role === 'admin' ? 'active' : u.role === 'manager' ? 'planning' : '', u.roleLabel); } },
+      { label: 'หน่วยงาน', render: function (u) { return esc(u.departmentName || '-'); } },
+      { label: 'สถานะ', render: function (u) { return badge(u.status === 'active' ? 'approved' : 'inactive', S.meta.userStatus[u.status]); } },
+      { label: 'เข้าใช้ล่าสุด', render: function (u) { return dateTimeTH(u.lastLoginAt); } },
+      { label: '', render: function (u) { return actionButtons([{ act: 'user-edit', id: u.id, label: 'แก้ไข' }, u.id !== S.user.id && { act: 'user-delete', id: u.id, label: 'ลบ', cls: 'danger' }]); } }
+    ], rows, { empty: 'ยังไม่มีผู้ใช้' });
+  }
+};
+
+/* ---------- Departments ---------- */
+VIEWS.departments = {
+  title: 'หน่วยงาน',
+  load: function () { return api('listDepartments').then(function (r) { return r.data; }); },
+  render: function (d) {
+    S.departments = d.items;
+    register('department', d.items);
+    el('view').innerHTML = '<div class="toolbar"><span class="grow muted">หน่วยงานทั้งหมด ' + d.items.length + ' หน่วยงาน</span><button class="btn primary" type="button" data-act="dept-new">+ เพิ่มหน่วยงาน</button></div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    el('list').innerHTML = table([
+      { label: 'หน่วยงาน', render: function (x) { return '<div class="cell-title">' + esc(x.name) + '</div><div class="cell-sub">' + esc(x.code || '-') + '</div>'; } },
+      { label: 'รายละเอียด', render: function (x) { return esc(x.description || '-'); } },
+      { label: 'ผู้ใช้', num: true, render: function (x) { return x.userCount; } },
+      { label: 'โครงการ', num: true, render: function (x) { return x.projectCount; } },
+      { label: '', render: function (x) { return actionButtons([{ act: 'dept-edit', id: x.id, label: 'แก้ไข' }, { act: 'dept-delete', id: x.id, label: 'ลบ', cls: 'danger' }]); } }
+    ], d.items, { empty: 'ยังไม่มีหน่วยงาน กรุณาเพิ่มหน่วยงานก่อนสร้างผู้ใช้และโครงการ' });
+  }
+};
+
+/* ---------- Settings ---------- */
+VIEWS.settings = {
+  title: 'ตั้งค่า',
+  load: function () {
+    var calls = [api('getSettings').then(function (r) { return r.data; })];
+    if (isAdmin()) calls.push(api('listBackups').then(function (r) { return r.data; }));
+    return Promise.all(calls).then(function (res) { return { settings: res[0].settings, dailyBackupActive: res[0].dailyBackupActive, backups: res[1] || null }; });
+  },
+  render: function (d) {
+    S.settings = d.settings;
+    applyOrg();
+    var s = d.settings;
+    var admin = isAdmin();
+    var dis = admin ? '' : ' disabled';
+    var org = '<div class="card"><div class="card-head"><h2>ข้อมูลระบบ</h2></div>' +
+      '<form id="settings-form" novalidate><div class="form-grid">' +
+      '<div class="field"><label for="s-orgName">ชื่อสถานศึกษา / หน่วยงานหลัก</label><input class="input" id="s-orgName" name="orgName" maxlength="200" value="' + esc(s.orgName) + '"' + dis + '></div>' +
+      '<div class="field"><label for="s-fiscalYear">ปีงบประมาณ</label><input class="input" id="s-fiscalYear" name="fiscalYear" maxlength="10" value="' + esc(s.fiscalYear) + '"' + dis + '></div>' +
+      '<div class="field"><label for="s-currency">หน่วยเงิน <span class="req">*</span></label><input class="input" id="s-currency" name="currency" maxlength="20" required value="' + esc(s.currency) + '"' + dis + '></div>' +
+      '<div class="field"><label for="s-maxUploadMB">ขนาดไฟล์สูงสุด (MB) <span class="req">*</span></label><input class="input" id="s-maxUploadMB" name="maxUploadMB" type="number" min="1" max="40" required value="' + esc(s.maxUploadMB) + '"' + dis + '></div>' +
+      '<div class="field"><label for="s-fileSharing">การแชร์ไฟล์ที่อัปโหลด</label><select class="input" id="s-fileSharing" name="fileSharing"' + dis + '>' + mapOptions(S.meta.fileSharing).map(function (o) { return '<option value="' + o.value + '"' + (o.value === s.fileSharing ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select><span class="help">มีผลกับไฟล์ที่อัปโหลดหลังจากนี้</span></div>' +
+      '<div class="field"><label for="s-backupRetention">จำนวนไฟล์สำรองที่เก็บไว้ <span class="req">*</span></label><input class="input" id="s-backupRetention" name="backupRetention" type="number" min="1" max="365" required value="' + esc(s.backupRetention) + '"' + dis + '></div>' +
+      '</div><div class="form-error" id="settings-error" hidden></div>' +
+      (admin ? '<div class="toolbar" style="margin-top:1rem;margin-bottom:0"><button class="btn primary" type="submit" id="settings-submit">บันทึกการตั้งค่า</button></div>' : '<p class="muted small">เฉพาะผู้ดูแลระบบที่แก้ไขการตั้งค่าได้</p>') +
+      '</form></div>';
+    var pw = S.user.builtin ? '<div class="card"><div class="card-head"><h2>รหัสผ่าน</h2></div><p class="muted">บัญชีผู้ดูแลระบบหลักเปลี่ยนรหัสผ่านได้ที่ส่วน CONFIGURATION ใน Code.gs แล้ว Deploy ใหม่</p></div>' :
+      '<div class="card"><div class="card-head"><h2>เปลี่ยนรหัสผ่านของฉัน</h2></div><form id="password-form" class="stack" novalidate>' +
+      '<div class="field"><label for="pw-current">รหัสผ่านปัจจุบัน <span class="req">*</span></label><input class="input" id="pw-current" name="currentPassword" type="password" autocomplete="current-password" required></div>' +
+      '<div class="field"><label for="pw-new">รหัสผ่านใหม่ <span class="req">*</span></label><input class="input" id="pw-new" name="newPassword" type="password" autocomplete="new-password" required><span class="help">อย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร</span></div>' +
+      '<div class="field"><label for="pw-confirm">ยืนยันรหัสผ่านใหม่ <span class="req">*</span></label><input class="input" id="pw-confirm" name="confirmPassword" type="password" autocomplete="new-password" required></div>' +
+      '<div class="form-error" id="password-error" hidden></div><div><button class="btn primary" type="submit" id="password-submit">เปลี่ยนรหัสผ่าน</button></div></form></div>';
+    var backup = admin ? '<div class="card" id="backup-card"></div>' : '';
+    el('view').innerHTML = '<div class="grid grid-2"><div>' + org + '</div><div>' + pw + backup + '</div></div>';
+    if (admin) this.renderBackups(d);
+    bindSettingsForms();
+  },
+  renderBackups: function (d) {
+    var b = d.backups || { items: [], dailyBackupActive: false, lastBackupAt: '' };
+    el('backup-card').innerHTML = '<div class="card-head"><h2>สำรองข้อมูล (Backup)</h2><button class="btn primary sm" type="button" data-act="backup-create">สำรองข้อมูลตอนนี้</button></div>' +
+      '<label class="switch"><input type="checkbox" data-act="backup-toggle"' + (b.dailyBackupActive ? ' checked' : '') + '> สำรองข้อมูลอัตโนมัติทุกวันเวลา 02:00</label>' +
+      '<p class="muted small">สำรองล่าสุด: ' + (b.lastBackupAt ? dateTimeTH(b.lastBackupAt) : 'ยังไม่เคยสำรอง') + ' · ไฟล์สำรองจะถูกเก็บในโฟลเดอร์ Backups ของ Google Drive</p>' +
+      (b.items.length ? '<ul class="list">' + b.items.map(function (x) {
+        return '<li><div><a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.name) + '</a><div class="cell-sub">' + dateTimeTH(x.createdAt) + ' · ' + fileSize(x.size) + '</div></div>' +
+          '<button class="btn sm danger" type="button" data-act="backup-delete" data-id="' + esc(x.id) + '">ลบ</button></li>';
+      }).join('') + '</ul>' : emptyState('ยังไม่มีไฟล์สำรองข้อมูล'));
+  }
+};
+
+function bindSettingsForms() {
+  var sf = el('settings-form');
+  if (sf && isAdmin()) {
+    sf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var box = el('settings-error');
+      box.hidden = true;
+      var data = { orgName: sf.orgName.value.trim(), fiscalYear: sf.fiscalYear.value.trim(), currency: sf.currency.value.trim(), maxUploadMB: sf.maxUploadMB.value.trim(), fileSharing: sf.fileSharing.value, backupRetention: sf.backupRetention.value.trim() };
+      var err = '';
+      if (!data.currency) err = 'กรุณากรอกหน่วยเงิน';
+      else if (!/^\d+(\.\d+)?$/.test(data.maxUploadMB) || Number(data.maxUploadMB) < 1 || Number(data.maxUploadMB) > 40) err = 'ขนาดไฟล์สูงสุดต้องอยู่ระหว่าง 1–40 MB';
+      else if (!/^\d+$/.test(data.backupRetention) || Number(data.backupRetention) < 1 || Number(data.backupRetention) > 365) err = 'จำนวนไฟล์สำรองต้องเป็นจำนวนเต็ม 1–365';
+      if (err) { box.textContent = err; box.hidden = false; return; }
+      withButton(el('settings-submit'), api('saveSettings', data)).then(function (res) {
+        S.settings = res.data.settings;
+        applyOrg();
+        toast(res.message, 'success');
+      }).catch(function (error) { box.textContent = error.message; box.hidden = false; });
+    });
+  }
+  var pf = el('password-form');
+  if (pf) {
+    pf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var box = el('password-error');
+      box.hidden = true;
+      var data = { currentPassword: pf.currentPassword.value, newPassword: pf.newPassword.value, confirmPassword: pf.confirmPassword.value };
+      var err = '';
+      if (!data.currentPassword || !data.newPassword || !data.confirmPassword) err = 'กรุณากรอกข้อมูลให้ครบ';
+      else if (data.newPassword.length < S.meta.minPasswordLength) err = 'รหัสผ่านใหม่ต้องมีอย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร';
+      else if (data.newPassword !== data.confirmPassword) err = 'ยืนยันรหัสผ่านไม่ตรงกัน';
+      else if (data.newPassword === data.currentPassword) err = 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม';
+      if (err) { box.textContent = err; box.hidden = false; return; }
+      withButton(el('password-submit'), api('changeMyPassword', data)).then(function (res) {
+        pf.reset();
+        toast(res.message, 'success');
+      }).catch(function (error) { box.textContent = error.message; box.hidden = false; });
+    });
+  }
+}
+
+/* ---------- Logs ---------- */
+VIEWS.logs = {
+  title: 'บันทึกการใช้งาน',
+  load: function () { return api('listLogs').then(function (r) { return r.data; }); },
+  render: function (d) {
+    var f = filter('logs');
+    var actions = {};
+    d.items.forEach(function (x) { actions[x.action] = true; });
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาผู้ใช้ รายละเอียด') +
+      selectFilter('action', f.action, Object.keys(actions).sort().map(function (a) { return { value: a, label: a }; }), 'ทุกการกระทำ') +
+      '<span class="muted small">แสดงล่าสุด ' + d.items.length + ' จาก ' + d.total + ' รายการ</span></div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('logs');
+    var rows = d.items.filter(function (x) { return matchText(x, ['username', 'detail', 'entity', 'entityId'], f.q) && (!f.action || x.action === f.action); });
+    el('list').innerHTML = table([
+      { label: 'เวลา', render: function (x) { return '<span class="nowrap">' + dateTimeTH(x.timestamp) + '</span>'; } },
+      { label: 'ผู้ใช้', render: function (x) { return esc(x.username); } },
+      { label: 'การกระทำ', render: function (x) { return badge(/delete|failed/.test(x.action) ? 'rejected' : /create|login$/.test(x.action) ? 'approved' : '', x.action); } },
+      { label: 'ข้อมูล', render: function (x) { return esc(x.entity) + (x.entityId ? '<div class="cell-sub">' + esc(x.entityId) + '</div>' : ''); } },
+      { label: 'รายละเอียด', render: function (x) { return esc(x.detail); } }
+    ], rows, { empty: 'ยังไม่มีบันทึก' });
+  }
+};
+
+/* =========================================================================
+ * FORMS (CRUD)
+ * ========================================================================= */
+function afterSave() { refreshView(); }
+
+function projectForm(p) {
+  var editing = !!p;
+  var deptOpts = isAdmin() ? departmentOptions() : departmentOptions().filter(function (o) { return o.value === S.user.departmentId; });
+  openForm({
+    title: editing ? 'แก้ไขโครงการ' : 'เพิ่มโครงการ',
+    values: p || { departmentId: S.user.departmentId || (deptOpts.length === 1 ? deptOpts[0].value : ''), status: 'planning', startDate: todayISO() },
+    fields: [
+      { name: 'code', label: 'รหัสโครงการ', maxlength: 30 },
+      { name: 'name', label: 'ชื่อโครงการ', required: true, maxlength: 200 },
+      { name: 'departmentId', label: 'หน่วยงาน', type: 'select', required: true, options: deptOpts, placeholder: 'เลือกหน่วยงาน' },
+      { name: 'ownerName', label: 'ผู้รับผิดชอบ', maxlength: 120 },
+      { name: 'budget', label: 'งบประมาณ (' + cur() + ')', type: 'money', required: true, min: 0, help: editing ? 'ต้องไม่น้อยกว่างบกิจกรรมรวม ' + money(p.activityBudget) + ' และยอดเบิกจ่าย ' + money(p.committed) : '' },
+      { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.projectStatus) },
+      { name: 'startDate', label: 'วันที่เริ่ม', type: 'date', required: true },
+      { name: 'endDate', label: 'วันที่สิ้นสุด', type: 'date', required: true },
+      { name: 'description', label: 'รายละเอียด', type: 'textarea', full: true, maxlength: 3000 }
+    ],
+    validate: function (d) {
+      if (!deptOpts.length) return 'ยังไม่มีหน่วยงาน กรุณาให้ผู้ดูแลระบบเพิ่มหน่วยงานก่อน';
+      if (editing && Number(d.budget) < p.activityBudget) return 'งบประมาณโครงการต้องไม่น้อยกว่างบกิจกรรมรวม (' + money(p.activityBudget) + ')';
+      if (editing && Number(d.budget) < p.committed) return 'งบประมาณโครงการต้องไม่น้อยกว่ายอดเบิกจ่ายรวม (' + money(p.committed) + ')';
+      return '';
+    },
+    onSubmit: function (d) { if (editing) d.id = p.id; return api('saveProject', d); },
+    after: afterSave
+  });
+}
+
+function activityForm(a, presetProjectId) {
+  var editing = !!a;
+  var opts = projectOptions(true);
+  var values = a || { projectId: presetProjectId || '', status: 'not_started', startDate: todayISO() };
+  openForm({
+    title: editing ? 'แก้ไขกิจกรรม' : 'เพิ่มกิจกรรม',
+    values: values,
+    fields: [
+      { name: 'projectId', label: 'โครงการ', type: 'select', required: true, options: opts, placeholder: 'เลือกโครงการ', full: true },
+      { name: 'name', label: 'ชื่อกิจกรรม', required: true, maxlength: 200, full: true },
+      { name: 'responsible', label: 'ผู้รับผิดชอบ', maxlength: 120 },
+      { name: 'budget', label: 'งบประมาณกิจกรรม (' + cur() + ')', type: 'money', required: true, min: 0 },
+      { name: 'startDate', label: 'วันที่เริ่ม', type: 'date', required: true },
+      { name: 'endDate', label: 'วันที่สิ้นสุด', type: 'date', required: true },
+      { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.activityStatus) },
+      { name: 'description', label: 'รายละเอียด', type: 'textarea', full: true, maxlength: 2000 }
+    ],
+    onReady: function (form) {
+      var update = function () {
+        var p = projectLookup(form.projectId.value);
+        var help = el('help-budget');
+        if (!p) { help.textContent = ''; return; }
+        var own = editing && a.projectId === p.id ? a.budget : 0;
+        help.textContent = 'งบโครงการ ' + money(p.budget) + ' · จัดสรรได้อีก ' + money(p.budget - p.activityBudget + own);
+      };
+      form.projectId.addEventListener('change', update);
+      update();
+    },
+    validate: function (d) {
+      if (!opts.length) return 'ไม่มีโครงการที่คุณจัดการได้';
+      var p = projectLookup(d.projectId);
+      if (!p) return 'กรุณาเลือกโครงการ';
+      var own = editing && a.projectId === p.id ? a.budget : 0;
+      var left = p.budget - p.activityBudget + own;
+      if (Number(d.budget) > left + 0.001) return 'งบกิจกรรมรวมเกินงบโครงการ (จัดสรรได้อีก ' + money(left) + ')';
+      if (editing && Number(d.budget) < a.committed) return 'งบกิจกรรมต้องไม่น้อยกว่ายอดเบิกจ่ายของกิจกรรม (' + money(a.committed) + ')';
+      return '';
+    },
+    onSubmit: function (d) { if (editing) d.id = a.id; return api('saveActivity', d); },
+    after: afterSave
+  });
+}
+
+function expenseForm(e, presetProjectId) {
+  var editing = !!e;
+  var values = e || { projectId: presetProjectId || '', expenseDate: todayISO() };
+  var oldAmount = editing && e.status !== 'rejected' ? e.amount : 0;
+  openForm({
+    title: editing ? 'แก้ไขรายการเบิกจ่าย' : 'บันทึกเบิกจ่าย',
+    values: values,
+    fields: [
+      { name: 'projectId', label: 'โครงการ', type: 'select', required: true, options: projectOptions(false), placeholder: 'เลือกโครงการ', full: true },
+      { name: 'activityId', label: 'กิจกรรม', type: 'select', options: activityOptions(values.projectId), placeholder: 'ไม่ระบุกิจกรรม', full: true },
+      { name: 'expenseDate', label: 'วันที่เบิกจ่าย', type: 'date', required: true },
+      { name: 'amount', label: 'จำนวนเงิน (' + cur() + ')', type: 'money', required: true, min: 0, positive: true },
+      { name: 'description', label: 'รายการ', required: true, maxlength: 500, full: true },
+      { name: 'payee', label: 'ผู้รับเงิน', maxlength: 200 },
+      { name: 'receiptNo', label: 'เลขที่ใบเสร็จ/เอกสาร', maxlength: 60 },
+      { name: 'file', label: editing && e.fileId ? 'แนบหลักฐานใหม่ (แทนไฟล์เดิม)' : 'แนบหลักฐาน', type: 'file', full: true, help: 'ไม่เกิน ' + (S.settings.maxUploadMB || 10) + ' MB' },
+      { name: 'note', label: 'หมายเหตุ', type: 'textarea', full: true, maxlength: 1000, rows: 2 }
+    ],
+    onReady: function (form) {
+      var update = function (reset) {
+        var pid = form.projectId.value;
+        if (reset) fillSelect(form.activityId, activityOptions(pid), 'ไม่ระบุกิจกรรม', '');
+        var p = projectLookup(pid);
+        var a = activityLookup(form.activityId.value);
+        var help = el('help-amount');
+        if (!p) { help.textContent = ''; return; }
+        var ownP = editing && e.projectId === pid ? oldAmount : 0;
+        var text = 'งบโครงการคงเหลือ ' + money(p.remaining + ownP);
+        if (a) { var ownA = editing && e.activityId === a.id ? oldAmount : 0; text += ' · งบกิจกรรมคงเหลือ ' + money(a.remaining + ownA); }
+        help.textContent = text;
+      };
+      form.projectId.addEventListener('change', function () { update(true); });
+      form.activityId.addEventListener('change', function () { update(false); });
+      update(false);
+    },
+    validate: function (d) {
+      var p = projectLookup(d.projectId);
+      if (!p) return 'กรุณาเลือกโครงการ';
+      var amount = Number(d.amount);
+      var ownP = editing && e.projectId === p.id ? oldAmount : 0;
+      if (amount > p.remaining + ownP + 0.001) return 'จำนวนเงินเกินงบคงเหลือของโครงการ (คงเหลือ ' + money(p.remaining + ownP) + ')';
+      var a = activityLookup(d.activityId);
+      if (a) {
+        var ownA = editing && e.activityId === a.id ? oldAmount : 0;
+        if (amount > a.remaining + ownA + 0.001) return 'จำนวนเงินเกินงบคงเหลือของกิจกรรม (คงเหลือ ' + money(a.remaining + ownA) + ')';
+      }
+      return '';
+    },
+    onSubmit: function (d) {
+      return readUpload(d.file).then(function (file) {
+        var payload = { projectId: d.projectId, activityId: d.activityId, expenseDate: d.expenseDate, amount: d.amount, description: d.description, payee: d.payee, receiptNo: d.receiptNo, note: d.note, file: file };
+        if (editing) payload.id = e.id;
+        return api('saveExpense', payload);
+      });
+    },
+    after: afterSave
+  });
+}
+
+function progressForm(r, presetProjectId) {
+  var editing = !!r;
+  var values = r || { projectId: presetProjectId || '', reportDate: todayISO() };
+  openForm({
+    title: editing ? 'แก้ไขรายงานความก้าวหน้า' : 'รายงานความก้าวหน้า',
+    values: values,
+    fields: [
+      { name: 'projectId', label: 'โครงการ', type: 'select', required: true, options: projectOptions(false), placeholder: 'เลือกโครงการ', full: true },
+      { name: 'activityId', label: 'กิจกรรม', type: 'select', options: activityOptions(values.projectId), placeholder: 'ภาพรวมโครงการ', full: true },
+      { name: 'reportDate', label: 'วันที่รายงาน', type: 'date', required: true },
+      { name: 'percent', label: 'ร้อยละความก้าวหน้า', type: 'number', required: true, min: 0, max: 100, step: '0.01' },
+      { name: 'detail', label: 'รายละเอียดความก้าวหน้า', type: 'textarea', required: true, full: true, maxlength: 3000 },
+      { name: 'problems', label: 'ปัญหา/อุปสรรค', type: 'textarea', full: true, maxlength: 2000, rows: 2 },
+      { name: 'nextSteps', label: 'แผนขั้นต่อไป', type: 'textarea', full: true, maxlength: 2000, rows: 2 }
+    ],
+    onReady: function (form) {
+      form.projectId.addEventListener('change', function () { fillSelect(form.activityId, activityOptions(form.projectId.value), 'ภาพรวมโครงการ', ''); });
+    },
+    onSubmit: function (d) { if (editing) d.id = r.id; return api('saveProgress', d); },
+    after: afterSave
+  });
+}
+
+function reportForm(r) {
+  var editing = !!r;
+  var fields = [
+    { name: 'title', label: 'ชื่อรายงาน', required: true, maxlength: 200, full: true },
+    { name: 'reportType', label: 'ประเภทรายงาน', type: 'select', required: true, options: mapOptions(S.meta.reportTypes) },
+    { name: 'projectId', label: 'โครงการ', type: 'select', options: projectOptions(false), placeholder: 'เลือกโครงการ', required: function (d) { return d.reportType === 'project'; } }
+  ];
+  if (isAdmin()) fields.push({ name: 'departmentId', label: 'หน่วยงาน', type: 'select', options: departmentOptions(), placeholder: 'ทุกหน่วยงาน' });
+  fields.push(
+    { name: 'startDate', label: 'ตั้งแต่วันที่', type: 'date' },
+    { name: 'endDate', label: 'ถึงวันที่', type: 'date' },
+    { name: 'note', label: 'หมายเหตุ', type: 'textarea', full: true, maxlength: 2000, rows: 2 }
+  );
+  openForm({
+    title: editing ? 'แก้ไขรายงาน' : 'สร้างรายงาน',
+    values: r || { reportType: 'budget' },
+    fields: fields,
+    onReady: function (form) {
+      var toggle = function () {
+        var isProject = form.reportType.value === 'project';
+        form.querySelector('[data-field="projectId"]').hidden = !isProject;
+        var dept = form.querySelector('[data-field="departmentId"]');
+        if (dept) dept.hidden = isProject;
+      };
+      form.reportType.addEventListener('change', toggle);
+      toggle();
+    },
+    onSubmit: function (d) { if (editing) d.id = r.id; return api('saveReport', d); },
+    after: afterSave
+  });
+}
+
+function uploadForm(presetProjectId) {
+  var opts = projectOptions(false);
+  var general = isManager();
+  openForm({
+    title: 'อัปโหลดไฟล์',
+    values: { projectId: presetProjectId || '' },
+    fields: [
+      { name: 'projectId', label: 'โครงการ', type: 'select', options: opts, placeholder: general ? 'เอกสารทั่วไป (ไม่ระบุโครงการ)' : 'เลือกโครงการ', required: !general, full: true },
+      { name: 'file', label: 'ไฟล์', type: 'file', required: true, full: true, help: 'ไม่เกิน ' + (S.settings.maxUploadMB || 10) + ' MB · เก็บใน Google Drive ของระบบ' },
+      { name: 'description', label: 'คำอธิบาย', type: 'textarea', full: true, maxlength: 500, rows: 2 }
+    ],
+    submitText: 'อัปโหลด',
+    onSubmit: function (d) {
+      return readUpload(d.file).then(function (file) { return api('uploadFile', { projectId: d.projectId, description: d.description, file: file }); });
+    },
+    after: afterSave
+  });
+}
+
+function userForm(u) {
+  var editing = !!u;
+  openForm({
+    title: editing ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้',
+    values: u || { role: 'staff', status: 'active' },
+    fields: [
+      { name: 'username', label: 'ชื่อผู้ใช้', required: true, maxlength: 30, help: 'ภาษาอังกฤษ ตัวเลข . _ - (3–30 ตัว)', autocomplete: 'off' },
+      { name: 'fullName', label: 'ชื่อ-นามสกุล', required: true, maxlength: 120 },
+      { name: 'email', label: 'อีเมล', type: 'email', maxlength: 120 },
+      { name: 'role', label: 'บทบาท', type: 'select', required: true, options: mapOptions(S.meta.roles) },
+      { name: 'departmentId', label: 'หน่วยงาน', type: 'select', options: departmentOptions(), placeholder: 'เลือกหน่วยงาน', required: function (d) { return d.role !== 'admin'; } },
+      { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.userStatus) },
+      { name: 'password', label: editing ? 'ตั้งรหัสผ่านใหม่' : 'รหัสผ่านเริ่มต้น', type: 'password', required: !editing, maxlength: 100, autocomplete: 'new-password', help: editing ? 'เว้นว่างหากไม่ต้องการเปลี่ยน' : 'อย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร', full: true }
+    ],
+    validate: function (d) {
+      if (!/^[A-Za-z0-9._-]{3,30}$/.test(d.username)) return 'ชื่อผู้ใช้ต้องเป็นภาษาอังกฤษ ตัวเลข หรือ . _ - ความยาว 3–30 ตัวอักษร';
+      if (d.password && d.password.length < S.meta.minPasswordLength) return 'รหัสผ่านต้องมีอย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร';
+      var dup = (S.data.users ? S.data.users.items : []).some(function (x) { return x.username.toLowerCase() === d.username.toLowerCase() && (!editing || x.id !== u.id); });
+      if (dup) return 'ชื่อผู้ใช้ "' + d.username + '" มีอยู่แล้ว';
+      return '';
+    },
+    onSubmit: function (d) { if (editing) d.id = u.id; return api('saveUser', d); },
+    after: afterSave
+  });
+}
+
+function departmentForm(x) {
+  var editing = !!x;
+  openForm({
+    title: editing ? 'แก้ไขหน่วยงาน' : 'เพิ่มหน่วยงาน',
+    values: x || {},
+    fields: [
+      { name: 'code', label: 'รหัสหน่วยงาน', maxlength: 30 },
+      { name: 'name', label: 'ชื่อหน่วยงาน', required: true, maxlength: 150 },
+      { name: 'description', label: 'รายละเอียด', type: 'textarea', full: true, maxlength: 1000 }
+    ],
+    onSubmit: function (d) { if (editing) d.id = x.id; return api('saveDepartment', d); },
+    after: afterSave
+  });
+}
+
+function showReport(id) {
+  openModal({ title: 'รายงาน', size: 'lg', body: skeleton(), footer: '' });
+  api('getReportData', id).then(function (res) {
+    var r = res.data;
+    var cell = function (c, v) { return c.type === 'money' ? money(v) : c.type === 'number' ? num(v) : esc(v === undefined ? '' : v); };
+    var html = '<p class="muted">' + esc(r.subtitle) + '</p>' +
+      '<div class="card" style="box-shadow:none;border:1px solid var(--line)"><dl class="kv">' + r.summary.map(function (s) { return '<dt>' + esc(s.label) + '</dt><dd>' + (typeof s.value === 'number' ? num(s.value) : esc(s.value)) + '</dd>'; }).join('') + '</dl></div>' +
+      r.sections.map(function (sec) {
+        var cols = sec.columns.map(function (c) { return { label: c.label, num: c.type === 'money' || c.type === 'number', render: function (row) { return cell(c, row[c.key]); } }; });
+        var footer = sec.totals ? sec.columns.map(function (c) { var v = sec.totals[c.key]; return v === undefined ? '' : cell(c, v); }) : null;
+        return '<h3 style="margin:1.2rem 0 .6rem">' + esc(sec.title) + '</h3>' + table(cols, sec.rows, { empty: 'ไม่มีข้อมูล', footer: sec.rows.length ? footer : null });
+      }).join('');
+    el('modal-title').textContent = r.title;
+    el('modal-body').innerHTML = html;
+    el('modal-foot').hidden = false;
+    el('modal-foot').innerHTML = (r.fileUrl ? '<a class="btn ghost" href="' + esc(r.fileUrl) + '" target="_blank" rel="noopener">เปิดไฟล์ใน Drive</a>' : '') +
+      (isManager() ? '<button class="btn success" type="button" data-act="report-generate" data-id="' + esc(r.id) + '">สร้างไฟล์ Google Sheets</button>' : '') +
+      '<button class="btn ghost" type="button" data-act="modal-close">ปิด</button>';
+  }).catch(function (err) {
+    el('modal-body').innerHTML = '<div class="error-box"><p>' + esc(err.message) + '</p></div>';
+    el('modal-foot').hidden = false;
+    el('modal-foot').innerHTML = '<button class="btn ghost" type="button" data-act="modal-close">ปิด</button>';
+  });
+}
+
+function downloadFile(id, btn) {
+  withButton(btn, api('downloadFile', id)).then(function (res) {
+    var d = res.data;
+    var bin = atob(d.data);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    var url = URL.createObjectURL(new Blob([bytes], { type: d.mimeType || 'application/octet-stream' }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = d.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }).catch(function (err) { toast(err.message, 'error'); });
+}
+
+function confirmAndRun(message, btn, fn, args, after) {
+  confirmBox(message).then(function (yes) {
+    if (!yes) return;
+    var callArgs = [fn].concat(args);
+    withButton(btn, api.apply(null, callArgs)).then(function (res) {
+      toast(res.message, 'success');
+      if (after) after(res); else refreshView();
+    }).catch(function (err) { toast(err.message, 'error'); });
+  });
+}
+
+/* =========================================================================
+ * ACTIONS (Event Delegation)
+ * ========================================================================= */
+var ACTIONS = {
+  'nav': function (t) { navigate(t.getAttribute('data-view')); },
+  'menu-toggle': function () { var open = !el('app').classList.contains('menu-open'); el('app').classList.toggle('menu-open', open); el('backdrop').hidden = !open; },
+  'menu-close': function () { closeMenu(); },
+  'refresh': function () { loadView(false); },
+  'logout': function (t) { doLogout(t); },
+  'modal-close': function () { closeModal(); },
+  'detail-tab': function (t) {
+    S.detailTab = t.getAttribute('data-id');
+    Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) { b.classList.toggle('active', b === t); });
+    VIEWS.project.renderTab(S.data.project);
+  },
+  'project-new': function () { projectForm(null); },
+  'project-open': function (t) { S.detailTab = 'activities'; closeModal(); navigate('project', { id: t.getAttribute('data-id') }); },
+  'project-edit': function (t) { var p = item('project', t.getAttribute('data-id')); if (p) projectForm(p); },
+  'project-delete': function (t) {
+    var p = item('project', t.getAttribute('data-id'));
+    if (!p) return;
+    confirmAndRun('ลบโครงการ "' + p.name + '" พร้อมกิจกรรม รายการเบิกจ่าย ความก้าวหน้า รายงาน และไฟล์ทั้งหมดของโครงการนี้? การลบไม่สามารถย้อนกลับได้', t, 'deleteProject', [p.id], function () {
+      if (S.view === 'project') navigate('projects'); else refreshView();
+    });
+  },
+  'activity-new': function (t) { activityForm(null, t.getAttribute('data-id')); },
+  'activity-edit': function (t) { var a = item('activity', t.getAttribute('data-id')); if (a) activityForm(a); },
+  'activity-delete': function (t) { var a = item('activity', t.getAttribute('data-id')); if (a) confirmAndRun('ลบกิจกรรม "' + a.name + '"?', t, 'deleteActivity', [a.id]); },
+  'expense-new': function (t) { if (!S.lookups.projects.length) { toast('ยังไม่มีโครงการที่คุณเข้าถึงได้', 'warn'); return; } expenseForm(null, t.getAttribute('data-id')); },
+  'expense-edit': function (t) { var e = item('expense', t.getAttribute('data-id')); if (e) expenseForm(e); },
+  'expense-delete': function (t) { var e = item('expense', t.getAttribute('data-id')); if (e) confirmAndRun('ลบรายการเบิกจ่าย "' + e.description + '" จำนวน ' + money(e.amount) + ' ' + cur() + '?', t, 'deleteExpense', [e.id]); },
+  'expense-status': function (t) {
+    var e = item('expense', t.getAttribute('data-id'));
+    var status = t.getAttribute('data-status');
+    if (!e) return;
+    var label = S.meta.expenseStatus[status];
+    confirmAndRun('เปลี่ยนสถานะรายการ "' + e.description + '" (' + money(e.amount) + ') เป็น "' + label + '"?', t, 'setExpenseStatus', [e.id, status]);
+  },
+  'progress-new': function (t) { if (!S.lookups.projects.length) { toast('ยังไม่มีโครงการที่คุณเข้าถึงได้', 'warn'); return; } progressForm(null, t.getAttribute('data-id')); },
+  'progress-edit': function (t) { var r = item('progress', t.getAttribute('data-id')); if (r) progressForm(r); },
+  'progress-delete': function (t) { var r = item('progress', t.getAttribute('data-id')); if (r) confirmAndRun('ลบรายงานความก้าวหน้าวันที่ ' + dateTH(r.reportDate) + '?', t, 'deleteProgress', [r.id]); },
+  'report-new': function () { reportForm(null); },
+  'report-edit': function (t) { var r = item('report', t.getAttribute('data-id')); if (r) reportForm(r); },
+  'report-delete': function (t) { var r = item('report', t.getAttribute('data-id')); if (r) confirmAndRun('ลบรายงาน "' + r.title + '" (รวมไฟล์รายงานใน Drive)?', t, 'deleteReport', [r.id]); },
+  'report-view': function (t) { showReport(t.getAttribute('data-id')); },
+  'report-generate': function (t) {
+    var id = t.getAttribute('data-id');
+    withButton(t, api('generateReportFile', id)).then(function (res) {
+      toast(res.message, 'success');
+      if (!el('modal-root').hidden) showReport(id);
+      if (S.view === 'reports') refreshView();
+    }).catch(function (err) { toast(err.message, 'error'); });
+  },
+  'file-upload': function (t) {
+    if (!isManager() && !S.lookups.projects.length) { toast('ยังไม่มีโครงการที่คุณเข้าถึงได้', 'warn'); return; }
+    uploadForm(t.getAttribute('data-id'));
+  },
+  'file-download': function (t) { downloadFile(t.getAttribute('data-id'), t.tagName === 'BUTTON' ? t : null); },
+  'file-delete': function (t) {
+    var id = t.getAttribute('data-id');
+    var f = item('file', id);
+    confirmAndRun('ลบไฟล์ "' + (f ? f.name : '') + '" ออกจากระบบและ Google Drive?', t, 'deleteFile', [id]);
+  },
+  'user-new': function () { if (!S.departments.length) toast('แนะนำให้เพิ่มหน่วยงานก่อนสร้างผู้ใช้', 'warn'); userForm(null); },
+  'user-edit': function (t) { var u = item('user', t.getAttribute('data-id')); if (u) userForm(u); },
+  'user-delete': function (t) { var u = item('user', t.getAttribute('data-id')); if (u) confirmAndRun('ลบผู้ใช้ "' + u.username + '"?', t, 'deleteUser', [u.id]); },
+  'dept-new': function () { departmentForm(null); },
+  'dept-edit': function (t) { var x = item('department', t.getAttribute('data-id')); if (x) departmentForm(x); },
+  'dept-delete': function (t) { var x = item('department', t.getAttribute('data-id')); if (x) confirmAndRun('ลบหน่วยงาน "' + x.name + '"?', t, 'deleteDepartment', [x.id]); },
+  'backup-create': function (t) {
+    withButton(t, api('createBackup')).then(function (res) { toast(res.message, 'success'); refreshBackups(); }).catch(function (err) { toast(err.message, 'error'); });
+  },
+  'backup-delete': function (t) { confirmAndRun('ลบไฟล์สำรองข้อมูลนี้?', t, 'deleteBackup', [t.getAttribute('data-id')], function () { refreshBackups(); }); },
+  'backup-toggle': function (t) {
+    var enabled = t.checked;
+    t.disabled = true;
+    api('setDailyBackup', enabled).then(function (res) { t.disabled = false; toast(res.message, 'success'); })
+      .catch(function (err) { t.disabled = false; t.checked = !enabled; toast(err.message, 'error'); });
+  }
+};
+
+function refreshBackups() {
+  api('listBackups').then(function (res) {
+    if (S.view !== 'settings' || !S.data.settings) return;
+    S.data.settings.backups = res.data;
+    VIEWS.settings.renderBackups(S.data.settings);
+  }).catch(function (err) { toast(err.message, 'error'); });
+}
+
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]');
+  if (!t) return;
+  var act = t.getAttribute('data-act');
+  if (act === 'backup-toggle') return;
+  if (t.tagName === 'A') e.preventDefault();
+  if (act === 'menu-close' && t.id !== 'backdrop') return;
+  var fn = ACTIONS[act];
+  if (fn) fn(t, e);
+});
+document.addEventListener('change', function (e) {
+  var t = e.target;
+  if (t.getAttribute && t.getAttribute('data-act') === 'backup-toggle') { ACTIONS['backup-toggle'](t); return; }
+  if (t.getAttribute && t.getAttribute('data-filter') && t.type !== 'search') applyFilter(t);
+});
+document.addEventListener('input', function (e) {
+  var t = e.target;
+  if (t.getAttribute && t.getAttribute('data-filter') && t.type === 'search') applyFilter(t);
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  if (!el('confirm-root').hidden) { el('confirm-cancel').click(); return; }
+  if (!el('modal-root').hidden) closeModal();
+  closeMenu();
+});
+el('modal-root').addEventListener('click', function (e) { if (e.target === el('modal-root')) closeModal(); });
+
+function applyFilter(input) {
+  var v = VIEWS[S.view];
+  if (!v || !v.renderList || !S.data[S.view]) return;
+  filter(S.view)[input.getAttribute('data-filter')] = input.value;
+  v.renderList(S.data[S.view]);
+}
+
+/* =========================================================================
+ * LOGIN / LOGOUT / BOOTSTRAP
+ * ========================================================================= */
+el('login-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var box = el('login-error');
+  box.hidden = true;
+  var username = el('login-username').value.trim();
+  var password = el('login-password').value;
+  if (!username || !password) { box.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน'; box.hidden = false; return; }
+  withButton(el('login-submit'), serverCall('login', [username, password])).then(function (res) {
+    S.token = res.data.token;
+    el('login-password').value = '';
+    applyBootstrap(res.data.bootstrap);
+    el('login-view').hidden = true;
+    el('app').hidden = false;
+    toast('ยินดีต้อนรับ ' + S.user.fullName, 'success');
+    navigate('dashboard');
+  }).catch(function (err) { box.textContent = err.message; box.hidden = false; });
+});
+
+function applyBootstrap(b) {
+  S.user = b.user;
+  S.settings = b.settings;
+  S.meta = b.meta;
+  S.departments = b.departments;
+  S.lookups = b.lookups;
+  S.appUrl = b.appUrl;
+  S.bootDashboard = b.dashboard;
+  S.data = {};
+  S.filters = {};
+  S.reg = {};
+  el('side-user-name').textContent = b.user.fullName;
+  el('side-user-role').textContent = b.user.roleLabel + (b.user.departmentName ? ' · ' + b.user.departmentName : '');
+  el('hdr-user-name').textContent = b.user.fullName;
+  el('hdr-user-role').textContent = b.user.roleLabel;
+  applyOrg();
+  renderNav();
+}
+
+function applyOrg() {
+  var org = S.settings.orgName || '';
+  var year = S.settings.fiscalYear ? 'ปีงบประมาณ ' + S.settings.fiscalYear : '';
+  el('side-org').textContent = org || year;
+  el('header-org').textContent = [org, year].filter(Boolean).join(' · ');
+}
+
+function doLogout(btn) {
+  confirmBox('ออกจากระบบ?', { okText: 'ออกจากระบบ', danger: false }).then(function (yes) {
+    if (!yes) return;
+    showLoading('กำลังออกจากระบบ');
+    var token = S.token;
+    serverCall('logout', [token]).then(function () { hideLoading(); resetSession(); toast('ออกจากระบบแล้ว', 'success'); })
+      .catch(function () { hideLoading(); resetSession(); });
+  });
+}
+
+function resetSession() {
+  S.token = '';
+  S.user = null;
+  S.data = {};
+  S.reg = {};
+  S.seq += 1;
+  closeModal();
+  el('confirm-root').hidden = true;
+  el('app').hidden = true;
+  el('login-view').hidden = false;
+  el('view').innerHTML = '';
+  el('login-username').focus();
+}
+
+el('login-username').focus();
+</script>
+</body>
+</html>
