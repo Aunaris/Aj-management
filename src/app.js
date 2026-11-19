@@ -16,7 +16,10 @@ const VIEWS = path.join(__dirname, '..', 'views');
 
 function createApp() {
   const app = express();
-  app.set('trust proxy', process.env.TRUST_PROXY === '1');
+  // TRUST_PROXY = จำนวน reverse proxy ที่อยู่หน้าระบบ (เช่น 1 = Caddy, 2 = proxy มหาวิทยาลัย → Caddy)
+  // ใช้หา IP จริงของนักศึกษาจาก X-Forwarded-For โดยไม่เชื่อค่าที่ผู้ใช้ปลอมมาเอง
+  const tp = process.env.TRUST_PROXY;
+  app.set('trust proxy', !tp || tp === '0' ? false : /^\d+$/.test(tp) ? Number(tp) : tp);
   app.set('views', VIEWS);
   app.set('view engine', 'ejs');
   app.disable('x-powered-by');

@@ -18,6 +18,7 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
 COPY src ./src
 COPY views ./views
 COPY public ./public
+COPY scripts/backup-db.js ./scripts/backup-db.js
 
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]

@@ -5,3 +5,5 @@ storage
 .git
 test
 *.log
+backups
+.env

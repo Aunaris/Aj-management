@@ -1,0 +1,14 @@
+# Caddy: เปิด HTTPS ให้อัตโนมัติ (ขอใบรับรองฟรีจาก Let's Encrypt และต่ออายุเอง)
+# DOMAIN มาจากไฟล์ .env
+{$DOMAIN} {
+	encode zstd gzip
+	# ขนาดคำขอสูงสุด (นักศึกษาส่งได้หลายไฟล์ต่อครั้ง)
+	request_body {
+		max_size 1GB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy classroom:3000
+}

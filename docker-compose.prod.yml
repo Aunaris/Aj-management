@@ -1,0 +1,49 @@
+# ใช้งานจริงบนเซิร์ฟเวอร์ (HTTPS ผ่าน Caddy)
+#   1) cp .env.example .env  แล้วแก้ค่าในไฟล์ .env
+#   2) docker compose -f docker-compose.prod.yml up -d --build
+# ดูคู่มือเต็มที่ DEPLOY.md
+services:
+  classroom:
+    build: .
+    image: animation-classroom:latest
+    container_name: aj-classroom
+    restart: unless-stopped
+    expose:
+      - "3000"            # ไม่เปิดออกนอกเครื่อง เข้าได้ผ่าน Caddy เท่านั้น
+    volumes:
+      - ./data:/app/data
+    environment:
+      NODE_ENV: production          # cookie ส่งผ่าน HTTPS เท่านั้น
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      BASE_URL: https://${DOMAIN:?ตั้งค่า DOMAIN ในไฟล์ .env}
+      TERM_START_DATE: ${TERM_START_DATE:-2026-11-16}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-200}
+      STUDENT_DEFAULT_PASSWORD: ${STUDENT_DEFAULT_PASSWORD:-123456}
+      TZ: Asia/Bangkok
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  caddy:
+    image: caddy:2.8.4
+    container_name: aj-caddy
+    restart: unless-stopped
+    depends_on:
+      - classroom
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+volumes:
+  caddy_data:
+  caddy_config:
