@@ -127,6 +127,7 @@ sudo docker compose -f docker-compose.prod.yml up -d --build
 | ดู log ล่าสุด | `sudo docker compose -f docker-compose.prod.yml logs --tail 100 classroom` |
 | รีสตาร์ท | `sudo docker compose -f docker-compose.prod.yml restart` |
 | หยุดระบบ | `sudo docker compose -f docker-compose.prod.yml down` |
+| เข้าสู่ระบบไม่ได้ / ลืมรหัสผ่าน | `sudo docker compose -f docker-compose.prod.yml exec classroom node scripts/reset-password.js aunalyst รหัสใหม่` |
 
 ระบบเริ่มใหม่เองเมื่อเครื่องรีบูต เพราะตั้ง `restart: unless-stopped` ไว้
 
