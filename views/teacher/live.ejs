@@ -40,7 +40,7 @@
       <h2>ตรวจตำแหน่ง & อุปกรณ์</h2>
       <ul class="list">
         <li><span>1 เครื่อง : 1 คน / คาบ</span><%- course.device_lock ? '<span class="badge ok">เปิด</span>' : '<span class="badge muted">ปิด</span>' %></li>
-        <li><span>จำกัดเครือข่าย (IP)</span><%- course.ip_allowlist ? '<span class="badge ok">' + course.ip_allowlist + '</span>' : '<span class="badge muted">ไม่จำกัด</span>' %></li>
+        <li><span>จำกัดเครือข่าย (IP)</span><% if (course.ip_allowlist) { %><span class="badge ok"><%= course.ip_allowlist %></span><% } else { %><span class="badge muted">ไม่จำกัด</span><% } %></li>
         <li><span>GPS รัศมี <%= course.geo_radius_m %> ม.</span><%- !course.geo_enabled ? '<span class="badge muted">ปิด</span>' : center ? '<span class="badge ok">เปิด (' + (center.from === 'session' ? 'จุดของคาบนี้' : 'จุดเริ่มต้นรายวิชา') + ')</span>' : '<span class="badge warn">ยังไม่ตั้งจุดห้องเรียน</span>' %></li>
       </ul>
       <% if (isT) { %>

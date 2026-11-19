@@ -25,12 +25,12 @@
         <td><a href="/teacher/students/<%= r.student.id %>"><%= r.student.full_name %></a></td>
         <% gb.categories.forEach(cat => { const b = r.byCat[cat.id]; %>
           <td class="num" title="<%= b.items.map(i => i.assignment.assignment_code + ': ' + (i.counted ? i.grade.total_score : u.label('grade', i.state))).join('\n') %>">
-            <%= b.items.length ? b.earned : '—' %><% if (b.pending) { %><br><small class="muted">รอ <%= b.pending %></small><% } %>
+            <%= b.items.some(i => i.counted) ? b.earned : '—' %><% if (b.pending) { %><br><small class="muted">รอ <%= b.pending %></small><% } %>
           </td>
         <% }) %>
         <td class="num"><strong><%= r.total %></strong></td>
         <td class="num"><small><%= r.draftTotal || '' %></small></td>
-        <td class="num"><%= r.pending ? '<span class="badge warn">' + r.pending + '</span>' : '' %></td>
+        <td class="num"><% if (r.pending) { %><span class="badge warn"><%= r.pending %></span><% } %></td>
       </tr>
     <% }) %>
   </table>

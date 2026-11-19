@@ -18,7 +18,7 @@
   <% sessions.forEach(s => { %>
     <tr>
       <td><span class="week <%= s.attendance_state === 'open' ? 'now' : '' %>" style="display:inline-block;width:48px">W<%= s.week_number %></span></td>
-      <td><%- s.section_name ? '<span class="badge info">' + s.section_name + '</span>' : '<span class="badge muted">รวม</span>' %></td>
+      <td><% if (s.section_name) { %><span class="badge info"><%= s.section_name %></span><% } else { %><span class="badge muted">รวม</span><% } %></td>
       <td><a href="/sessions/<%= s.id %>"><%= s.title %></a></td>
       <td><small><%= u.thaiDate(s.session_date) %><br><%= s.start_time || '' %>–<%= s.end_time || '' %></small></td>
       <td><%- u.badge('session', s.status) %><br><%- u.badge('attendanceState', s.attendance_state) %></td>
