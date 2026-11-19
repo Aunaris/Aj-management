@@ -15,11 +15,11 @@
   --line: #e3e8ef;
   --text: #1c2533;
   --muted: #667085;
-  --primary: #4f46e5;
-  --primary-2: #4338ca;
-  --primary-soft: #eef2ff;
-  --side: #131a2b;
-  --side-2: #1c2540;
+  --primary: #0f766e;
+  --primary-2: #115e59;
+  --primary-soft: #e6f4f1;
+  --side: #10242c;
+  --side-2: #183640;
   --side-text: #c7cfe2;
   --ok: #0f9d6b;
   --ok-soft: #e6f6ef;
@@ -65,9 +65,9 @@ h1, h2, h3 { margin: 0; line-height: 1.3; }
 .sk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 
 /* ---------- Login ---------- */
-.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; background: radial-gradient(circle at 20% 20%, #312e81, #131a2b 60%); }
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; background: radial-gradient(circle at 20% 20%, #155e75, #10242c 60%); }
 .login-card { width: min(420px, 100%); background: var(--surface); border-radius: 18px; padding: 2.2rem 2rem; box-shadow: var(--shadow-lg); }
-.brand-mark { width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff; display: grid; place-items: center; font-weight: 700; letter-spacing: -.5px; flex: none; }
+.brand-mark { width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #14b8a6, #0f766e); color: #fff; display: grid; place-items: center; font-weight: 700; letter-spacing: -.5px; flex: none; }
 .login-card .brand-mark { margin-bottom: 1rem; width: 54px; height: 54px; font-size: 1.15rem; }
 .login-card h1 { font-size: 1.5rem; }
 .login-card p { margin: .3rem 0 1.4rem; }
@@ -93,7 +93,8 @@ h1, h2, h3 { margin: 0; line-height: 1.3; }
 .header .org { font-size: .82rem; color: var(--muted); display: block; font-weight: 400; }
 .menu-btn { display: none; border: 0; background: var(--surface); width: 40px; height: 40px; border-radius: 10px; box-shadow: var(--shadow); cursor: pointer; font-size: 1.2rem; }
 .header-actions { display: flex; align-items: center; gap: .5rem; }
-.chip-user { display: flex; flex-direction: column; text-align: right; font-size: .82rem; line-height: 1.25; }
+.chip-user { display: flex; flex-direction: column; text-align: right; font-size: .82rem; line-height: 1.25; max-width: 190px; min-width: 0; }
+.chip-user strong, .chip-user span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chip-user strong { font-size: .9rem; }
 .content { padding: 1.4rem; max-width: 1440px; width: 100%; }
 
@@ -109,7 +110,7 @@ h1, h2, h3 { margin: 0; line-height: 1.3; }
 .stat .label { color: var(--muted); font-size: .85rem; }
 .stat .value { font-size: 1.55rem; font-weight: 700; margin-top: .15rem; word-break: break-word; }
 .stat .sub { font-size: .8rem; color: var(--muted); }
-.stat.accent { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; }
+.stat.accent { background: linear-gradient(135deg, #0f766e, #155e75); color: #fff; }
 .stat.accent .label, .stat.accent .sub { color: rgba(255, 255, 255, .8); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; border: 1px solid transparent; background: var(--surface-2); color: var(--text); padding: .5rem .95rem; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: .9rem; white-space: nowrap; text-decoration: none; transition: background .15s, border-color .15s; }
 .btn:hover { border-color: var(--line); }
@@ -176,7 +177,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; background
 .field label { font-weight: 600; font-size: .88rem; }
 .field label .req { color: var(--bad); }
 .input, select.input, textarea.input { width: 100%; padding: .58rem .75rem; border: 1px solid #d0d7e2; border-radius: 9px; background: #fff; outline: none; transition: border-color .15s, box-shadow .15s; }
-.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 118, 110, .18); }
 textarea.input { min-height: 90px; resize: vertical; }
 .help { font-size: .78rem; color: var(--muted); }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem 1rem; }
@@ -246,20 +247,75 @@ textarea.input { min-height: 90px; resize: vertical; }
   .sidebar, .header, .toolbar, .btn, .toasts { display: none !important; }
   .main { margin: 0; }
 }
+
+/* ---------- Classroom extras ---------- */
+.section-switch { min-width: 150px; width: auto; padding: .42rem .6rem; font-size: .88rem; }
+.public-wrap { min-height: 100vh; padding: 1.5rem 1rem 2rem; background: radial-gradient(circle at 20% 20%, #155e75, #10242c 60%); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.public-card { width: min(480px, 100%); background: var(--surface); border-radius: 18px; padding: 1.6rem 1.5rem; box-shadow: var(--shadow-lg); }
+.public-card h2 { font-size: 1.25rem; margin-bottom: .2rem; }
+.public-links { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
+.public-links .btn { background: rgba(255, 255, 255, .12); color: #fff; }
+.schedule-mini { width: min(480px, 100%); background: rgba(255, 255, 255, .08); color: #e2f3f0; border-radius: 14px; padding: .9rem 1.1rem; font-size: .9rem; }
+.schedule-mini table { width: 100%; border-collapse: collapse; }
+.schedule-mini td { padding: .25rem .3rem; }
+.code-input { font-family: 'Courier New', monospace; font-size: 1.6rem; letter-spacing: .35em; text-transform: uppercase; text-align: center; font-weight: 700; }
+.result-ok { text-align: center; padding: .5rem 0; }
+.result-ok .big { font-size: 3rem; line-height: 1; }
+.session-info { background: var(--primary-soft); color: var(--primary-2); border-radius: 10px; padding: .7rem .9rem; font-size: .92rem; margin-bottom: 1rem; }
+.live-grid { display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 1rem; align-items: start; }
+.qr-box { text-align: center; }
+.qr-box svg { width: 100%; max-width: 360px; height: auto; border-radius: 10px; }
+.live-code { font-family: 'Courier New', monospace; font-size: 2.6rem; font-weight: 700; letter-spacing: .3em; color: var(--primary-2); margin: .3rem 0; }
+.countdown { height: 6px; background: #e6ece9; border-radius: 99px; overflow: hidden; margin: .5rem auto; max-width: 360px; }
+.countdown span { display: block; height: 100%; background: var(--primary); transition: width 1s linear; }
+.live-counts { display: grid; grid-template-columns: repeat(5, 1fr); gap: .4rem; margin-top: .8rem; }
+.live-counts div { background: var(--surface-2); border-radius: 10px; padding: .5rem .2rem; text-align: center; font-size: .78rem; color: var(--muted); }
+.live-counts strong { display: block; font-size: 1.35rem; color: var(--text); }
+.bulk-bar { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; padding: .6rem; background: var(--surface-2); border-radius: 10px; margin-bottom: .7rem; }
+body.presenting .sidebar, body.presenting .header, body.presenting .live-roster { display: none !important; }
+body.presenting .main { margin-left: 0; }
+body.presenting .live-grid { grid-template-columns: 1fr; justify-items: center; }
+body.presenting .qr-box svg { max-width: min(70vh, 90vw); }
+body.presenting .live-code { font-size: 4rem; }
+.matrix td, .matrix th { text-align: center; padding: .4rem .35rem; }
+.matrix td:nth-child(-n+2), .matrix th:nth-child(-n+2) { text-align: left; }
+.mk { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; font-size: .78rem; font-weight: 700; background: var(--surface-2); color: var(--muted); border: 0; cursor: default; }
+button.mk { cursor: pointer; }
+.mk.present { background: var(--ok-soft); color: var(--ok); }
+.mk.late { background: var(--warn-soft); color: var(--warn); }
+.mk.absent { background: var(--bad-soft); color: var(--bad); }
+.mk.excused { background: var(--info-soft); color: var(--info); }
+.checks { display: flex; flex-wrap: wrap; gap: .4rem .9rem; padding: .4rem 0; }
+.checks label { display: inline-flex; align-items: center; gap: .35rem; font-weight: 500; }
+.score-input { width: 90px; text-align: right; }
+.fb-input { min-width: 180px; min-height: 38px; }
+.file-chip { display: inline-flex; gap: .35rem; align-items: center; background: var(--surface-2); border-radius: 7px; padding: .15rem .5rem; font-size: .8rem; margin: .12rem .2rem .12rem 0; }
+.cap-grid td.num { font-variant-numeric: tabular-nums; }
+.assign-card { border: 1px solid var(--line); border-radius: 12px; padding: .9rem 1rem; margin-bottom: .7rem; display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+.assign-card h3 { font-size: 1rem; }
+.notice { background: var(--warn-soft); color: #7a4d0b; padding: .7rem .9rem; border-radius: 10px; font-size: .9rem; margin-bottom: 1rem; }
+@media (max-width: 980px) { .live-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1280px) { .chip-user { display: none; } }
+@media (max-width: 768px) {
+  .live-counts { grid-template-columns: repeat(3, 1fr); }
+  .header .section-switch { min-width: 110px; }
+  .matrix-wrap { overflow-x: auto; }
+  .matrix-wrap .tbl { display: table; }
+}
 </style>
 </head>
 <body>
 <div id="topbar" class="topbar" aria-hidden="true"></div>
 
 <!-- ===================== Login View ===================== -->
-<section id="login-view" class="login-wrap">
-  <div class="login-card">
-    <div class="brand-mark">2D</div>
-    <h1>2D animation</h1>
-    <p class="muted">ระบบบริหารโครงการ กิจกรรม งบประมาณ และเอกสาร</p>
+<section id="login-view" class="public-wrap">
+  <div class="public-card">
+    <div class="brand-mark" style="width:54px;height:54px;margin-bottom:1rem">2D</div>
+    <h1 style="font-size:1.45rem">2D animation</h1>
+    <p class="muted" id="login-course" style="margin:.3rem 0 1.3rem">ระบบเช็คชื่อ ส่งงาน และให้คะแนนระหว่างคาบ</p>
     <form id="login-form" class="stack" novalidate>
       <div class="field">
-        <label for="login-username">ชื่อผู้ใช้ <span class="req">*</span></label>
+        <label for="login-username">ชื่อผู้ใช้ / รหัสนักศึกษา <span class="req">*</span></label>
         <input id="login-username" class="input" name="username" autocomplete="username" required maxlength="50">
       </div>
       <div class="field">
@@ -269,7 +325,16 @@ textarea.input { min-height: 90px; resize: vertical; }
       <div id="login-error" class="form-error" hidden></div>
       <button id="login-submit" class="btn primary block" type="submit">เข้าสู่ระบบ</button>
     </form>
+    <p class="help" style="margin-top:1rem">นักศึกษา: ชื่อผู้ใช้คือรหัสนักศึกษา รหัสผ่านครั้งแรกคือ <strong>123456</strong> (ระบบจะให้เปลี่ยนทันที)</p>
   </div>
+  <div class="public-links"><button class="btn" type="button" data-act="show-checkin">◎ เช็คชื่อเข้าเรียน (ไม่ต้องเข้าสู่ระบบ)</button></div>
+  <div class="schedule-mini" id="login-schedule" hidden></div>
+</section>
+
+<!-- ===================== Public Check-in View ===================== -->
+<section id="public-view" class="public-wrap" hidden>
+  <div class="public-card" id="public-card"></div>
+  <div class="public-links"><button class="btn" type="button" data-act="show-login">เข้าสู่ระบบ</button></div>
 </section>
 
 <!-- ===================== App Shell ===================== -->
@@ -289,8 +354,9 @@ textarea.input { min-height: 90px; resize: vertical; }
     <!-- Header -->
     <header class="header">
       <button class="menu-btn" type="button" data-act="menu-toggle" aria-label="เปิดเมนู">☰</button>
-      <h1><span id="view-title">แดชบอร์ด</span><span class="org" id="header-org"></span></h1>
+      <h1><span id="view-title"></span><span class="org" id="header-org"></span></h1>
       <div class="header-actions">
+        <select class="input section-switch" id="section-switch" aria-label="เลือกกลุ่มเรียน" hidden></select>
         <div class="chip-user"><strong id="hdr-user-name"></strong><span class="muted" id="hdr-user-role"></span></div>
         <button class="btn ghost sm" type="button" data-act="refresh" title="โหลดข้อมูลใหม่">⟳</button>
         <button class="btn ghost sm" type="button" data-act="logout">ออกจากระบบ</button>
@@ -331,36 +397,212 @@ textarea.input { min-height: 90px; resize: vertical; }
 <script>
 'use strict';
 /* =========================================================================
+ * QR CODE (สร้างในหน้าเว็บ ไม่ต้องพึ่งไฟล์/บริการภายนอก)
+ * ========================================================================= */
+/* QR Code encoder (byte mode, ECC M, version 1–20) — returns { size, modules[y][x] } */
+var QR = (function () {
+  var ECC_PER_BLOCK = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26];
+  var NUM_BLOCKS = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16];
+  function rawModules(ver) {
+    var r = (16 * ver + 128) * ver + 64;
+    if (ver >= 2) { var n = Math.floor(ver / 7) + 2; r -= (25 * n - 10) * n - 55; if (ver >= 7) r -= 36; }
+    return r;
+  }
+  function dataCodewords(ver) { return Math.floor(rawModules(ver) / 8) - ECC_PER_BLOCK[ver] * NUM_BLOCKS[ver]; }
+  function mul(x, y) { var z = 0; for (var i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z & 255; }
+  function rsDivisor(degree) {
+    var res = []; for (var i = 0; i < degree - 1; i++) res.push(0); res.push(1);
+    var root = 1;
+    for (var k = 0; k < degree; k++) {
+      for (var j = 0; j < res.length; j++) { res[j] = mul(res[j], root); if (j + 1 < res.length) res[j] ^= res[j + 1]; }
+      root = mul(root, 2);
+    }
+    return res;
+  }
+  function rsRemainder(data, div) {
+    var res = div.map(function () { return 0; });
+    data.forEach(function (b) {
+      var f = b ^ res.shift(); res.push(0);
+      div.forEach(function (c, i) { res[i] ^= mul(c, f); });
+    });
+    return res;
+  }
+  function utf8(s) {
+    var out = []; var e = unescape(encodeURIComponent(s));
+    for (var i = 0; i < e.length; i++) out.push(e.charCodeAt(i));
+    return out;
+  }
+  function encode(text, forceMask) {
+    var bytes = utf8(text);
+    var ver = 1;
+    for (; ver <= 20; ver++) {
+      var cap = dataCodewords(ver) * 8;
+      if (4 + (ver <= 9 ? 8 : 16) + bytes.length * 8 <= cap) break;
+    }
+    if (ver > 20) throw new Error('ข้อความยาวเกินไปสำหรับ QR');
+    var bits = [];
+    var push = function (val, len) { for (var i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+    push(4, 4);
+    push(bytes.length, ver <= 9 ? 8 : 16);
+    bytes.forEach(function (b) { push(b, 8); });
+    var capBits = dataCodewords(ver) * 8;
+    push(0, Math.min(4, capBits - bits.length));
+    push(0, (8 - bits.length % 8) % 8);
+    for (var pad = 0xEC; bits.length < capBits; pad ^= 0xEC ^ 0x11) push(pad, 8);
+    var data = [];
+    for (var i = 0; i < bits.length; i += 8) { var v = 0; for (var j = 0; j < 8; j++) v = (v << 1) | bits[i + j]; data.push(v); }
+    // ECC + interleave
+    var nb = NUM_BLOCKS[ver], eccLen = ECC_PER_BLOCK[ver], raw = Math.floor(rawModules(ver) / 8);
+    var numShort = nb - raw % nb, shortLen = Math.floor(raw / nb);
+    var blocks = [], div = rsDivisor(eccLen);
+    for (var b = 0, k = 0; b < nb; b++) {
+      var dat = data.slice(k, k + shortLen - eccLen + (b < numShort ? 0 : 1));
+      k += dat.length;
+      var ecc = rsRemainder(dat, div);
+      if (b < numShort) dat.push(0);
+      blocks.push(dat.concat(ecc));
+    }
+    var cw = [];
+    for (var ii = 0; ii < blocks[0].length; ii++) {
+      blocks.forEach(function (blk, jj) { if (ii !== shortLen - eccLen || jj >= numShort) cw.push(blk[ii]); });
+    }
+    var size = ver * 4 + 17;
+    var mods = [], fn = [];
+    for (var y = 0; y < size; y++) { mods.push(new Array(size).fill(false)); fn.push(new Array(size).fill(false)); }
+    var setF = function (x, y, d) { mods[y][x] = d; fn[y][x] = true; };
+    for (var t = 0; t < size; t++) { setF(6, t, t % 2 === 0); setF(t, 6, t % 2 === 0); }
+    var finder = function (x, y) {
+      for (var dy = -4; dy <= 4; dy++) for (var dx = -4; dx <= 4; dx++) {
+        var dist = Math.max(Math.abs(dx), Math.abs(dy)), xx = x + dx, yy = y + dy;
+        if (xx >= 0 && xx < size && yy >= 0 && yy < size) setF(xx, yy, dist !== 2 && dist !== 4);
+      }
+    };
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    if (ver > 1) {
+      var na = Math.floor(ver / 7) + 2, step = Math.ceil((ver * 4 + 4) / (na * 2 - 2)) * 2, pos = [6];
+      for (var p = size - 7; pos.length < na; p -= step) pos.splice(1, 0, p);
+      for (var a = 0; a < na; a++) for (var c = 0; c < na; c++) {
+        if ((a === 0 && c === 0) || (a === 0 && c === na - 1) || (a === na - 1 && c === 0)) continue;
+        for (var ay = -2; ay <= 2; ay++) for (var ax = -2; ax <= 2; ax++) setF(pos[a] + ax, pos[c] + ay, Math.max(Math.abs(ax), Math.abs(ay)) !== 1);
+      }
+    }
+    var drawFormat = function (mask) {
+      var d = (0 << 3) | mask, rem = d; // ECC M = 00
+      for (var q = 0; q < 10; q++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+      var fb = ((d << 10) | rem) ^ 0x5412;
+      var bit = function (n) { return ((fb >>> n) & 1) !== 0; };
+      for (var q1 = 0; q1 <= 5; q1++) setF(8, q1, bit(q1));
+      setF(8, 7, bit(6)); setF(8, 8, bit(7)); setF(7, 8, bit(8));
+      for (var q2 = 9; q2 < 15; q2++) setF(14 - q2, 8, bit(q2));
+      for (var q3 = 0; q3 < 8; q3++) setF(size - 1 - q3, 8, bit(q3));
+      for (var q4 = 8; q4 < 15; q4++) setF(8, size - 15 + q4, bit(q4));
+      setF(8, size - 8, true);
+    };
+    drawFormat(0);
+    if (ver >= 7) {
+      var rv = ver;
+      for (var r1 = 0; r1 < 12; r1++) rv = (rv << 1) ^ ((rv >>> 11) * 0x1F25);
+      var vb = (ver << 12) | rv;
+      for (var r2 = 0; r2 < 18; r2++) { var bt = ((vb >>> r2) & 1) !== 0, aa = size - 11 + r2 % 3, bb = Math.floor(r2 / 3); setF(aa, bb, bt); setF(bb, aa, bt); }
+    }
+    var idx = 0;
+    for (var right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (var vert = 0; vert < size; vert++) for (var jx = 0; jx < 2; jx++) {
+        var x = right - jx, up = ((right + 1) & 2) === 0, yy2 = up ? size - 1 - vert : vert;
+        if (!fn[yy2][x] && idx < cw.length * 8) { mods[yy2][x] = ((cw[idx >>> 3] >>> (7 - (idx & 7))) & 1) !== 0; idx++; }
+      }
+    }
+    var applyMask = function (m) {
+      for (var y3 = 0; y3 < size; y3++) for (var x3 = 0; x3 < size; x3++) {
+        var inv;
+        switch (m) {
+          case 0: inv = (x3 + y3) % 2 === 0; break;
+          case 1: inv = y3 % 2 === 0; break;
+          case 2: inv = x3 % 3 === 0; break;
+          case 3: inv = (x3 + y3) % 3 === 0; break;
+          case 4: inv = (Math.floor(x3 / 3) + Math.floor(y3 / 2)) % 2 === 0; break;
+          case 5: inv = x3 * y3 % 2 + x3 * y3 % 3 === 0; break;
+          case 6: inv = (x3 * y3 % 2 + x3 * y3 % 3) % 2 === 0; break;
+          default: inv = ((x3 + y3) % 2 + x3 * y3 % 3) % 2 === 0;
+        }
+        if (!fn[y3][x3] && inv) mods[y3][x3] = !mods[y3][x3];
+      }
+    };
+    var penalty = function () {
+      var score = 0, dark = 0;
+      var line = function (get) {
+        for (var i = 0; i < size; i++) {
+          var run = 1, s = '';
+          for (var j = 0; j < size; j++) {
+            var v = get(i, j); s += v ? '1' : '0'; if (v) dark++;
+            if (j > 0) { if (v === get(i, j - 1)) { run++; if (run === 5) score += 3; else if (run > 5) score += 1; } else run = 1; }
+          }
+          var re = /(?=(10111010000|00001011101))/g; while (re.exec(s)) { score += 40; re.lastIndex++; }
+        }
+      };
+      line(function (i, j) { return mods[i][j]; });
+      line(function (i, j) { return mods[j][i]; });
+      dark /= 2;
+      for (var y4 = 0; y4 < size - 1; y4++) for (var x4 = 0; x4 < size - 1; x4++) {
+        var c0 = mods[y4][x4]; if (c0 === mods[y4][x4 + 1] && c0 === mods[y4 + 1][x4] && c0 === mods[y4 + 1][x4 + 1]) score += 3;
+      }
+      score += Math.floor(Math.abs(dark * 100 / (size * size) - 50) / 5) * 10;
+      return score;
+    };
+    var best = forceMask, bestScore = Infinity;
+    if (best === undefined) {
+      for (var m = 0; m < 8; m++) { applyMask(m); drawFormat(m); var sc = penalty(); if (sc < bestScore) { bestScore = sc; best = m; } applyMask(m); }
+    }
+    applyMask(best); drawFormat(best);
+    return { size: size, version: ver, mask: best, modules: mods };
+  }
+  function svg(text, scale) {
+    var q = encode(text), b = 4, n = q.size + b * 2, d = '';
+    for (var y = 0; y < q.size; y++) for (var x = 0; x < q.size; x++) if (q.modules[y][x]) d += 'M' + (x + b) + ' ' + (y + b) + 'h1v1h-1z';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + n + ' ' + n + '" width="' + (scale || n * 6) + '" height="' + (scale || n * 6) + '" shape-rendering="crispEdges" role="img" aria-label="QR Code"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+  }
+  return { encode: encode, svg: svg };
+})();
+
+/* =========================================================================
  * STATE (เก็บในหน่วยความจำของหน้าเว็บเท่านั้น ไม่บันทึกลงเบราว์เซอร์)
  * ========================================================================= */
 var S = {
-  token: '', user: null, settings: {}, meta: {}, departments: [], lookups: { projects: [], activities: [] },
-  appUrl: '', view: 'dashboard', params: {}, data: {}, filters: {}, reg: {}, pending: 0, seq: 0, bootDashboard: null, detailTab: 'activities'
+  token: '', user: null, settings: {}, course: {}, sections: [], meta: {}, appUrl: '', view: '', params: {}, data: {}, filters: {}, reg: {},
+  pending: 0, seq: 0, section: '', student: null, bootDashboard: null, timers: [], deviceHash: '', publicInfo: null, startCode: ''
 };
 
-var MENU = [
+var TEACHER_MENU = [
   { group: 'ภาพรวม' },
-  { id: 'dashboard', label: 'แดชบอร์ด', icon: '▦' },
-  { group: 'งานโครงการ' },
-  { id: 'projects', label: 'โครงการ', icon: '◫' },
-  { id: 'activities', label: 'กิจกรรม', icon: '☷' },
-  { id: 'expenses', label: 'เบิกจ่าย', icon: '฿' },
-  { id: 'progress', label: 'ความก้าวหน้า', icon: '↗' },
-  { id: 'reports', label: 'รายงาน', icon: '▤' },
-  { id: 'files', label: 'ไฟล์เอกสาร', icon: '⎘' },
-  { group: 'ระบบ' },
-  { id: 'users', label: 'ผู้ใช้งาน', icon: '☺', roles: ['admin'] },
-  { id: 'departments', label: 'หน่วยงาน', icon: '⌂', roles: ['admin'] },
-  { id: 'settings', label: 'ตั้งค่า', icon: '⚙' },
+  { id: 'dashboard', label: 'ภาพรวมรายวิชา', icon: '▦' },
+  { group: 'ระหว่างคาบ' },
+  { id: 'sessions', label: 'คาบเรียน & เช็คชื่อ', icon: '◷' },
+  { id: 'attendance', label: 'ตารางการเข้าเรียน', icon: '▤' },
+  { group: 'งาน & คะแนน' },
+  { id: 'assignments', label: 'งานที่มอบหมาย', icon: '✎' },
+  { id: 'grading', label: 'ตรวจงาน & ให้คะแนน', icon: '✓' },
+  { id: 'gradebook', label: 'สมุดคะแนน', icon: '▥' },
+  { group: 'จัดการ' },
+  { id: 'students', label: 'นักศึกษา', icon: '☺' },
+  { id: 'settings', label: 'ตั้งค่ารายวิชา', icon: '⚙' },
   { id: 'logs', label: 'บันทึกการใช้งาน', icon: '≡', roles: ['admin'] }
 ];
-
+var STUDENT_MENU = [
+  { id: 'home', label: 'หน้าแรก', icon: '⌂' },
+  { id: 'checkin', label: 'เช็คชื่อเข้าเรียน', icon: '◎' },
+  { id: 'myattendance', label: 'การเข้าเรียนของฉัน', icon: '▤' },
+  { id: 'myassignments', label: 'งานที่ได้รับมอบหมาย', icon: '✎' },
+  { id: 'mygrades', label: 'คะแนนของฉัน', icon: '▥' },
+  { id: 'account', label: 'เปลี่ยนรหัสผ่าน', icon: '⚿' }
+];
+var HIDDEN_VIEWS = { live: 'sessions' };
 var TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 var STATUS_CLASS = {
-  planning: 'info', active: 'primary', on_hold: 'warn', completed: 'ok', cancelled: 'bad',
-  not_started: '', in_progress: 'primary', pending: 'warn', approved: 'ok', rejected: 'bad', inactive: 'bad'
+  scheduled: '', open: 'ok', closed: 'info', cancelled: 'bad', present: 'ok', late: 'warn', absent: 'bad', excused: 'info',
+  draft: '', published: 'ok', active: 'ok', inactive: 'bad'
 };
-var CHART_COLORS = ['#3b82f6', '#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#14b8a6'];
+var MARK = { present: 'ม', late: 'ส', absent: 'ข', excused: 'ล' };
 
 /* =========================================================================
  * SERVER CALLS — google.script.run พร้อม Success/Failure Handler + Loading
@@ -374,6 +616,7 @@ function serverCall(fn, args) {
         if (res && res.success) { resolve(res); return; }
         var message = (res && res.message) || 'เกิดข้อผิดพลาด';
         if (res && res.code === 'SESSION_EXPIRED') sessionExpired(message);
+        if (res && res.code === 'MUST_CHANGE_PASSWORD' && S.user) { S.user.mustChange = true; renderNav(); navigate('account'); }
         reject(new Error(message));
       })
       .withFailureHandler(function () {
@@ -422,11 +665,8 @@ function esc(v) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
-var MONEY_FMT = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 var NUM_FMT = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
-function money(n) { return MONEY_FMT.format(Number(n) || 0); }
 function num(n) { return NUM_FMT.format(Number(n) || 0); }
-function cur() { return S.settings.currency || 'บาท'; }
 function dateTH(s) {
   if (!s) return '-';
   var p = String(s).slice(0, 10).split('-');
@@ -435,21 +675,17 @@ function dateTH(s) {
 }
 function dateTimeTH(s) {
   if (!s) return '-';
-  return dateTH(s) + ' ' + String(s).slice(11, 16);
+  return dateTH(s) + ' ' + String(s).slice(11, 16) + ' น.';
 }
-function todayISO() {
+function dayLabel(d) { return (S.meta.days || [])[d] || ''; }
+function nowLocal() {
   var d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 function badge(status, label) { return '<span class="badge ' + (STATUS_CLASS[status] || '') + '">' + esc(label || status) + '</span>'; }
-function pctBar(pct, label) {
+function bar(pct, cls) {
   var v = Math.max(0, Math.min(100, Number(pct) || 0));
-  var cls = v >= 100 ? 'bad' : v >= 85 ? 'warn' : '';
-  return (label ? '<div class="bar-label"><span>' + label + '</span><span>' + num(pct) + '%</span></div>' : '') + '<div class="bar ' + cls + '"><span style="width:' + v + '%"></span></div>';
-}
-function progressBar(pct) {
-  var v = Math.max(0, Math.min(100, Number(pct) || 0));
-  return '<div class="bar-label"><span></span><span>' + num(v) + '%</span></div><div class="bar ok"><span style="width:' + v + '%"></span></div>';
+  return '<div class="bar ' + (cls || '') + '"><span style="width:' + v + '%"></span></div>';
 }
 function fileSize(b) {
   var n = Number(b) || 0;
@@ -457,22 +693,20 @@ function fileSize(b) {
   if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
   return (n / 1048576).toFixed(1) + ' MB';
 }
+function isTeacher() { return S.user && (S.user.role === 'admin' || S.user.role === 'teacher'); }
 function isAdmin() { return S.user && S.user.role === 'admin'; }
-function isManager() { return S.user && (S.user.role === 'admin' || S.user.role === 'manager'); }
-function projectLookup(id) { return S.lookups.projects.filter(function (p) { return p.id === id; })[0] || null; }
-function activityLookup(id) { return S.lookups.activities.filter(function (a) { return a.id === id; })[0] || null; }
-function canManageProject(id) { var p = projectLookup(id); return !!p && !!p.canManage; }
-function deptName(id) { var d = S.departments.filter(function (x) { return x.id === id; })[0]; return d ? d.name : ''; }
 function mapOptions(map) { return Object.keys(map || {}).map(function (k) { return { value: k, label: map[k] }; }); }
-function register(kind, items) { S.reg[kind] = {}; (items || []).forEach(function (it) { S.reg[kind][it.id] = it; }); }
+function sectionOptions() { return S.sections.map(function (s) { return { value: s.code, label: s.name + ' (' + dayLabel(s.meetingDay) + ')' }; }); }
+function register(kind, items, key) { S.reg[kind] = {}; (items || []).forEach(function (it) { S.reg[kind][it[key || 'id']] = it; }); }
 function item(kind, id) { return (S.reg[kind] || {})[id] || null; }
-function applyLookups(data) { if (data && data.lookups) S.lookups = data.lookups; }
 function matchText(obj, keys, q) {
   if (!q) return true;
   var hay = keys.map(function (k) { return obj[k] || ''; }).join(' ').toLowerCase();
   return hay.indexOf(q.toLowerCase()) >= 0;
 }
 function filter(view) { S.filters[view] = S.filters[view] || {}; return S.filters[view]; }
+function currentSection() { return S.section || (S.sections[0] ? S.sections[0].code : ''); }
+function categoryName(code) { var c = (S.meta.categories || []).filter(function (x) { return x.code === code; })[0]; return c ? c.name : code; }
 
 /* =========================================================================
  * TOAST / CONFIRMATION DIALOG / MODAL
@@ -523,7 +757,7 @@ function closeModal() { el('modal-root').hidden = true; el('modal-body').innerHT
 function fieldHtml(f, values) {
   var v = values[f.name] !== undefined && values[f.name] !== null ? values[f.name] : (f.value !== undefined ? f.value : '');
   var id = 'f-' + f.name;
-  var attrs = ' id="' + id + '" name="' + f.name + '"' + (f.required ? ' required' : '') + (f.maxlength ? ' maxlength="' + f.maxlength + '"' : '') + (f.disabled ? ' disabled' : '');
+  var attrs = ' id="' + id + '" name="' + f.name + '"' + (f.required === true ? ' required' : '') + (f.maxlength ? ' maxlength="' + f.maxlength + '"' : '') + (f.disabled ? ' disabled' : '');
   var input;
   if (f.type === 'select') {
     input = '<select class="input"' + attrs + '>' + (f.placeholder !== undefined ? '<option value="">' + esc(f.placeholder) + '</option>' : '') +
@@ -531,10 +765,15 @@ function fieldHtml(f, values) {
   } else if (f.type === 'textarea') {
     input = '<textarea class="input"' + attrs + ' rows="' + (f.rows || 3) + '">' + esc(v) + '</textarea>';
   } else if (f.type === 'file') {
-    input = '<input class="input" type="file"' + attrs + (f.accept ? ' accept="' + esc(f.accept) + '"' : '') + '>';
+    input = '<input class="input" type="file"' + attrs + (f.multiple ? ' multiple' : '') + (f.accept ? ' accept="' + esc(f.accept) + '"' : '') + '>';
+  } else if (f.type === 'checks') {
+    var chosen = Array.isArray(v) ? v : [];
+    input = '<div class="checks" id="' + id + '">' + (f.options || []).map(function (o) {
+      return '<label><input type="checkbox" name="' + f.name + '" value="' + esc(o.value) + '"' + (chosen.indexOf(o.value) >= 0 ? ' checked' : '') + '> ' + esc(o.label) + '</label>';
+    }).join('') + '</div>';
   } else {
-    var type = f.type === 'money' || f.type === 'number' ? 'number' : (f.type || 'text');
-    var extra = (f.type === 'money' ? ' step="0.01" inputmode="decimal"' : '') + (f.min !== undefined ? ' min="' + f.min + '"' : '') + (f.max !== undefined ? ' max="' + f.max + '"' : '') + (f.step ? ' step="' + f.step + '"' : '') + (f.autocomplete ? ' autocomplete="' + f.autocomplete + '"' : '');
+    var type = f.type === 'number' ? 'number' : (f.type || 'text');
+    var extra = (f.min !== undefined ? ' min="' + f.min + '"' : '') + (f.max !== undefined ? ' max="' + f.max + '"' : '') + (f.step ? ' step="' + f.step + '"' : '') + (f.autocomplete ? ' autocomplete="' + f.autocomplete + '"' : '') + (f.inputmode ? ' inputmode="' + f.inputmode + '"' : '');
     input = '<input class="input" type="' + type + '"' + attrs + extra + ' value="' + esc(v) + '"' + (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>';
   }
   return '<div class="field' + (f.full ? ' full' : '') + '" data-field="' + f.name + '"' + (f.hidden ? ' hidden' : '') + '><label for="' + id + '">' + esc(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</label>' + input +
@@ -544,9 +783,13 @@ function fieldHtml(f, values) {
 function collectForm(form, fields) {
   var data = {};
   fields.forEach(function (f) {
+    if (f.type === 'checks') {
+      data[f.name] = Array.prototype.map.call(form.querySelectorAll('input[name="' + f.name + '"]:checked'), function (c) { return c.value; });
+      return;
+    }
     var input = form.elements[f.name];
     if (!input) return;
-    if (f.type === 'file') data[f.name] = input.files && input.files[0] ? input.files[0] : null;
+    if (f.type === 'file') data[f.name] = input.files ? Array.prototype.slice.call(input.files) : [];
     else data[f.name] = String(input.value === undefined ? '' : input.value).trim();
   });
   return data;
@@ -559,21 +802,22 @@ function validateFields(fields, data, form) {
     if (wrap && wrap.hidden) continue;
     var v = data[f.name];
     var required = typeof f.required === 'function' ? f.required(data) : f.required;
-    if (required && (v === null || v === undefined || v === '')) return 'กรุณากรอก "' + f.label + '"';
-    if (v && (f.type === 'money' || f.type === 'number')) {
+    var empty = v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length);
+    if (required && empty) return 'กรุณากรอก "' + f.label + '"';
+    if (!empty && f.type === 'number') {
       if (!/^-?\d+(\.\d+)?$/.test(v)) return '"' + f.label + '" ต้องเป็นตัวเลข';
       var n = Number(v);
       if (f.min !== undefined && n < f.min) return '"' + f.label + '" ต้องไม่น้อยกว่า ' + f.min;
       if (f.max !== undefined && n > f.max) return '"' + f.label + '" ต้องไม่เกิน ' + f.max;
       if (f.positive && n <= 0) return '"' + f.label + '" ต้องมากกว่า 0';
     }
-    if (v && f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'รูปแบบอีเมลไม่ถูกต้อง';
-    if (v && f.type === 'file') {
-      var max = (Number(S.settings.maxUploadMB) || 10) * 1048576;
-      if (v.size > max) return 'ไฟล์มีขนาดเกิน ' + S.settings.maxUploadMB + ' MB';
+    if (!empty && f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+    if (!empty && f.type === 'file') {
+      var max = (Number(S.settings.maxUploadMB) || 20) * 1048576;
+      var total = v.reduce(function (t, x) { return t + x.size; }, 0);
+      if (total > max) return 'ไฟล์รวมกันเกิน ' + S.settings.maxUploadMB + ' MB';
     }
   }
-  if (data.startDate && data.endDate && data.endDate < data.startDate) return 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม';
   return '';
 }
 
@@ -582,7 +826,7 @@ function openForm(cfg) {
   openModal({
     title: cfg.title,
     size: cfg.size || '',
-    body: '<form id="modal-form" novalidate><div class="form-grid">' + cfg.fields.map(function (f) { return fieldHtml(f, values); }).join('') + '</div><div class="form-error" id="form-error" hidden></div></form>',
+    body: (cfg.intro || '') + '<form id="modal-form" novalidate><div class="form-grid">' + cfg.fields.map(function (f) { return fieldHtml(f, values); }).join('') + '</div><div class="form-error" id="form-error" hidden></div></form>',
     footer: '<button class="btn ghost" type="button" data-act="modal-close">ยกเลิก</button><button class="btn primary" type="submit" form="modal-form" id="modal-submit">' + esc(cfg.submitText || 'บันทึก') + '</button>'
   });
   var form = el('modal-form');
@@ -591,10 +835,11 @@ function openForm(cfg) {
     e.preventDefault();
     errBox.hidden = true;
     var data = collectForm(form, cfg.fields);
-    var err = validateFields(cfg.fields, data, form) || (cfg.validate ? cfg.validate(data) : '');
+    var err = validateFields(cfg.fields, data, form) || (cfg.validate ? cfg.validate(data, form) : '');
     if (err) { errBox.textContent = err; errBox.hidden = false; return; }
-    withButton(el('modal-submit'), Promise.resolve().then(function () { return cfg.onSubmit(data); }))
+    withButton(el('modal-submit'), Promise.resolve().then(function () { return cfg.onSubmit(data, form); }))
       .then(function (res) {
+        if (cfg.keepOpen) { if (cfg.after) cfg.after(res); return; }
         closeModal();
         toast((res && res.message) || 'บันทึกแล้ว', 'success');
         if (cfg.after) cfg.after(res);
@@ -602,21 +847,19 @@ function openForm(cfg) {
       .catch(function (error) { errBox.textContent = error.message; errBox.hidden = false; });
   });
   if (cfg.onReady) cfg.onReady(form);
-  var first = form.querySelector('input:not([type=hidden]):not([disabled]), select, textarea');
+  var first = form.querySelector('input:not([type=hidden]):not([disabled]):not([type=checkbox]), select, textarea');
   if (first) first.focus();
 }
 
-function readUpload(file) {
-  return new Promise(function (resolve, reject) {
-    if (!file) { resolve(null); return; }
-    var reader = new FileReader();
-    reader.onload = function () {
-      var s = String(reader.result || '');
-      resolve({ name: file.name, mimeType: file.type || 'application/octet-stream', data: s.slice(s.indexOf(',') + 1) });
-    };
-    reader.onerror = function () { reject(new Error('อ่านไฟล์ไม่สำเร็จ')); };
-    reader.readAsDataURL(file);
-  });
+function readUploads(files) {
+  return Promise.all((files || []).map(function (file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { var s = String(reader.result || ''); resolve({ name: file.name, mimeType: file.type || 'application/octet-stream', data: s.slice(s.indexOf(',') + 1) }); };
+      reader.onerror = function () { reject(new Error('อ่านไฟล์ไม่สำเร็จ: ' + file.name)); };
+      reader.readAsDataURL(file);
+    });
+  }));
 }
 
 /* =========================================================================
@@ -627,10 +870,9 @@ function table(columns, rows, opts) {
   if (!rows.length) return emptyState(opts.empty || 'ยังไม่มีข้อมูล', opts.emptyIcon);
   var head = '<tr>' + columns.map(function (c) { return '<th class="' + (c.num ? 'num' : '') + '">' + esc(c.label) + '</th>'; }).join('') + '</tr>';
   var body = rows.map(function (r) {
-    return '<tr>' + columns.map(function (c) { return '<td data-label="' + esc(c.label) + '" class="' + (c.num ? 'num' : '') + '">' + c.render(r) + '</td>'; }).join('') + '</tr>';
+    return '<tr' + (opts.rowAttr ? opts.rowAttr(r) : '') + '>' + columns.map(function (c) { return '<td data-label="' + esc(c.label) + '" class="' + (c.num ? 'num' : '') + '">' + c.render(r) + '</td>'; }).join('') + '</tr>';
   }).join('');
-  var foot = opts.footer ? '<tfoot><tr>' + columns.map(function (c, i) { var v = opts.footer[i]; return '<td data-label="' + esc(c.label) + '" class="' + (c.num ? 'num' : '') + '">' + (v === undefined ? '' : v) + '</td>'; }).join('') + '</tr></tfoot>' : '';
-  return '<div class="table-wrap cards"><table class="tbl"><thead>' + head + '</thead><tbody>' + body + '</tbody>' + foot + '</table></div>';
+  return '<div class="table-wrap ' + (opts.noCards ? '' : 'cards') + '"><table class="tbl ' + (opts.cls || '') + '"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
 }
 function emptyState(msg, icon) { return '<div class="empty"><span class="ico">' + (icon || '◌') + '</span>' + esc(msg) + '</div>'; }
 function errorState(msg) { return '<div class="card error-box"><p>' + esc(msg) + '</p><button class="btn primary" type="button" data-act="refresh">ลองใหม่</button></div>'; }
@@ -640,47 +882,56 @@ function skeleton() {
   return cards + lines;
 }
 function selectFilter(name, value, options, placeholder) {
-  return '<select class="input" data-filter="' + name + '" style="width:auto;min-width:160px">' + '<option value="">' + esc(placeholder) + '</option>' +
+  return '<select class="input" data-filter="' + name + '" style="width:auto;min-width:150px">' + (placeholder !== null ? '<option value="">' + esc(placeholder) + '</option>' : '') +
     options.map(function (o) { return '<option value="' + esc(o.value) + '"' + (String(o.value) === String(value || '') ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select>';
 }
 function searchFilter(value, placeholder) {
   return '<input class="input grow" type="search" data-filter="q" value="' + esc(value || '') + '" placeholder="' + esc(placeholder || 'ค้นหา') + '">';
-}
-function projectOptions(onlyManageable) {
-  return S.lookups.projects.filter(function (p) { return !onlyManageable || p.canManage; })
-    .map(function (p) { return { value: p.id, label: (p.code ? p.code + ' · ' : '') + p.name }; });
-}
-function activityOptions(projectId) {
-  return S.lookups.activities.filter(function (a) { return a.projectId === projectId; }).map(function (a) { return { value: a.id, label: a.name }; });
-}
-function departmentOptions() { return S.departments.map(function (d) { return { value: d.id, label: d.name }; }); }
-function fillSelect(select, options, placeholder, value) {
-  select.innerHTML = '<option value="">' + esc(placeholder) + '</option>' + options.map(function (o) {
-    return '<option value="' + esc(o.value) + '"' + (String(o.value) === String(value || '') ? ' selected' : '') + '>' + esc(o.label) + '</option>';
-  }).join('');
 }
 function actionButtons(btns) {
   return '<div class="btn-row">' + btns.filter(Boolean).map(function (b) {
     return '<button type="button" class="btn sm ' + (b.cls || 'ghost') + '" data-act="' + b.act + '" data-id="' + esc(b.id) + '"' + (b.extra || '') + '>' + esc(b.label) + '</button>';
   }).join('') + '</div>';
 }
+function scheduleTable(sections) {
+  return table([
+    { label: 'กลุ่ม', render: function (s) { return '<strong>' + esc(s.name) + '</strong>'; } },
+    { label: 'วัน', render: function (s) { return esc(s.dayLabel || dayLabel(s.meetingDay)); } },
+    { label: 'เวลา', render: function (s) { return esc(s.startTime) + '–' + esc(s.endTime) + ' น.'; } },
+    { label: 'ห้อง', render: function (s) { return esc(s.room || '-'); } },
+    { label: 'นักศึกษา', num: true, render: function (s) { return s.studentCount === undefined ? '' : s.studentCount + ' คน'; } },
+    { label: 'คาบถัดไป', render: function (s) { return s.next ? (s.next.status === 'open' ? badge('open', 'กำลังเช็คชื่อ') + ' ' : '') + 'สัปดาห์ ' + s.next.week + ' · ' + dateTH(s.next.sessionDate) : '<span class="muted">-</span>'; } }
+  ], sections, { empty: 'ยังไม่มีกลุ่มเรียน' });
+}
 
 /* =========================================================================
  * NAVIGATION (SPA — เปลี่ยนเฉพาะเนื้อหา ไม่ Reload หน้า)
  * ========================================================================= */
-function allowed(item) { return !item.roles || item.roles.indexOf(S.user.role) >= 0; }
+function menu() { return isTeacher() ? TEACHER_MENU : STUDENT_MENU; }
+function allowed(m) { return !m.roles || m.roles.indexOf(S.user.role) >= 0; }
 
 function renderNav() {
-  el('nav').innerHTML = MENU.filter(function (m) { return m.group || allowed(m); }).map(function (m) {
+  var items = menu();
+  if (S.user.mustChange) items = items.filter(function (m) { return m.id === 'account'; });
+  el('nav').innerHTML = items.filter(function (m) { return m.group || allowed(m); }).map(function (m) {
     if (m.group) return '<div class="nav-group">' + esc(m.group) + '</div>';
     return '<button type="button" data-act="nav" data-view="' + m.id + '" title="' + esc(m.label) + '"><span class="ico">' + m.icon + '</span><span class="label">' + esc(m.label) + '</span></button>';
   }).join('');
+  var sw = el('section-switch');
+  sw.hidden = !isTeacher();
+  if (isTeacher()) {
+    sw.innerHTML = '<option value="">ทุกกลุ่มเรียน</option>' + S.sections.map(function (s) { return '<option value="' + esc(s.code) + '"' + (s.code === S.section ? ' selected' : '') + '>' + esc(s.name) + ' · ' + esc(dayLabel(s.meetingDay)) + '</option>'; }).join('');
+  }
 }
 
+function stopTimers() { S.timers.forEach(function (t) { clearInterval(t); }); S.timers = []; document.body.classList.remove('presenting'); }
+
 function navigate(id, params) {
-  var menuId = id === 'project' ? 'projects' : id;
-  var m = MENU.filter(function (x) { return x.id === menuId; })[0];
-  if (!VIEWS[id] || !m || !allowed(m)) { id = 'dashboard'; menuId = 'dashboard'; }
+  stopTimers();
+  if (S.user.mustChange) id = 'account';
+  var menuId = HIDDEN_VIEWS[id] || id;
+  var m = menu().filter(function (x) { return x.id === menuId; })[0];
+  if (!VIEWS[id] || !m || !allowed(m)) { id = isTeacher() ? 'dashboard' : 'home'; menuId = id; }
   S.view = id;
   S.params = params || {};
   Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (b) { b.classList.toggle('active', b.getAttribute('data-view') === menuId); });
@@ -695,10 +946,9 @@ function loadView(silent) {
   var v = VIEWS[id];
   var seq = ++S.seq;
   if (!silent) el('view').innerHTML = skeleton();
-  return v.load(S.params).then(function (data) {
+  return Promise.resolve().then(function () { return v.load(S.params); }).then(function (data) {
     if (seq !== S.seq) return;
     S.data[id] = data;
-    applyLookups(data);
     v.render(data);
   }).catch(function (err) {
     if (seq !== S.seq || !S.token) return;
@@ -709,440 +959,358 @@ function loadView(silent) {
 
 function refreshView() { return loadView(true); }
 function closeMenu() { el('app').classList.remove('menu-open'); el('backdrop').hidden = true; }
+function setSections(list) { if (list) { S.sections = list; renderNav(); Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (b) { b.classList.toggle('active', b.getAttribute('data-view') === (HIDDEN_VIEWS[S.view] || S.view)); }); } }
 
 /* =========================================================================
- * VIEWS
+ * VIEWS — อาจารย์
  * ========================================================================= */
 var VIEWS = {};
 
 /* ---------- Dashboard ---------- */
 VIEWS.dashboard = {
-  title: 'แดชบอร์ด',
+  title: 'ภาพรวมรายวิชา',
   load: function () {
     if (S.bootDashboard) { var d = S.bootDashboard; S.bootDashboard = null; return Promise.resolve(d); }
-    return api('getDashboard').then(function (r) { return r.data; });
+    return Promise.all([api('getDashboard'), api('listSections')]).then(function (r) { setSections(r[1].data.items); return r[0].data; });
   },
   render: function (d) {
     var t = d.totals;
     var stats = '<div class="stats">' +
-      '<div class="stat accent"><div class="label">งบประมาณรวม (' + esc(cur()) + ')</div><div class="value">' + money(t.budget) + '</div><div class="sub">' + t.projects + ' โครงการ · ดำเนินการ ' + t.activeProjects + '</div></div>' +
-      '<div class="stat"><div class="label">เบิกจ่ายอนุมัติแล้ว</div><div class="value">' + money(t.spent) + '</div><div class="sub">รออนุมัติ ' + money(t.pending) + '</div></div>' +
-      '<div class="stat"><div class="label">งบคงเหลือ</div><div class="value">' + money(t.remaining) + '</div><div class="sub">ใช้ไปแล้ว ' + num(t.usedPct) + '%</div></div>' +
-      '<div class="stat"><div class="label">รายการรออนุมัติ</div><div class="value">' + t.pendingCount + '</div><div class="sub">กิจกรรมทั้งหมด ' + t.activities + ' · ความก้าวหน้าเฉลี่ย ' + num(t.avgProgress) + '%</div></div>' +
-      '</div>';
-    var totalCount = d.byStatus.reduce(function (s, x) { return s + x.count; }, 0);
-    var acc = 0;
-    var stops = d.byStatus.map(function (x, i) {
-      var start = totalCount ? acc / totalCount * 100 : 0;
-      acc += x.count;
-      var end = totalCount ? acc / totalCount * 100 : 0;
-      return CHART_COLORS[i % CHART_COLORS.length] + ' ' + start + '% ' + end + '%';
-    }).join(', ');
-    var donut = '<div class="chart-row"><div class="donut" style="background:' + (totalCount ? 'conic-gradient(' + stops + ')' : '#eaeef5') + '"><div class="donut-center"><div>' + totalCount + '<small>โครงการ</small></div></div></div>' +
-      '<ul class="legend">' + d.byStatus.map(function (x, i) { return '<li><i style="background:' + CHART_COLORS[i % CHART_COLORS.length] + '"></i>' + esc(x.label) + ' <strong>' + x.count + '</strong></li>'; }).join('') + '</ul></div>';
-    var depts = d.byDepartment.length ? '<div class="dept-bars">' + d.byDepartment.map(function (x) {
-      return '<div class="item">' + pctBar(x.usedPct, esc(x.name) + ' · ' + money(x.committed) + ' / ' + money(x.budget)) + '</div>';
-    }).join('') + '</div>' : emptyState('ยังไม่มีโครงการ');
-    var deadline = function (list, overdue) {
-      if (!list.length) return emptyState(overdue ? 'ไม่มีโครงการที่เลยกำหนด' : 'ไม่มีโครงการที่ใกล้สิ้นสุดใน 30 วัน', '✓');
-      return '<ul class="list">' + list.map(function (p) {
-        return '<li><div><a href="#" data-act="project-open" data-id="' + esc(p.id) + '"><strong>' + esc(p.name) + '</strong></a><div class="cell-sub">' + esc(p.departmentName) + ' · สิ้นสุด ' + dateTH(p.endDate) + '</div></div>' + badge(overdue ? 'cancelled' : 'pending', overdue ? 'เลยกำหนด' : 'ใกล้สิ้นสุด') + '</li>';
-      }).join('') + '</ul>';
-    };
-    var top = d.topProjects.length ? d.topProjects.map(function (p) {
-      return '<div class="item" style="margin-bottom:.75rem">' + pctBar(p.usedPct, '<a href="#" data-act="project-open" data-id="' + esc(p.id) + '">' + esc(p.name) + '</a>') + '</div>';
-    }).join('') : emptyState('ยังไม่มีโครงการ');
-    var recent = table([
-      { label: 'วันที่', render: function (e) { return '<span class="nowrap">' + dateTH(e.expenseDate) + '</span>'; } },
-      { label: 'รายการ', render: function (e) { return '<div class="cell-title">' + esc(e.description) + '</div><div class="cell-sub">' + esc(e.projectName) + '</div>'; } },
-      { label: 'สถานะ', render: function (e) { return badge(e.status, e.statusLabel); } },
-      { label: 'จำนวนเงิน', num: true, render: function (e) { return money(e.amount); } }
-    ], d.recentExpenses, { empty: 'ยังไม่มีรายการเบิกจ่าย' });
-    var progress = d.recentProgress.length ? '<ul class="list">' + d.recentProgress.map(function (r) {
-      return '<li><div><strong>' + esc(r.projectName) + '</strong>' + (r.activityName ? ' · ' + esc(r.activityName) : '') + '<div class="cell-sub">' + dateTH(r.reportDate) + ' · ' + esc(r.createdBy) + '</div></div><span class="badge ok">' + num(r.percent) + '%</span></li>';
-    }).join('') + '</ul>' : emptyState('ยังไม่มีรายงานความก้าวหน้า');
+      '<div class="stat accent"><div class="label">นักศึกษา</div><div class="value">' + t.students + '</div><div class="sub">' + S.sections.length + ' กลุ่มเรียน</div></div>' +
+      '<div class="stat"><div class="label">คาบวันนี้ / กำลังเช็คชื่อ</div><div class="value">' + d.today.length + '</div><div class="sub">' + d.today.filter(function (s) { return s.status === 'open'; }).length + ' คาบเปิดเช็คชื่ออยู่</div></div>' +
+      '<div class="stat"><div class="label">งานที่เผยแพร่</div><div class="value">' + t.assignments + '</div><div class="sub">ครบกำหนดใน 7 วัน ' + d.dueSoon.length + ' รายการ</div></div>' +
+      '<div class="stat"><div class="label">งานรอตรวจ</div><div class="value">' + t.toGrade + '</div><div class="sub">ส่งใหม่/ส่งแก้ที่ยังไม่ให้คะแนน</div></div></div>';
+    var today = d.today.length ? table([
+      { label: 'กลุ่ม', render: function (s) { return '<strong>กลุ่ม ' + esc(s.sectionCode) + '</strong><div class="cell-sub">สัปดาห์ ' + s.week + '</div>'; } },
+      { label: 'เวลา', render: function (s) { return esc(s.startTime) + '–' + esc(s.endTime) + '<div class="cell-sub">' + esc(s.room) + '</div>'; } },
+      { label: 'สถานะ', render: function (s) { return badge(s.status, s.statusLabel); } },
+      { label: 'เช็คชื่อ', render: function (s) { var n = s.counts.present + s.counts.late; return n + ' / ' + s.studentCount + bar(s.studentCount ? n / s.studentCount * 100 : 0, 'ok'); } },
+      { label: '', render: function (s) { return actionButtons([s.status !== 'open' && s.status !== 'cancelled' && { act: 'session-open', id: s.id, label: 'เปิดเช็คชื่อ', cls: 'primary' }, { act: 'session-live', id: s.id, label: 'หน้าจอเช็คชื่อ' }]); } }
+    ], d.today) : emptyState('วันนี้ไม่มีคาบเรียน', '☕');
+    var rates = d.sectionRates.map(function (r) { return '<div style="margin-bottom:.7rem"><div class="bar-label"><span>' + esc(r.name) + ' · ' + r.students + ' คน · สอนแล้ว ' + r.held + ' คาบ</span><span>' + num(r.rate) + '%</span></div>' + bar(r.rate, 'ok') + '</div>'; }).join('') || emptyState('ยังไม่มีข้อมูล');
+    var grading = d.pendingGrading.length ? '<ul class="list">' + d.pendingGrading.map(function (a) { return '<li><div><strong>' + esc(a.code) + '</strong> ' + esc(a.title) + '</div><button class="btn sm primary" type="button" data-act="grade-open" data-id="' + esc(a.id) + '">ตรวจ ' + a.count + ' งาน</button></li>'; }).join('') + '</ul>' : emptyState('ไม่มีงานรอตรวจ', '✓');
+    var due = d.dueSoon.length ? '<ul class="list">' + d.dueSoon.map(function (a) { return '<li><div><strong>' + esc(a.code) + '</strong> ' + esc(a.title) + '<div class="cell-sub">กลุ่ม ' + esc(a.sectionCode) + '</div></div><span class="badge warn">' + dateTimeTH(a.due) + '</span></li>'; }).join('') + '</ul>' : emptyState('ไม่มีงานครบกำหนดใน 7 วัน');
+    var upcoming = d.upcoming.length ? '<ul class="list">' + d.upcoming.map(function (s) { return '<li><div><strong>กลุ่ม ' + esc(s.sectionCode) + ' · สัปดาห์ ' + s.week + '</strong><div class="cell-sub">' + esc(s.title) + '</div></div><span class="nowrap">' + dateTH(s.sessionDate) + '</span></li>'; }).join('') + '</ul>' : emptyState('ไม่มีคาบที่กำลังจะมาถึง');
     el('view').innerHTML = stats +
-      '<div class="card">' + pctBar(t.usedPct, 'ใช้งบประมาณรวม ' + money(t.committed) + ' จาก ' + money(t.budget) + ' ' + esc(cur())) + '</div>' +
+      '<div class="card"><div class="card-head"><h2>คาบเรียนวันนี้</h2><button class="btn sm ghost" type="button" data-act="nav" data-view="sessions">คาบทั้งหมด</button></div>' + today + '</div>' +
+      '<div class="grid grid-2">' +
+      '<div class="card"><div class="card-head"><h2>ตารางสอน ' + esc(S.course.semester) + '/' + esc(S.course.academicYear) + '</h2></div>' + scheduleTable(S.sections) + '</div>' +
+      '<div class="card"><div class="card-head"><h2>อัตราการเข้าเรียนรายกลุ่ม</h2></div>' + rates + '</div></div>' +
       '<div class="grid grid-3">' +
-      '<div class="card"><div class="card-head"><h2>สถานะโครงการ</h2></div>' + donut + '</div>' +
-      '<div class="card"><div class="card-head"><h2>การใช้งบตามหน่วยงาน</h2></div>' + depts + '</div>' +
-      '<div class="card"><div class="card-head"><h2>โครงการที่ใช้งบสูงสุด</h2></div>' + top + '</div>' +
-      '</div>' +
-      '<div class="grid grid-2">' +
-      '<div class="card"><div class="card-head"><h2>ใกล้สิ้นสุด (30 วัน)</h2></div>' + deadline(d.upcoming, false) + '</div>' +
-      '<div class="card"><div class="card-head"><h2>เลยกำหนดแต่ยังไม่ปิด</h2></div>' + deadline(d.overdue, true) + '</div>' +
-      '</div>' +
-      '<div class="grid grid-2">' +
-      '<div class="card"><div class="card-head"><h2>การเบิกจ่ายล่าสุด</h2><button class="btn sm ghost" type="button" data-act="nav" data-view="expenses">ดูทั้งหมด</button></div>' + recent + '</div>' +
-      '<div class="card"><div class="card-head"><h2>ความก้าวหน้าล่าสุด</h2><button class="btn sm ghost" type="button" data-act="nav" data-view="progress">ดูทั้งหมด</button></div>' + progress + '</div>' +
-      '</div><p class="muted small">ข้อมูล ณ ' + dateTimeTH(d.generatedAt) + '</p>';
+      '<div class="card"><div class="card-head"><h2>งานรอตรวจ</h2></div>' + grading + '</div>' +
+      '<div class="card"><div class="card-head"><h2>ใกล้ครบกำหนดส่ง</h2></div>' + due + '</div>' +
+      '<div class="card"><div class="card-head"><h2>คาบถัดไป</h2></div>' + upcoming + '</div></div>' +
+      '<p class="muted small">ข้อมูล ณ ' + dateTimeTH(d.generatedAt) + '</p>';
   }
 };
 
-/* ---------- Projects ---------- */
-VIEWS.projects = {
-  title: 'โครงการ',
-  load: function () { return api('listProjects').then(function (r) { return r.data; }); },
+/* ---------- Sessions ---------- */
+VIEWS.sessions = {
+  title: 'คาบเรียน & เช็คชื่อ',
+  load: function () { return api('listSessions').then(function (r) { return r.data; }); },
   render: function (d) {
-    var f = filter('projects');
-    register('project', d.items);
-    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหารหัส ชื่อโครงการ ผู้รับผิดชอบ') +
-      selectFilter('status', f.status, mapOptions(S.meta.projectStatus), 'ทุกสถานะ') +
-      (isAdmin() ? selectFilter('departmentId', f.departmentId, departmentOptions(), 'ทุกหน่วยงาน') : '') +
-      (isManager() ? '<button class="btn primary" type="button" data-act="project-new">+ เพิ่มโครงการ</button>' : '') +
-      '</div><div class="card" id="list"></div>';
+    var f = filter('sessions');
+    register('session', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + selectFilter('scope', f.scope || 'upcoming', [{ value: 'upcoming', label: 'ตั้งแต่สัปดาห์นี้' }, { value: 'all', label: 'ทุกสัปดาห์' }], null) +
+      '<span class="grow muted small">' + (S.section ? 'แสดงเฉพาะกลุ่ม ' + esc(S.section) + ' (เปลี่ยนกลุ่มที่มุมขวาบน)' : 'แสดงทุกกลุ่มเรียน') + '</span></div><div class="card" id="list"></div>';
     this.renderList(d);
   },
   renderList: function (d) {
-    var f = filter('projects');
-    var rows = d.items.filter(function (p) {
-      return matchText(p, ['code', 'name', 'ownerName', 'departmentName'], f.q) && (!f.status || p.status === f.status) && (!f.departmentId || p.departmentId === f.departmentId);
-    });
-    var sum = function (k) { return rows.reduce(function (s, p) { return s + p[k]; }, 0); };
+    var f = filter('sessions');
+    var weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+    var rows = d.items.filter(function (s) { return (!S.section || s.sectionCode === S.section) && ((f.scope || 'upcoming') === 'all' || s.status === 'open' || s.sessionDate >= weekAgo); });
     el('list').innerHTML = table([
-      { label: 'โครงการ', render: function (p) { return '<a href="#" class="cell-title" data-act="project-open" data-id="' + esc(p.id) + '">' + esc(p.name) + '</a><div class="cell-sub">' + esc(p.code || '-') + ' · ' + esc(p.departmentName) + '</div>'; } },
-      { label: 'ระยะเวลา', render: function (p) { return '<span class="nowrap">' + dateTH(p.startDate) + '</span><div class="cell-sub">ถึง ' + dateTH(p.endDate) + '</div>'; } },
-      { label: 'สถานะ', render: function (p) { return badge(p.status, p.statusLabel); } },
-      { label: 'งบประมาณ', num: true, render: function (p) { return money(p.budget); } },
-      { label: 'เบิกจ่าย', num: true, render: function (p) { return money(p.committed) + '<div style="margin-top:.3rem">' + pctBar(p.usedPct) + '</div>'; } },
-      { label: 'คงเหลือ', num: true, render: function (p) { return money(p.remaining); } },
-      { label: 'ความก้าวหน้า', render: function (p) { return progressBar(p.progress); } },
-      { label: '', render: function (p) {
-        var canEdit = canManageProject(p.id);
-        return actionButtons([{ act: 'project-open', id: p.id, label: 'ดู' }, canEdit && { act: 'project-edit', id: p.id, label: 'แก้ไข' }, canEdit && { act: 'project-delete', id: p.id, label: 'ลบ', cls: 'danger' }]);
+      { label: 'สัปดาห์', render: function (s) { return '<strong>W' + s.week + '</strong><div class="cell-sub">กลุ่ม ' + esc(s.sectionCode) + '</div>'; } },
+      { label: 'วันที่', render: function (s) { return '<span class="nowrap">' + dateTH(s.sessionDate) + '</span><div class="cell-sub">' + esc(s.startTime) + '–' + esc(s.endTime) + ' · ' + esc(s.room) + '</div>'; } },
+      { label: 'หัวข้อ', render: function (s) { return esc(s.title) + (s.clo ? '<div class="cell-sub">' + esc(s.clo) + '</div>' : '') + (s.isExam ? ' ' + badge('late', 'สอบ') : ''); } },
+      { label: 'สถานะ', render: function (s) { return badge(s.status, s.statusLabel); } },
+      { label: 'มา/สาย/ขาด/ลา', render: function (s) { var c = s.counts; return s.status === 'scheduled' || s.status === 'cancelled' ? '<span class="muted">-</span>' : '<span class="nowrap">' + c.present + ' / ' + c.late + ' / ' + c.absent + ' / ' + c.excused + '</span><div class="cell-sub">จาก ' + s.studentCount + ' คน</div>'; } },
+      { label: '', render: function (s) {
+        return actionButtons([
+          (s.status === 'scheduled' || s.status === 'closed') && { act: 'session-open', id: s.id, label: s.status === 'closed' ? 'เปิดอีกครั้ง' : 'เปิดเช็คชื่อ', cls: 'primary' },
+          (s.status === 'open' || s.status === 'closed') && { act: 'session-live', id: s.id, label: s.status === 'open' ? 'หน้าจอเช็คชื่อ' : 'รายชื่อ' },
+          s.status === 'open' && { act: 'session-close', id: s.id, label: 'ปิดเช็คชื่อ', cls: 'danger' },
+          isAdmin() && { act: 'session-edit', id: s.id, label: 'แก้ไข' }
+        ]);
       } }
-    ], rows, { empty: 'ยังไม่มีโครงการ', footer: rows.length ? ['รวม ' + rows.length + ' โครงการ', '', '', money(sum('budget')), money(sum('committed')), money(sum('remaining')), '', ''] : null });
+    ], rows, { empty: 'ไม่มีคาบเรียนในช่วงที่เลือก' });
   }
 };
 
-/* ---------- Project detail ---------- */
-VIEWS.project = {
-  title: 'รายละเอียดโครงการ',
-  load: function (params) { return api('getProjectDetail', params.id).then(function (r) { return r.data; }); },
+/* ---------- Live check-in (projector) ---------- */
+VIEWS.live = {
+  title: 'หน้าจอเช็คชื่อ',
+  load: function (p) { return api('getLiveSession', p.id).then(function (r) { return r.data; }); },
   render: function (d) {
-    var p = d.project;
-    register('project', [p]);
-    register('activity', d.activities);
-    register('expense', d.expenses);
-    register('progress', d.progress);
-    register('file', d.files);
-    el('view-title').textContent = p.name;
-    var tab = S.detailTab;
-    var tabs = [['activities', 'กิจกรรม (' + d.activities.length + ')'], ['expenses', 'เบิกจ่าย (' + d.expenses.length + ')'], ['progress', 'ความก้าวหน้า (' + d.progress.length + ')'], ['files', 'ไฟล์ (' + d.files.length + ')']];
-    el('view').innerHTML =
-      '<div class="toolbar"><button class="btn ghost" type="button" data-act="nav" data-view="projects">← กลับรายการโครงการ</button>' +
-      (d.canManage ? '<button class="btn" type="button" data-act="project-edit" data-id="' + esc(p.id) + '">แก้ไขโครงการ</button><button class="btn danger" type="button" data-act="project-delete" data-id="' + esc(p.id) + '">ลบโครงการ</button>' : '') + '</div>' +
-      '<div class="stats">' +
-      '<div class="stat accent"><div class="label">งบประมาณ (' + esc(cur()) + ')</div><div class="value">' + money(p.budget) + '</div><div class="sub">จัดสรรกิจกรรม ' + money(p.activityBudget) + '</div></div>' +
-      '<div class="stat"><div class="label">อนุมัติแล้ว</div><div class="value">' + money(p.spent) + '</div><div class="sub">รออนุมัติ ' + money(p.pending) + '</div></div>' +
-      '<div class="stat"><div class="label">คงเหลือ</div><div class="value">' + money(p.remaining) + '</div><div class="sub">ยังไม่จัดสรร ' + money(p.unallocated) + '</div></div>' +
-      '<div class="stat"><div class="label">ความก้าวหน้า</div><div class="value">' + num(p.progress) + '%</div><div class="sub">' + badge(p.status, p.statusLabel) + '</div></div>' +
-      '</div>' +
-      '<div class="card"><dl class="kv">' +
-      '<dt>รหัสโครงการ</dt><dd>' + esc(p.code || '-') + '</dd><dt>หน่วยงาน</dt><dd>' + esc(p.departmentName) + '</dd>' +
-      '<dt>ผู้รับผิดชอบ</dt><dd>' + esc(p.ownerName || '-') + '</dd><dt>ระยะเวลา</dt><dd>' + dateTH(p.startDate) + ' ถึง ' + dateTH(p.endDate) + '</dd>' +
-      '<dt>รายละเอียด</dt><dd style="white-space:pre-line">' + esc(p.description || '-') + '</dd>' +
-      '<dt>การใช้งบ</dt><dd>' + pctBar(p.usedPct) + '</dd></dl></div>' +
-      '<div class="card"><div class="tabs">' + tabs.map(function (t) { return '<button type="button" data-act="detail-tab" data-id="' + t[0] + '" class="' + (t[0] === tab ? 'active' : '') + '">' + esc(t[1]) + '</button>'; }).join('') + '</div><div id="detail-tab"></div></div>';
-    this.renderTab(d);
-  },
-  renderTab: function (d) {
-    var p = d.project;
-    var tab = S.detailTab;
-    var html = '';
-    if (tab === 'activities') {
-      html = (d.canManage ? '<div class="toolbar"><button class="btn primary sm" type="button" data-act="activity-new" data-id="' + esc(p.id) + '">+ เพิ่มกิจกรรม</button></div>' : '') + activityTable(d.activities, false);
-    } else if (tab === 'expenses') {
-      html = '<div class="toolbar"><button class="btn primary sm" type="button" data-act="expense-new" data-id="' + esc(p.id) + '">+ บันทึกเบิกจ่าย</button></div>' + expenseTable(d.expenses, false);
-    } else if (tab === 'progress') {
-      html = '<div class="toolbar"><button class="btn primary sm" type="button" data-act="progress-new" data-id="' + esc(p.id) + '">+ รายงานความก้าวหน้า</button></div>' + progressTable(d.progress, false);
-    } else {
-      html = '<div class="toolbar"><button class="btn primary sm" type="button" data-act="file-upload" data-id="' + esc(p.id) + '">+ อัปโหลดไฟล์</button></div>' + fileTable(d.files, false);
+    var s = d.session;
+    el('view-title').textContent = 'กลุ่ม ' + s.sectionCode + ' · สัปดาห์ ' + s.week;
+    el('view').innerHTML = '<div class="toolbar"><button class="btn ghost" type="button" data-act="nav" data-view="sessions">← คาบทั้งหมด</button>' +
+      '<span class="grow"></span>' + (s.status === 'open' ? '<button class="btn" type="button" data-act="present-toggle">เต็มจอ / ออก</button><button class="btn danger" type="button" data-act="session-close" data-id="' + esc(s.id) + '">ปิดเช็คชื่อ</button>' :
+      '<button class="btn primary" type="button" data-act="session-open" data-id="' + esc(s.id) + '">เปิดเช็คชื่อ</button>') + '</div>' +
+      '<div class="live-grid"><div class="card qr-box" id="qr-card"></div><div class="card live-roster" id="roster-card"></div></div>';
+    this.paint(d);
+    if (s.status === 'open') {
+      var self = this;
+      var seq = S.seq;
+      S.liveLeft = d.expiresIn;
+      S.timers.push(setInterval(function () {
+        S.liveLeft = Math.max(0, (S.liveLeft || 0) - 1);
+        var c = el('cd');
+        if (c) c.style.width = (S.liveLeft / S.meta.qrRotateSeconds * 100) + '%';
+      }, 1000));
+      S.timers.push(setInterval(function () {
+        if (seq !== S.seq || S.view !== 'live') return;
+        api('getLiveSession', s.id).then(function (r) { if (seq === S.seq && S.view === 'live') { S.data.live = r.data; S.liveLeft = r.data.expiresIn; self.paint(r.data); } }).catch(function () { /* แจ้งผ่าน toast ครั้งถัดไป */ });
+      }, 5000));
     }
-    el('detail-tab').innerHTML = html;
+  },
+  paint: function (d) {
+    var s = d.session;
+    var c = d.counts;
+    var qr = '';
+    if (s.status === 'open') {
+      var svg = '';
+      if (d.checkinUrl) { try { svg = QR.svg(d.checkinUrl); } catch (e) { svg = ''; } }
+      qr = (svg || '<div class="notice">ยังไม่ได้ตั้งค่า WEB_APP_URL จึงสร้าง QR ไม่ได้ ให้นักศึกษาเปิดหน้าเช็คชื่อแล้วพิมพ์รหัสด้านล่าง</div>') +
+        '<div class="muted small">สแกนเพื่อเช็คชื่อ หรือพิมพ์รหัส</div><div class="live-code">' + esc(d.code) + '</div><div class="countdown"><span id="cd" style="width:' + (d.expiresIn / S.meta.qrRotateSeconds * 100) + '%"></span></div>' +
+        '<div class="muted small">รหัสเปลี่ยนทุก ' + S.meta.qrRotateSeconds + ' วินาที</div>';
+    } else {
+      qr = '<p>' + badge(s.status, s.statusLabel) + '</p><p class="muted">' + (s.status === 'closed' ? 'ปิดเช็คชื่อแล้ว แก้ไขสถานะรายคนได้ทางขวา' : 'ยังไม่เปิดเช็คชื่อ') + '</p>';
+    }
+    el('qr-card').innerHTML = '<h2 style="margin-bottom:.4rem">' + esc(s.title) + '</h2><p class="muted small">' + dateTH(s.sessionDate) + ' · ' + esc(s.startTime) + '–' + esc(s.endTime) + ' · ' + esc(s.room) + '</p>' + qr +
+      '<div class="live-counts"><div><strong>' + c.present + '</strong>มา</div><div><strong>' + c.late + '</strong>สาย</div><div><strong>' + c.absent + '</strong>ขาด</div><div><strong>' + c.excused + '</strong>ลา</div><div><strong>' + c.none + '</strong>ยังไม่เช็ค</div></div>';
+    var checked = {};
+    Array.prototype.forEach.call(document.querySelectorAll('#roster-card input[data-code]:checked'), function (x) { checked[x.getAttribute('data-code')] = true; });
+    var q = (el('roster-q') && el('roster-q').value) || '';
+    register('roster', d.roster, 'studentCode');
+    var rows = d.roster.filter(function (r) { return matchText(r, ['studentCode', 'fullName'], q); });
+    var canEdit = s.status === 'open' || s.status === 'closed';
+    el('roster-card').innerHTML = '<div class="card-head"><h2>รายชื่อ (' + d.roster.length + ' คน)</h2><input class="input" id="roster-q" type="search" placeholder="ค้นหารหัส/ชื่อ" value="' + esc(q) + '" style="max-width:220px"></div>' +
+      (canEdit ? '<div class="bulk-bar"><span class="small muted">ที่เลือก:</span>' + Object.keys(S.meta.attendanceStatus).map(function (k) { return '<button class="btn sm ghost" type="button" data-act="att-bulk" data-status="' + k + '">' + esc(S.meta.attendanceStatus[k]) + '</button>'; }).join('') + '<button class="btn sm ghost" type="button" data-act="att-bulk" data-status="">ล้างสถานะ</button></div>' : '') +
+      table([
+        canEdit && { label: '', render: function (r) { return '<input type="checkbox" data-code="' + esc(r.studentCode) + '"' + (checked[r.studentCode] ? ' checked' : '') + ' aria-label="เลือก ' + esc(r.studentCode) + '">'; } },
+        { label: 'รหัส', render: function (r) { return '<span class="nowrap">' + esc(r.studentCode) + '</span>'; } },
+        { label: 'ชื่อ-สกุล', render: function (r) { return esc(r.fullName); } },
+        { label: 'สถานะ', render: function (r) { return r.status ? badge(r.status, S.meta.attendanceStatus[r.status]) + (r.method === 'manual' ? ' <span class="cell-sub">โดยอาจารย์</span>' : '') : '<span class="muted">-</span>'; } },
+        { label: 'เวลา', render: function (r) { return r.checkinAt ? String(r.checkinAt).slice(11, 16) : ''; } },
+        canEdit && { label: '', render: function (r) { return '<button class="btn sm ghost" type="button" data-act="att-one" data-id="' + esc(r.studentCode) + '">แก้ไข</button>'; } }
+      ].filter(Boolean), rows, { empty: 'ไม่พบนักศึกษา' });
+    var input = el('roster-q');
+    input.oninput = function () { VIEWS.live.paint(S.data.live); var i2 = el('roster-q'); i2.focus(); i2.setSelectionRange(i2.value.length, i2.value.length); };
   }
 };
 
-/* ---------- Activities ---------- */
-function activityTable(rows, showProject) {
-  return table([
-    { label: 'กิจกรรม', render: function (a) { return '<div class="cell-title">' + esc(a.name) + '</div>' + (showProject ? '<div class="cell-sub"><a href="#" data-act="project-open" data-id="' + esc(a.projectId) + '">' + esc(a.projectName) + '</a></div>' : '') + (a.responsible ? '<div class="cell-sub">ผู้รับผิดชอบ: ' + esc(a.responsible) + '</div>' : ''); } },
-    { label: 'ระยะเวลา', render: function (a) { return '<span class="nowrap">' + dateTH(a.startDate) + '</span><div class="cell-sub">ถึง ' + dateTH(a.endDate) + '</div>'; } },
-    { label: 'สถานะ', render: function (a) { return badge(a.status, a.statusLabel); } },
-    { label: 'งบประมาณ', num: true, render: function (a) { return money(a.budget); } },
-    { label: 'เบิกจ่าย', num: true, render: function (a) { return money(a.committed) + '<div style="margin-top:.3rem">' + pctBar(a.usedPct) + '</div>'; } },
-    { label: 'คงเหลือ', num: true, render: function (a) { return money(a.remaining); } },
-    { label: '', render: function (a) {
-      var can = canManageProject(a.projectId);
-      return can ? actionButtons([{ act: 'activity-edit', id: a.id, label: 'แก้ไข' }, { act: 'activity-delete', id: a.id, label: 'ลบ', cls: 'danger' }]) : '';
-    } }
-  ], rows, { empty: 'ยังไม่มีกิจกรรม' });
-}
-
-VIEWS.activities = {
-  title: 'กิจกรรม',
-  load: function () { return api('listActivities', '').then(function (r) { return r.data; }); },
+/* ---------- Attendance matrix ---------- */
+VIEWS.attendance = {
+  title: 'ตารางการเข้าเรียน',
+  load: function () { return api('getAttendanceMatrix', currentSection()).then(function (r) { return r.data; }); },
   render: function (d) {
-    var f = filter('activities');
-    register('activity', d.items);
-    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหากิจกรรม ผู้รับผิดชอบ') +
-      selectFilter('projectId', f.projectId, projectOptions(false), 'ทุกโครงการ') +
-      selectFilter('status', f.status, mapOptions(S.meta.activityStatus), 'ทุกสถานะ') +
-      (isManager() ? '<button class="btn primary" type="button" data-act="activity-new" data-id="">+ เพิ่มกิจกรรม</button>' : '') +
-      '</div><div class="card" id="list"></div>';
-    this.renderList(d);
-  },
-  renderList: function (d) {
-    var f = filter('activities');
-    var rows = d.items.filter(function (a) { return matchText(a, ['name', 'responsible', 'projectName'], f.q) && (!f.projectId || a.projectId === f.projectId) && (!f.status || a.status === f.status); });
-    el('list').innerHTML = activityTable(rows, true);
+    register('matrixSession', d.sessions);
+    var head = '<tr><th>รหัส</th><th>ชื่อ-สกุล</th>' + d.sessions.map(function (s) { return '<th title="' + esc(s.title) + ' · ' + dateTH(s.sessionDate) + '">W' + s.week + '</th>'; }).join('') + '<th>มา</th><th>สาย</th><th>ขาด</th><th>ลา</th><th>%</th></tr>';
+    var body = d.students.map(function (st) {
+      return '<tr><td class="nowrap">' + esc(st.studentCode) + '</td><td>' + esc(st.fullName) + '</td>' + d.sessions.map(function (s) {
+        var m = st.marks[s.week] || '';
+        var editable = s.status === 'open' || s.status === 'closed';
+        var missing = !m && s.status === 'closed' && !s.isExam;
+        var cls = m || (missing ? 'absent' : '');
+        var label = m ? MARK[m] : missing ? 'ข' : (s.status === 'cancelled' ? '×' : '·');
+        var title = m ? S.meta.attendanceStatus[m] : missing ? 'ไม่ได้เช็คชื่อ (นับเป็นขาด)' : 'ยังไม่มีข้อมูล';
+        return '<td>' + (editable ? '<button type="button" class="mk ' + cls + '" data-act="att-cell" data-id="' + esc(s.id) + '" data-code="' + esc(st.studentCode) + '" title="' + esc(title) + '">' + label + '</button>' : '<span class="mk ' + cls + '">' + label + '</span>') + '</td>';
+      }).join('') + '<td>' + st.summary.present + '</td><td>' + st.summary.late + '</td><td>' + st.summary.absent + '</td><td>' + st.summary.excused + '</td><td><strong>' + num(st.summary.rate) + '</strong></td></tr>';
+    }).join('');
+    el('view').innerHTML = '<div class="toolbar"><strong>กลุ่ม ' + esc(d.sectionCode) + '</strong><span class="grow muted small">สอนแล้ว ' + d.heldCount + ' คาบ (ไม่นับสัปดาห์สอบ) · ม=มา ส=สาย ข=ขาด ล=ลา · คาบที่ยังเปิดอยู่จะนับเมื่อมีสถานะ · กดช่องเพื่อแก้ไข' + (S.section ? '' : ' · เลือกกลุ่มที่มุมขวาบน') + '</span></div>' +
+      '<div class="card">' + (d.students.length ? '<div class="table-wrap matrix-wrap"><table class="tbl matrix"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' : emptyState('ยังไม่มีนักศึกษาในกลุ่มนี้')) + '</div>';
   }
 };
 
-/* ---------- Expenses ---------- */
-function expenseTable(rows, showProject) {
-  var total = rows.filter(function (e) { return e.status !== 'rejected'; }).reduce(function (s, e) { return s + e.amount; }, 0);
-  return table([
-    { label: 'วันที่', render: function (e) { return '<span class="nowrap">' + dateTH(e.expenseDate) + '</span>'; } },
-    { label: 'รายการ', render: function (e) {
-      return '<div class="cell-title">' + esc(e.description) + '</div>' + (showProject ? '<div class="cell-sub"><a href="#" data-act="project-open" data-id="' + esc(e.projectId) + '">' + esc(e.projectName) + '</a></div>' : '') +
-        (e.activityName ? '<div class="cell-sub">กิจกรรม: ' + esc(e.activityName) + '</div>' : '') + (e.payee ? '<div class="cell-sub">ผู้รับเงิน: ' + esc(e.payee) + (e.receiptNo ? ' · เลขที่ ' + esc(e.receiptNo) : '') + '</div>' : '');
-    } },
-    { label: 'หลักฐาน', render: function (e) { return e.fileId ? '<a href="' + esc(e.fileUrl) + '" target="_blank" rel="noopener">เปิด</a> · <a href="#" data-act="file-download" data-id="' + esc(e.fileId) + '">ดาวน์โหลด</a>' : '<span class="muted">-</span>'; } },
-    { label: 'สถานะ', render: function (e) { return badge(e.status, e.statusLabel) + (e.approvedBy ? '<div class="cell-sub">' + esc(e.approvedBy) + '</div>' : ''); } },
-    { label: 'จำนวนเงิน', num: true, render: function (e) { return money(e.amount); } },
-    { label: '', render: function (e) {
-      var manager = canManageProject(e.projectId);
-      var own = e.createdBy === S.user.username && e.status === 'pending';
-      return actionButtons([
-        manager && e.status !== 'approved' && { act: 'expense-status', id: e.id, label: 'อนุมัติ', cls: 'success', extra: ' data-status="approved"' },
-        manager && e.status !== 'rejected' && { act: 'expense-status', id: e.id, label: 'ไม่อนุมัติ', cls: 'ghost', extra: ' data-status="rejected"' },
-        manager && e.status !== 'pending' && { act: 'expense-status', id: e.id, label: 'รออนุมัติ', cls: 'ghost', extra: ' data-status="pending"' },
-        (manager || own) && { act: 'expense-edit', id: e.id, label: 'แก้ไข' },
-        (manager || own) && { act: 'expense-delete', id: e.id, label: 'ลบ', cls: 'danger' }
-      ]);
-    } }
-  ], rows, { empty: 'ยังไม่มีรายการเบิกจ่าย', footer: rows.length ? ['รวม (ไม่นับที่ไม่อนุมัติ)', '', '', '', money(total), ''] : null });
-}
-
-VIEWS.expenses = {
-  title: 'เบิกจ่าย',
-  load: function () { return api('listExpenses').then(function (r) { return r.data; }); },
+/* ---------- Students ---------- */
+VIEWS.students = {
+  title: 'นักศึกษา',
+  load: function () { return api('listStudents').then(function (r) { return r.data; }); },
   render: function (d) {
-    var f = filter('expenses');
-    register('expense', d.items);
-    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหารายการ ผู้รับเงิน เลขที่เอกสาร') +
-      selectFilter('projectId', f.projectId, projectOptions(false), 'ทุกโครงการ') +
-      selectFilter('status', f.status, mapOptions(S.meta.expenseStatus), 'ทุกสถานะ') +
-      '<input class="input" type="date" data-filter="from" value="' + esc(f.from || '') + '" style="width:auto" title="ตั้งแต่วันที่">' +
-      '<input class="input" type="date" data-filter="to" value="' + esc(f.to || '') + '" style="width:auto" title="ถึงวันที่">' +
-      '<button class="btn primary" type="button" data-act="expense-new" data-id="">+ บันทึกเบิกจ่าย</button>' +
-      '</div><div class="card" id="list"></div>';
+    var f = filter('students');
+    register('student', d.items);
+    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหารหัส ชื่อ') +
+      selectFilter('status', f.status || 'active', mapOptions(S.meta.userStatus), 'ทุกสถานะ') +
+      (isAdmin() ? '<button class="btn" type="button" data-act="student-import">นำเข้า ClassRoster</button><button class="btn primary" type="button" data-act="student-new">+ เพิ่มนักศึกษา</button>' : '') +
+      '</div><div class="card" id="list"></div><p class="muted small">ชื่อผู้ใช้ของนักศึกษาคือรหัสนักศึกษา รหัสผ่านครั้งแรกคือ 123456 (ระบบบังคับเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก) · การเช็คชื่อไม่ต้องเข้าสู่ระบบ</p>';
     this.renderList(d);
   },
   renderList: function (d) {
-    var f = filter('expenses');
-    var rows = d.items.filter(function (e) {
-      return matchText(e, ['description', 'payee', 'receiptNo', 'projectName', 'activityName'], f.q) && (!f.projectId || e.projectId === f.projectId) && (!f.status || e.status === f.status) &&
-        (!f.from || e.expenseDate >= f.from) && (!f.to || e.expenseDate <= f.to);
+    var f = filter('students');
+    var status = f.status === undefined ? 'active' : f.status;
+    var rows = d.items.filter(function (s) { return (!S.section || s.sectionCode === S.section) && (!status || s.status === status) && matchText(s, ['studentCode', 'fullName', 'program'], f.q); });
+    el('list').innerHTML = '<p class="muted small" style="margin-top:0">' + rows.length + ' คน' + (S.section ? ' ในกลุ่ม ' + esc(S.section) : '') + '</p>' + table([
+      { label: 'รหัส', render: function (s) { return '<span class="nowrap">' + esc(s.studentCode) + '</span>'; } },
+      { label: 'ชื่อ-สกุล', render: function (s) { return '<div class="cell-title">' + esc(s.fullName) + '</div><div class="cell-sub">' + esc(s.program || '') + '</div>'; } },
+      { label: 'กลุ่ม', render: function (s) { return badge('info', 'กลุ่ม ' + s.sectionCode); } },
+      { label: 'บัญชี', render: function (s) { return badge(s.status, S.meta.userStatus[s.status]) + (s.mustChange ? ' <span class="badge warn">ยังไม่เปลี่ยนรหัส</span>' : '') + '<div class="cell-sub">เข้าล่าสุด ' + (s.lastLoginAt ? dateTimeTH(s.lastLoginAt) : '-') + '</div>'; } },
+      { label: '', render: function (s) { return actionButtons([isAdmin() && { act: 'student-edit', id: s.id, label: 'แก้ไข' }, { act: 'student-reset', id: s.id, label: 'รีเซ็ตรหัสผ่าน' }, isAdmin() && { act: 'student-delete', id: s.id, label: 'ลบ', cls: 'danger' }]); } }
+    ], rows, { empty: 'ยังไม่มีนักศึกษา — นำเข้าไฟล์ ClassRoster จากระบบทะเบียน' });
+  }
+};
+
+/* ---------- Assignments ---------- */
+VIEWS.assignments = {
+  title: 'งานที่มอบหมาย',
+  load: function () { return api('listAssignments').then(function (r) { return r.data; }); },
+  render: function (d) {
+    register('assignment', d.items);
+    var secs = S.sections.map(function (s) { return s.code; });
+    var cap = '<div class="table-wrap"><table class="tbl cap-grid"><thead><tr><th>หมวดคะแนน (OBE-3)</th><th class="num">เต็ม</th>' + secs.map(function (c) { return '<th class="num">กลุ่ม ' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      d.capacity.map(function (c) {
+        return '<tr><td>' + esc(c.name) + ' <span class="cell-sub">' + esc(c.clo) + '</span></td><td class="num">' + c.max + '</td>' + secs.map(function (code) {
+          var used = c.bySection[code] || 0;
+          return '<td class="num">' + (used === c.max ? badge('published', num(used)) : used > c.max ? badge('absent', num(used)) : num(used)) + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+    el('view').innerHTML = '<div class="card"><div class="card-head"><h2>โครงสร้างคะแนนที่วางแผนแล้ว</h2><span class="muted small">คะแนนเต็มของงานในแต่ละหมวดต้องไม่เกินโครงสร้าง OBE-3</span></div>' + cap + '</div>' +
+      '<div class="toolbar">' + searchFilter(filter('assignments').q, 'ค้นหารหัส/ชื่องาน') + '<button class="btn primary" type="button" data-act="assignment-new">+ สร้างงาน</button></div><div class="card" id="list"></div>';
+    this.renderList(d);
+  },
+  renderList: function (d) {
+    var f = filter('assignments');
+    var rows = d.items.filter(function (a) { return (!S.section || !a.sections.length || a.sections.indexOf(S.section) >= 0) && matchText(a, ['code', 'title', 'categoryName'], f.q); });
+    el('list').innerHTML = table([
+      { label: 'งาน', render: function (a) { return '<div class="cell-title">' + esc(a.code) + ' · ' + esc(a.title) + '</div><div class="cell-sub">' + esc(a.categoryName) + ' · ' + esc(a.clo) + '</div>'; } },
+      { label: 'คะแนน', num: true, render: function (a) { return num(a.maxScore); } },
+      { label: 'กลุ่ม', render: function (a) { return a.sections.length ? a.sections.map(function (c) { return 'กลุ่ม ' + esc(c); }).join(', ') : 'ทุกกลุ่ม'; } },
+      { label: 'กำหนดส่ง', render: function (a) {
+        var per = Object.keys(a.sectionDue || {});
+        return (a.dueAt ? dateTimeTH(a.dueAt) : '<span class="muted">-</span>') + per.map(function (k) { return '<div class="cell-sub">กลุ่ม ' + esc(k) + ': ' + dateTimeTH(a.sectionDue[k]) + '</div>'; }).join('') + '<div class="cell-sub">' + esc(a.submissionModeLabel) + (a.allowLate ? ' · รับงานล่าช้า' : '') + '</div>';
+      } },
+      { label: 'สถานะ', render: function (a) { return badge(a.status, a.statusLabel) + '<div class="cell-sub">ส่ง ' + a.submittedCount + ' · ให้คะแนน ' + a.gradedCount + ' · เผยแพร่ ' + a.publishedCount + '</div>'; } },
+      { label: '', render: function (a) { return actionButtons([a.status !== 'draft' && { act: 'grade-open', id: a.id, label: 'ตรวจงาน', cls: 'primary' }, { act: 'assignment-edit', id: a.id, label: 'แก้ไข' }, { act: 'assignment-delete', id: a.id, label: 'ลบ', cls: 'danger' }]); } }
+    ], rows, { empty: 'ยังไม่มีงาน' });
+  }
+};
+
+/* ---------- Grading ---------- */
+VIEWS.grading = {
+  title: 'ตรวจงาน & ให้คะแนน',
+  load: function (p) {
+    var list = S.data.assignments && S.data.assignments.items ? Promise.resolve(S.data.assignments) : api('listAssignments').then(function (r) { S.data.assignments = r.data; return r.data; });
+    return list.then(function (al) {
+      var published = al.items.filter(function (a) { return a.status !== 'draft'; });
+      var id = p.id || (published[0] && published[0].id);
+      if (!id) return { assignments: published, grading: null };
+      return api('getGrading', id).then(function (r) { return { assignments: published, grading: r.data }; });
     });
-    el('list').innerHTML = expenseTable(rows, true);
-  }
-};
-
-/* ---------- Progress ---------- */
-function progressTable(rows, showProject) {
-  return table([
-    { label: 'วันที่', render: function (r) { return '<span class="nowrap">' + dateTH(r.reportDate) + '</span><div class="cell-sub">' + esc(r.createdBy) + '</div>'; } },
-    { label: 'โครงการ / กิจกรรม', render: function (r) { return (showProject ? '<a href="#" data-act="project-open" data-id="' + esc(r.projectId) + '" class="cell-title">' + esc(r.projectName) + '</a>' : '') + '<div class="cell-sub">' + esc(r.activityName || 'ภาพรวมโครงการ') + '</div>'; } },
-    { label: 'ร้อยละ', render: function (r) { return progressBar(r.percent); } },
-    { label: 'รายละเอียด', render: function (r) { return '<div style="white-space:pre-line">' + esc(r.detail) + '</div>' + (r.problems ? '<div class="cell-sub">ปัญหา: ' + esc(r.problems) + '</div>' : '') + (r.nextSteps ? '<div class="cell-sub">ขั้นต่อไป: ' + esc(r.nextSteps) + '</div>' : ''); } },
-    { label: '', render: function (r) {
-      var can = canManageProject(r.projectId) || r.createdBy === S.user.username;
-      return can ? actionButtons([{ act: 'progress-edit', id: r.id, label: 'แก้ไข' }, { act: 'progress-delete', id: r.id, label: 'ลบ', cls: 'danger' }]) : '';
-    } }
-  ], rows, { empty: 'ยังไม่มีรายงานความก้าวหน้า' });
-}
-
-VIEWS.progress = {
-  title: 'ความก้าวหน้า',
-  load: function () { return api('listProgress').then(function (r) { return r.data; }); },
+  },
   render: function (d) {
-    var f = filter('progress');
-    register('progress', d.items);
-    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหารายละเอียด ปัญหา') +
-      selectFilter('projectId', f.projectId, projectOptions(false), 'ทุกโครงการ') +
-      '<button class="btn primary" type="button" data-act="progress-new" data-id="">+ รายงานความก้าวหน้า</button>' +
-      '</div><div class="card" id="list"></div>';
+    if (!d.grading) { el('view').innerHTML = '<div class="card">' + emptyState('ยังไม่มีงานที่เผยแพร่ — สร้างและเผยแพร่งานที่เมนู "งานที่มอบหมาย" ก่อน') + '</div>'; return; }
+    var a = d.grading.assignment;
+    S.params.id = a.id;
+    el('view').innerHTML = '<div class="toolbar"><select class="input" id="grade-assignment" style="width:auto;min-width:260px">' +
+      d.assignments.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === a.id ? ' selected' : '') + '>' + esc(x.code + ' · ' + x.title) + '</option>'; }).join('') + '</select>' +
+      selectFilter('show', filter('grading').show, [{ value: 'submitted', label: 'เฉพาะที่ส่งแล้ว' }, { value: 'ungraded', label: 'ยังไม่ให้คะแนน' }], 'ทุกคน') +
+      '<span class="grow muted small">คะแนนเต็ม ' + num(a.maxScore) + ' · ' + esc(a.categoryName) + (S.section ? ' · กลุ่ม ' + esc(S.section) : '') + '</span></div>' +
+      '<div class="card" id="list"></div>' +
+      '<div class="toolbar"><button class="btn" type="button" data-act="grades-save" data-id="draft">บันทึก (ยังไม่เผยแพร่)</button><button class="btn primary" type="button" data-act="grades-save" data-id="publish">บันทึกและเผยแพร่</button><button class="btn success" type="button" data-act="grades-publish-all">เผยแพร่คะแนนที่บันทึกไว้ทั้งหมด</button></div>';
+    el('grade-assignment').onchange = function () { navigate('grading', { id: this.value }); };
     this.renderList(d);
   },
   renderList: function (d) {
-    var f = filter('progress');
-    var rows = d.items.filter(function (r) { return matchText(r, ['detail', 'problems', 'nextSteps', 'projectName', 'activityName'], f.q) && (!f.projectId || r.projectId === f.projectId); });
-    el('list').innerHTML = progressTable(rows, true);
-  }
-};
-
-/* ---------- Reports ---------- */
-VIEWS.reports = {
-  title: 'รายงาน',
-  load: function () { return api('listReports').then(function (r) { return r.data; }); },
-  render: function (d) {
-    var f = filter('reports');
-    register('report', d.items);
-    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาชื่อรายงาน') +
-      selectFilter('reportType', f.reportType, mapOptions(S.meta.reportTypes), 'ทุกประเภท') +
-      (isManager() ? '<button class="btn primary" type="button" data-act="report-new">+ สร้างรายงาน</button>' : '') +
-      '</div><div class="card" id="list"></div>';
-    this.renderList(d);
-  },
-  renderList: function (d) {
-    var f = filter('reports');
-    var rows = d.items.filter(function (r) { return matchText(r, ['title', 'projectName', 'departmentName', 'note'], f.q) && (!f.reportType || r.reportType === f.reportType); });
-    el('list').innerHTML = table([
-      { label: 'รายงาน', render: function (r) { return '<a href="#" class="cell-title" data-act="report-view" data-id="' + esc(r.id) + '">' + esc(r.title) + '</a><div class="cell-sub">' + esc(r.reportTypeLabel) + '</div>'; } },
-      { label: 'ขอบเขต', render: function (r) { return esc(r.projectName || r.departmentName || 'ทุกหน่วยงาน') + '<div class="cell-sub">' + (r.startDate || r.endDate ? dateTH(r.startDate) + ' ถึง ' + dateTH(r.endDate) : 'ทุกช่วงเวลา') + '</div>'; } },
-      { label: 'ไฟล์ใน Drive', render: function (r) { return r.fileUrl ? '<a href="' + esc(r.fileUrl) + '" target="_blank" rel="noopener">เปิดไฟล์</a><div class="cell-sub">' + dateTimeTH(r.generatedAt) + '</div>' : '<span class="muted">ยังไม่สร้าง</span>'; } },
-      { label: 'ผู้สร้าง', render: function (r) { return esc(r.createdBy) + '<div class="cell-sub">' + dateTimeTH(r.createdAt) + '</div>'; } },
-      { label: '', render: function (r) {
-        return actionButtons([{ act: 'report-view', id: r.id, label: 'ดูรายงาน' }, isManager() && { act: 'report-generate', id: r.id, label: 'สร้างไฟล์', cls: 'success' }, isManager() && { act: 'report-edit', id: r.id, label: 'แก้ไข' }, isManager() && { act: 'report-delete', id: r.id, label: 'ลบ', cls: 'danger' }]);
-      } }
-    ], rows, { empty: 'ยังไม่มีรายงาน' });
-  }
-};
-
-/* ---------- Files ---------- */
-function fileTable(rows, showProject) {
-  return table([
-    { label: 'ไฟล์', render: function (f) { return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener" class="cell-title">' + esc(f.name) + '</a><div class="cell-sub">' + fileSize(f.size) + (f.refType === 'expense' ? ' · หลักฐานเบิกจ่าย' : '') + '</div>'; } },
-    showProject && { label: 'โครงการ', render: function (f) { return f.projectId ? '<a href="#" data-act="project-open" data-id="' + esc(f.projectId) + '">' + esc(f.projectName) + '</a>' : '<span class="muted">เอกสารทั่วไป</span>'; } },
-    { label: 'คำอธิบาย', render: function (f) { return esc(f.description || '-'); } },
-    { label: 'อัปโหลดโดย', render: function (f) { return esc(f.uploadedBy) + '<div class="cell-sub">' + dateTimeTH(f.createdAt) + '</div>'; } },
-    { label: '', render: function (f) {
-      var canDelete = isAdmin() || f.uploadedBy === S.user.username || (f.projectId ? canManageProject(f.projectId) : false);
-      return actionButtons([{ act: 'file-download', id: f.id, label: 'ดาวน์โหลด' }, canDelete && { act: 'file-delete', id: f.id, label: 'ลบ', cls: 'danger' }]);
-    } }
-  ].filter(Boolean), rows, { empty: 'ยังไม่มีไฟล์' });
-}
-
-VIEWS.files = {
-  title: 'ไฟล์เอกสาร',
-  load: function () { return api('listFiles').then(function (r) { return r.data; }); },
-  render: function (d) {
-    var f = filter('files');
-    register('file', d.items);
-    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาชื่อไฟล์ คำอธิบาย') +
-      selectFilter('projectId', f.projectId, [{ value: '__general', label: 'เอกสารทั่วไป' }].concat(projectOptions(false)), 'ทุกโครงการ') +
-      '<button class="btn primary" type="button" data-act="file-upload" data-id="">+ อัปโหลดไฟล์</button>' +
-      '</div><div class="card" id="list"></div>';
-    this.renderList(d);
-  },
-  renderList: function (d) {
-    var f = filter('files');
-    var rows = d.items.filter(function (x) {
-      var proj = !f.projectId || (f.projectId === '__general' ? !x.projectId : x.projectId === f.projectId);
-      return proj && matchText(x, ['name', 'description', 'projectName', 'uploadedBy'], f.q);
+    var f = filter('grading');
+    var a = d.grading.assignment;
+    var rows = d.grading.rows.filter(function (r) {
+      if (S.section && r.sectionCode !== S.section) return false;
+      if (f.show === 'submitted') return !!r.submission;
+      if (f.show === 'ungraded') return !r.grade || r.grade.score === '';
+      return true;
     });
-    el('list').innerHTML = fileTable(rows, true);
+    el('list').innerHTML = table([
+      { label: 'นักศึกษา', render: function (r) { return '<div class="cell-title">' + esc(r.fullName) + '</div><div class="cell-sub">' + esc(r.studentCode) + ' · กลุ่ม ' + esc(r.sectionCode) + '</div>'; } },
+      { label: 'งานที่ส่ง', render: function (r) {
+        if (!r.submission) return a.submissionMode === 'online' ? '<span class="muted">ยังไม่ส่ง</span>' : '<span class="muted">ส่งในห้องเรียน</span>';
+        var s = r.submission;
+        return '<div>ครั้งที่ ' + s.version + ' · ' + dateTimeTH(s.submittedAt) + (s.isLate ? ' ' + badge('late', 'ล่าช้า') : '') + '</div>' +
+          s.files.map(function (fl) { return '<span class="file-chip"><a href="' + esc(fl.url) + '" target="_blank" rel="noopener">' + esc(fl.name) + '</a><a href="#" data-act="file-download" data-id="' + esc(fl.id) + '" title="ดาวน์โหลด">⇩</a></span>'; }).join('') +
+          s.links.map(function (l) { return '<div class="cell-sub"><a href="' + esc(l) + '" target="_blank" rel="noopener">' + esc(l.length > 50 ? l.slice(0, 50) + '…' : l) + '</a></div>'; }).join('') +
+          (s.note ? '<div class="cell-sub">หมายเหตุ: ' + esc(s.note) + '</div>' : '');
+      } },
+      { label: 'คะแนน', render: function (r) { var v = r.grade && r.grade.score !== '' ? r.grade.score : ''; return '<input class="input score-input" type="number" min="0" max="' + a.maxScore + '" step="0.5" data-score="' + esc(r.studentCode) + '" value="' + esc(v) + '" aria-label="คะแนน ' + esc(r.studentCode) + '"> <span class="muted small">/ ' + num(a.maxScore) + '</span>'; } },
+      { label: 'Feedback', render: function (r) { return '<textarea class="input fb-input" rows="1" data-feedback="' + esc(r.studentCode) + '" aria-label="Feedback ' + esc(r.studentCode) + '">' + esc(r.grade ? r.grade.feedback : '') + '</textarea>'; } },
+      { label: 'สถานะ', render: function (r) { return r.grade && r.grade.score !== '' ? badge(r.grade.status, S.meta.gradeStatus[r.grade.status]) : '<span class="muted">-</span>'; } }
+    ], rows, { empty: 'ไม่มีนักศึกษาในเงื่อนไขที่เลือก' });
   }
 };
 
-/* ---------- Users ---------- */
-VIEWS.users = {
-  title: 'ผู้ใช้งาน',
-  load: function () { return api('listUsers').then(function (r) { return r.data; }); },
+/* ---------- Gradebook ---------- */
+VIEWS.gradebook = {
+  title: 'สมุดคะแนน',
+  load: function () { return api('getGradebook', S.section).then(function (r) { return r.data; }); },
   render: function (d) {
-    var f = filter('users');
-    register('user', d.items);
-    el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาชื่อผู้ใช้ ชื่อ อีเมล') +
-      selectFilter('role', f.role, mapOptions(S.meta.roles), 'ทุกบทบาท') +
-      selectFilter('departmentId', f.departmentId, departmentOptions(), 'ทุกหน่วยงาน') +
-      '<button class="btn primary" type="button" data-act="user-new">+ เพิ่มผู้ใช้</button></div>' +
-      '<div class="card" id="list"></div><p class="muted small">บัญชีผู้ดูแลระบบหลัก "admin" กำหนดใน Code.gs และไม่แสดงในรายการนี้</p>';
-    this.renderList(d);
-  },
-  renderList: function (d) {
-    var f = filter('users');
-    var rows = d.items.filter(function (u) { return matchText(u, ['username', 'fullName', 'email'], f.q) && (!f.role || u.role === f.role) && (!f.departmentId || u.departmentId === f.departmentId); });
-    el('list').innerHTML = table([
-      { label: 'ผู้ใช้', render: function (u) { return '<div class="cell-title">' + esc(u.fullName) + '</div><div class="cell-sub">' + esc(u.username) + (u.email ? ' · ' + esc(u.email) : '') + '</div>'; } },
-      { label: 'บทบาท', render: function (u) { return badge(u.role === 'admin' ? 'active' : u.role === 'manager' ? 'planning' : '', u.roleLabel); } },
-      { label: 'หน่วยงาน', render: function (u) { return esc(u.departmentName || '-'); } },
-      { label: 'สถานะ', render: function (u) { return badge(u.status === 'active' ? 'approved' : 'inactive', S.meta.userStatus[u.status]); } },
-      { label: 'เข้าใช้ล่าสุด', render: function (u) { return dateTimeTH(u.lastLoginAt); } },
-      { label: '', render: function (u) { return actionButtons([{ act: 'user-edit', id: u.id, label: 'แก้ไข' }, u.id !== S.user.id && { act: 'user-delete', id: u.id, label: 'ลบ', cls: 'danger' }]); } }
-    ], rows, { empty: 'ยังไม่มีผู้ใช้' });
-  }
-};
-
-/* ---------- Departments ---------- */
-VIEWS.departments = {
-  title: 'หน่วยงาน',
-  load: function () { return api('listDepartments').then(function (r) { return r.data; }); },
-  render: function (d) {
-    S.departments = d.items;
-    register('department', d.items);
-    el('view').innerHTML = '<div class="toolbar"><span class="grow muted">หน่วยงานทั้งหมด ' + d.items.length + ' หน่วยงาน</span><button class="btn primary" type="button" data-act="dept-new">+ เพิ่มหน่วยงาน</button></div><div class="card" id="list"></div>';
-    this.renderList(d);
-  },
-  renderList: function (d) {
-    el('list').innerHTML = table([
-      { label: 'หน่วยงาน', render: function (x) { return '<div class="cell-title">' + esc(x.name) + '</div><div class="cell-sub">' + esc(x.code || '-') + '</div>'; } },
-      { label: 'รายละเอียด', render: function (x) { return esc(x.description || '-'); } },
-      { label: 'ผู้ใช้', num: true, render: function (x) { return x.userCount; } },
-      { label: 'โครงการ', num: true, render: function (x) { return x.projectCount; } },
-      { label: '', render: function (x) { return actionButtons([{ act: 'dept-edit', id: x.id, label: 'แก้ไข' }, { act: 'dept-delete', id: x.id, label: 'ลบ', cls: 'danger' }]); } }
-    ], d.items, { empty: 'ยังไม่มีหน่วยงาน กรุณาเพิ่มหน่วยงานก่อนสร้างผู้ใช้และโครงการ' });
+    var cats = d.categories;
+    el('view').innerHTML = '<div class="toolbar"><span class="grow muted small">' + (d.sectionCode ? 'กลุ่ม ' + esc(d.sectionCode) : 'ทุกกลุ่มเรียน') + ' · รวมเฉพาะคะแนนที่เผยแพร่แล้ว งานที่ยังไม่ตรวจแสดงเป็น "รอผล" ไม่นับเป็นศูนย์</span>' +
+      '<button class="btn primary" type="button" data-act="gradebook-export">ส่งออกเป็น Google Sheets</button></div><div class="card" id="export-result" hidden></div><div class="card">' +
+      (d.rows.length ? '<div class="table-wrap"><table class="tbl"><thead><tr><th>กลุ่ม</th><th>รหัส</th><th>ชื่อ-สกุล</th>' + cats.map(function (c) { return '<th class="num" title="' + esc(c.name) + '">' + esc(c.code) + '<div class="cell-sub">' + c.clo + ' /' + c.max + '</div></th>'; }).join('') + '<th class="num">รวม<div class="cell-sub">/100</div></th><th class="num">รอผล</th><th class="num">เข้าเรียน</th></tr></thead><tbody>' +
+        d.rows.map(function (r) {
+          return '<tr><td>' + esc(r.sectionCode) + '</td><td class="nowrap">' + esc(r.studentCode) + '</td><td>' + esc(r.fullName) + '</td>' + cats.map(function (c) {
+            var b = r.byCat[c.code];
+            return '<td class="num">' + (b.items ? num(b.earned) + (b.pending ? '<div class="cell-sub">รอ ' + b.pending + '</div>' : '') : '<span class="muted">—</span>') + '</td>';
+          }).join('') + '<td class="num"><strong>' + num(r.total) + '</strong></td><td class="num">' + (r.pending ? badge('late', r.pending) : '') + '</td><td class="num">' + num(r.attendance.rate) + '%<div class="cell-sub">ขาด ' + r.attendance.absent + '</div></td></tr>';
+        }).join('') + '</tbody></table></div>' : emptyState('ยังไม่มีนักศึกษา')) + '</div>';
   }
 };
 
 /* ---------- Settings ---------- */
 VIEWS.settings = {
-  title: 'ตั้งค่า',
-  load: function () {
-    var calls = [api('getSettings').then(function (r) { return r.data; })];
-    if (isAdmin()) calls.push(api('listBackups').then(function (r) { return r.data; }));
-    return Promise.all(calls).then(function (res) { return { settings: res[0].settings, dailyBackupActive: res[0].dailyBackupActive, backups: res[1] || null }; });
-  },
+  title: 'ตั้งค่ารายวิชา',
+  load: function () { return api('getSettings').then(function (r) { setSections(r.data.sections); return r.data; }); },
   render: function (d) {
     S.settings = d.settings;
-    applyOrg();
+    register('section', d.sections);
+    register('teacher', d.teachers || []);
     var s = d.settings;
     var admin = isAdmin();
     var dis = admin ? '' : ' disabled';
-    var org = '<div class="card"><div class="card-head"><h2>ข้อมูลระบบ</h2></div>' +
-      '<form id="settings-form" novalidate><div class="form-grid">' +
-      '<div class="field"><label for="s-orgName">ชื่อสถานศึกษา / หน่วยงานหลัก</label><input class="input" id="s-orgName" name="orgName" maxlength="200" value="' + esc(s.orgName) + '"' + dis + '></div>' +
-      '<div class="field"><label for="s-fiscalYear">ปีงบประมาณ</label><input class="input" id="s-fiscalYear" name="fiscalYear" maxlength="10" value="' + esc(s.fiscalYear) + '"' + dis + '></div>' +
-      '<div class="field"><label for="s-currency">หน่วยเงิน <span class="req">*</span></label><input class="input" id="s-currency" name="currency" maxlength="20" required value="' + esc(s.currency) + '"' + dis + '></div>' +
-      '<div class="field"><label for="s-maxUploadMB">ขนาดไฟล์สูงสุด (MB) <span class="req">*</span></label><input class="input" id="s-maxUploadMB" name="maxUploadMB" type="number" min="1" max="40" required value="' + esc(s.maxUploadMB) + '"' + dis + '></div>' +
-      '<div class="field"><label for="s-fileSharing">การแชร์ไฟล์ที่อัปโหลด</label><select class="input" id="s-fileSharing" name="fileSharing"' + dis + '>' + mapOptions(S.meta.fileSharing).map(function (o) { return '<option value="' + o.value + '"' + (o.value === s.fileSharing ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select><span class="help">มีผลกับไฟล์ที่อัปโหลดหลังจากนี้</span></div>' +
-      '<div class="field"><label for="s-backupRetention">จำนวนไฟล์สำรองที่เก็บไว้ <span class="req">*</span></label><input class="input" id="s-backupRetention" name="backupRetention" type="number" min="1" max="365" required value="' + esc(s.backupRetention) + '"' + dis + '></div>' +
-      '</div><div class="form-error" id="settings-error" hidden></div>' +
-      (admin ? '<div class="toolbar" style="margin-top:1rem;margin-bottom:0"><button class="btn primary" type="submit" id="settings-submit">บันทึกการตั้งค่า</button></div>' : '<p class="muted small">เฉพาะผู้ดูแลระบบที่แก้ไขการตั้งค่าได้</p>') +
-      '</form></div>';
-    var pw = S.user.builtin ? '<div class="card"><div class="card-head"><h2>รหัสผ่าน</h2></div><p class="muted">บัญชีผู้ดูแลระบบหลักเปลี่ยนรหัสผ่านได้ที่ส่วน CONFIGURATION ใน Code.gs แล้ว Deploy ใหม่</p></div>' :
-      '<div class="card"><div class="card-head"><h2>เปลี่ยนรหัสผ่านของฉัน</h2></div><form id="password-form" class="stack" novalidate>' +
-      '<div class="field"><label for="pw-current">รหัสผ่านปัจจุบัน <span class="req">*</span></label><input class="input" id="pw-current" name="currentPassword" type="password" autocomplete="current-password" required></div>' +
-      '<div class="field"><label for="pw-new">รหัสผ่านใหม่ <span class="req">*</span></label><input class="input" id="pw-new" name="newPassword" type="password" autocomplete="new-password" required><span class="help">อย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร</span></div>' +
-      '<div class="field"><label for="pw-confirm">ยืนยันรหัสผ่านใหม่ <span class="req">*</span></label><input class="input" id="pw-confirm" name="confirmPassword" type="password" autocomplete="new-password" required></div>' +
-      '<div class="form-error" id="password-error" hidden></div><div><button class="btn primary" type="submit" id="password-submit">เปลี่ยนรหัสผ่าน</button></div></form></div>';
+    var input = function (name, label, type, extra) { return '<div class="field"><label for="s-' + name + '">' + label + '</label><input class="input" id="s-' + name + '" name="' + name + '" type="' + (type || 'text') + '" value="' + esc(s[name]) + '"' + (extra || '') + dis + '></div>'; };
+    var course = '<div class="card"><div class="card-head"><h2>ข้อมูลรายวิชาและการเช็คชื่อ</h2></div><form id="settings-form" novalidate><div class="form-grid">' +
+      input('courseCode', 'รหัสวิชา', 'text', ' maxlength="20" required') + input('courseName', 'ชื่อวิชา', 'text', ' maxlength="200" required') +
+      input('semester', 'ภาคเรียน', 'text', ' maxlength="5" required') + input('academicYear', 'ปีการศึกษา', 'text', ' maxlength="5" required') +
+      input('lateMinutes', 'นับว่าสายหลังเริ่มคาบ (นาที)', 'number', ' min="0" max="240" required') +
+      '<div class="field"><label for="s-deviceLock">1 เครื่อง : 1 คน ต่อคาบ</label><select class="input" id="s-deviceLock" name="deviceLock"' + dis + '><option value="on"' + (s.deviceLock === 'on' ? ' selected' : '') + '>เปิด (ป้องกันเช็คชื่อแทนกัน)</option><option value="off"' + (s.deviceLock !== 'on' ? ' selected' : '') + '>ปิด</option></select></div>' +
+      input('maxUploadMB', 'ขนาดไฟล์งานรวมสูงสุดต่อครั้ง (MB)', 'number', ' min="1" max="40" required') + input('backupRetention', 'จำนวนไฟล์สำรองที่เก็บไว้', 'number', ' min="1" max="365" required') +
+      '</div><div class="form-error" id="settings-error" hidden></div>' + (admin ? '<div class="toolbar" style="margin:1rem 0 0"><button class="btn primary" type="submit" id="settings-submit">บันทึกการตั้งค่า</button></div>' : '') + '</form></div>';
+    var sections = '<div class="card"><div class="card-head"><h2>กลุ่มเรียนและตารางสอน</h2>' + (admin ? '<button class="btn sm primary" type="button" data-act="section-new">+ เพิ่มกลุ่มเรียน</button>' : '') + '</div>' +
+      table([
+        { label: 'กลุ่ม', render: function (x) { return '<strong>' + esc(x.name) + '</strong><div class="cell-sub">' + x.studentCount + ' คน</div>'; } },
+        { label: 'วัน/เวลา', render: function (x) { return esc(dayLabel(x.meetingDay)) + ' ' + esc(x.startTime) + '–' + esc(x.endTime) + '<div class="cell-sub">' + esc(x.room) + '</div>'; } },
+        { label: 'สัปดาห์ที่ 1', render: function (x) { return dateTH(x.firstDate); } },
+        { label: '', render: function (x) { return admin ? actionButtons([{ act: 'section-edit', id: x.id, label: 'แก้ไข' }, { act: 'section-delete', id: x.id, label: 'ลบ', cls: 'danger' }]) : ''; } }
+      ], d.sections, { empty: 'ยังไม่มีกลุ่มเรียน' }) +
+      (admin ? '<form id="term-form" class="toolbar" style="margin:1rem 0 0" novalidate><label for="term-start" class="small"><strong>วันเปิดภาคเรียน</strong></label><input class="input" type="date" id="term-start" value="' + esc(s.termStart) + '" style="width:auto" required><button class="btn" type="submit" id="term-submit">คำนวณวันเรียนทุกกลุ่มใหม่</button><span class="help">เลื่อนเฉพาะคาบที่ยังไม่เปิดเช็คชื่อ</span></form>' : '') + '</div>';
+    var teachers = admin ? '<div class="card"><div class="card-head"><h2>อาจารย์ผู้สอนร่วม</h2><button class="btn sm primary" type="button" data-act="teacher-new">+ เพิ่มอาจารย์</button></div>' +
+      table([
+        { label: 'อาจารย์', render: function (t) { return '<strong>' + esc(t.fullName) + '</strong><div class="cell-sub">' + esc(t.username) + '</div>'; } },
+        { label: 'สถานะ', render: function (t) { return badge(t.status, S.meta.userStatus[t.status]) + '<div class="cell-sub">เข้าล่าสุด ' + (t.lastLoginAt ? dateTimeTH(t.lastLoginAt) : '-') + '</div>'; } },
+        { label: '', render: function (t) { return actionButtons([{ act: 'teacher-edit', id: t.id, label: 'แก้ไข' }, { act: 'teacher-delete', id: t.id, label: 'ลบ', cls: 'danger' }]); } }
+      ], d.teachers, { empty: 'ยังไม่มีอาจารย์ผู้สอนร่วม (อาจารย์ผู้สอนหลัก: ' + S.user.username + ')' }) + '</div>' : '';
     var backup = admin ? '<div class="card" id="backup-card"></div>' : '';
-    el('view').innerHTML = '<div class="grid grid-2"><div>' + org + '</div><div>' + pw + backup + '</div></div>';
-    if (admin) this.renderBackups(d);
+    var pw = admin ? '<div class="card"><div class="card-head"><h2>รหัสผ่าน</h2></div><p class="muted small">รหัสผ่านของอาจารย์ผู้สอนหลักเปลี่ยนได้ที่ส่วน CONFIGURATION ใน Code.gs แล้ว Deploy ใหม่</p></div>' : passwordCard();
+    el('view').innerHTML = '<div class="grid grid-2"><div>' + course + sections + '</div><div>' + teachers + backup + pw + '</div></div>';
+    if (admin) this.renderBackups(d.backups);
     bindSettingsForms();
   },
-  renderBackups: function (d) {
-    var b = d.backups || { items: [], dailyBackupActive: false, lastBackupAt: '' };
-    el('backup-card').innerHTML = '<div class="card-head"><h2>สำรองข้อมูล (Backup)</h2><button class="btn primary sm" type="button" data-act="backup-create">สำรองข้อมูลตอนนี้</button></div>' +
-      '<label class="switch"><input type="checkbox" data-act="backup-toggle"' + (b.dailyBackupActive ? ' checked' : '') + '> สำรองข้อมูลอัตโนมัติทุกวันเวลา 02:00</label>' +
-      '<p class="muted small">สำรองล่าสุด: ' + (b.lastBackupAt ? dateTimeTH(b.lastBackupAt) : 'ยังไม่เคยสำรอง') + ' · ไฟล์สำรองจะถูกเก็บในโฟลเดอร์ Backups ของ Google Drive</p>' +
+  renderBackups: function (b) {
+    b = b || { items: [], dailyBackupActive: false, lastBackupAt: '' };
+    el('backup-card').innerHTML = '<div class="card-head"><h2>สำรองข้อมูล</h2><button class="btn primary sm" type="button" data-act="backup-create">สำรองข้อมูลตอนนี้</button></div>' +
+      '<label class="switch"><input type="checkbox" data-act="backup-toggle"' + (b.dailyBackupActive ? ' checked' : '') + '> สำรองอัตโนมัติทุกวัน 02:00</label>' +
+      '<p class="muted small">ล่าสุด: ' + (b.lastBackupAt ? dateTimeTH(b.lastBackupAt) : 'ยังไม่เคยสำรอง') + ' · เก็บในโฟลเดอร์ Backups ของ Google Drive</p>' +
       (b.items.length ? '<ul class="list">' + b.items.map(function (x) {
-        return '<li><div><a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.name) + '</a><div class="cell-sub">' + dateTimeTH(x.createdAt) + ' · ' + fileSize(x.size) + '</div></div>' +
-          '<button class="btn sm danger" type="button" data-act="backup-delete" data-id="' + esc(x.id) + '">ลบ</button></li>';
+        return '<li><div><a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.name) + '</a><div class="cell-sub">' + dateTimeTH(x.createdAt) + '</div></div><button class="btn sm danger" type="button" data-act="backup-delete" data-id="' + esc(x.id) + '">ลบ</button></li>';
       }).join('') + '</ul>' : emptyState('ยังไม่มีไฟล์สำรองข้อมูล'));
   }
 };
+
+function passwordCard(intro) {
+  return '<div class="card"><div class="card-head"><h2>เปลี่ยนรหัสผ่าน</h2></div>' + (intro || '') + '<form id="password-form" class="stack" novalidate>' +
+    '<div class="field"><label for="pw-current">รหัสผ่านปัจจุบัน <span class="req">*</span></label><input class="input" id="pw-current" name="currentPassword" type="password" autocomplete="current-password" required></div>' +
+    '<div class="field"><label for="pw-new">รหัสผ่านใหม่ <span class="req">*</span></label><input class="input" id="pw-new" name="newPassword" type="password" autocomplete="new-password" required><span class="help">อย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร และไม่ใช่ 123456</span></div>' +
+    '<div class="field"><label for="pw-confirm">ยืนยันรหัสผ่านใหม่ <span class="req">*</span></label><input class="input" id="pw-confirm" name="confirmPassword" type="password" autocomplete="new-password" required></div>' +
+    '<div class="form-error" id="password-error" hidden></div><div><button class="btn primary" type="submit" id="password-submit">เปลี่ยนรหัสผ่าน</button></div></form></div>';
+}
 
 function bindSettingsForms() {
   var sf = el('settings-form');
@@ -1151,38 +1319,60 @@ function bindSettingsForms() {
       e.preventDefault();
       var box = el('settings-error');
       box.hidden = true;
-      var data = { orgName: sf.orgName.value.trim(), fiscalYear: sf.fiscalYear.value.trim(), currency: sf.currency.value.trim(), maxUploadMB: sf.maxUploadMB.value.trim(), fileSharing: sf.fileSharing.value, backupRetention: sf.backupRetention.value.trim() };
+      var data = {};
+      ['courseCode', 'courseName', 'semester', 'academicYear', 'lateMinutes', 'deviceLock', 'maxUploadMB', 'backupRetention'].forEach(function (k) { data[k] = sf.elements[k].value.trim(); });
       var err = '';
-      if (!data.currency) err = 'กรุณากรอกหน่วยเงิน';
-      else if (!/^\d+(\.\d+)?$/.test(data.maxUploadMB) || Number(data.maxUploadMB) < 1 || Number(data.maxUploadMB) > 40) err = 'ขนาดไฟล์สูงสุดต้องอยู่ระหว่าง 1–40 MB';
+      if (!data.courseCode || !data.courseName || !data.semester || !data.academicYear) err = 'กรุณากรอกข้อมูลรายวิชาให้ครบ';
+      else if (!/^\d+$/.test(data.lateMinutes) || Number(data.lateMinutes) > 240) err = 'นาทีที่ถือว่าสายต้องเป็นจำนวนเต็ม 0–240';
+      else if (!/^\d+$/.test(data.maxUploadMB) || Number(data.maxUploadMB) < 1 || Number(data.maxUploadMB) > 40) err = 'ขนาดไฟล์ต้องเป็นจำนวนเต็ม 1–40 MB';
       else if (!/^\d+$/.test(data.backupRetention) || Number(data.backupRetention) < 1 || Number(data.backupRetention) > 365) err = 'จำนวนไฟล์สำรองต้องเป็นจำนวนเต็ม 1–365';
       if (err) { box.textContent = err; box.hidden = false; return; }
       withButton(el('settings-submit'), api('saveSettings', data)).then(function (res) {
         S.settings = res.data.settings;
-        applyOrg();
+        S.course.courseCode = S.settings.courseCode; S.course.courseName = S.settings.courseName; S.course.semester = S.settings.semester; S.course.academicYear = S.settings.academicYear;
+        applyCourse();
         toast(res.message, 'success');
       }).catch(function (error) { box.textContent = error.message; box.hidden = false; });
     });
   }
-  var pf = el('password-form');
-  if (pf) {
-    pf.addEventListener('submit', function (e) {
+  var tf = el('term-form');
+  if (tf) {
+    tf.addEventListener('submit', function (e) {
       e.preventDefault();
-      var box = el('password-error');
-      box.hidden = true;
-      var data = { currentPassword: pf.currentPassword.value, newPassword: pf.newPassword.value, confirmPassword: pf.confirmPassword.value };
-      var err = '';
-      if (!data.currentPassword || !data.newPassword || !data.confirmPassword) err = 'กรุณากรอกข้อมูลให้ครบ';
-      else if (data.newPassword.length < S.meta.minPasswordLength) err = 'รหัสผ่านใหม่ต้องมีอย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร';
-      else if (data.newPassword !== data.confirmPassword) err = 'ยืนยันรหัสผ่านไม่ตรงกัน';
-      else if (data.newPassword === data.currentPassword) err = 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม';
-      if (err) { box.textContent = err; box.hidden = false; return; }
-      withButton(el('password-submit'), api('changeMyPassword', data)).then(function (res) {
-        pf.reset();
-        toast(res.message, 'success');
-      }).catch(function (error) { box.textContent = error.message; box.hidden = false; });
+      var v = el('term-start').value;
+      if (!v) { toast('กรุณาเลือกวันเปิดภาคเรียน', 'error'); return; }
+      confirmBox('คำนวณวันเรียนสัปดาห์ที่ 1 ของทุกกลุ่มจากวันที่ ' + dateTH(v) + ' และเลื่อนวันที่ของคาบที่ยังไม่เปิดเช็คชื่อ?', { danger: false }).then(function (yes) {
+        if (!yes) return;
+        withButton(el('term-submit'), api('setTermStart', v)).then(function (res) { setSections(res.data.items); toast(res.message, 'success'); refreshView(); }).catch(function (err) { toast(err.message, 'error'); });
+      });
     });
   }
+  bindPasswordForm();
+}
+
+function bindPasswordForm() {
+  var pf = el('password-form');
+  if (!pf) return;
+  pf.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var box = el('password-error');
+    box.hidden = true;
+    var data = { currentPassword: pf.elements.currentPassword.value, newPassword: pf.elements.newPassword.value, confirmPassword: pf.elements.confirmPassword.value };
+    var err = '';
+    if (!data.currentPassword || !data.newPassword || !data.confirmPassword) err = 'กรุณากรอกข้อมูลให้ครบ';
+    else if (data.newPassword.length < S.meta.minPasswordLength) err = 'รหัสผ่านใหม่ต้องมีอย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร';
+    else if (data.newPassword === '123456') err = 'ห้ามใช้รหัสผ่านเริ่มต้นเป็นรหัสผ่านใหม่';
+    else if (data.newPassword !== data.confirmPassword) err = 'ยืนยันรหัสผ่านไม่ตรงกัน';
+    else if (data.newPassword === data.currentPassword) err = 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม';
+    if (err) { box.textContent = err; box.hidden = false; return; }
+    withButton(el('password-submit'), api('changeMyPassword', data)).then(function (res) {
+      pf.reset();
+      toast(res.message, 'success');
+      var wasForced = S.user.mustChange;
+      applyBootstrap(res.data.bootstrap);
+      if (wasForced) navigate('home');
+    }).catch(function (error) { box.textContent = error.message; box.hidden = false; });
+  });
 }
 
 /* ---------- Logs ---------- */
@@ -1195,7 +1385,7 @@ VIEWS.logs = {
     d.items.forEach(function (x) { actions[x.action] = true; });
     el('view').innerHTML = '<div class="toolbar">' + searchFilter(f.q, 'ค้นหาผู้ใช้ รายละเอียด') +
       selectFilter('action', f.action, Object.keys(actions).sort().map(function (a) { return { value: a, label: a }; }), 'ทุกการกระทำ') +
-      '<span class="muted small">แสดงล่าสุด ' + d.items.length + ' จาก ' + d.total + ' รายการ</span></div><div class="card" id="list"></div>';
+      '<span class="muted small">ล่าสุด ' + d.items.length + ' จาก ' + d.total + ' รายการ</span></div><div class="card" id="list"></div>';
     this.renderList(d);
   },
   renderList: function (d) {
@@ -1204,7 +1394,7 @@ VIEWS.logs = {
     el('list').innerHTML = table([
       { label: 'เวลา', render: function (x) { return '<span class="nowrap">' + dateTimeTH(x.timestamp) + '</span>'; } },
       { label: 'ผู้ใช้', render: function (x) { return esc(x.username); } },
-      { label: 'การกระทำ', render: function (x) { return badge(/delete|failed/.test(x.action) ? 'rejected' : /create|login$/.test(x.action) ? 'approved' : '', x.action); } },
+      { label: 'การกระทำ', render: function (x) { return badge(/delete|failed|blocked/.test(x.action) ? 'absent' : /create|checkin$|login$|submit/.test(x.action) ? 'present' : '', x.action); } },
       { label: 'ข้อมูล', render: function (x) { return esc(x.entity) + (x.entityId ? '<div class="cell-sub">' + esc(x.entityId) + '</div>' : ''); } },
       { label: 'รายละเอียด', render: function (x) { return esc(x.detail); } }
     ], rows, { empty: 'ยังไม่มีบันทึก' });
@@ -1212,277 +1402,488 @@ VIEWS.logs = {
 };
 
 /* =========================================================================
- * FORMS (CRUD)
+ * VIEWS — นักศึกษา
  * ========================================================================= */
-function afterSave() { refreshView(); }
+function studentLoad() {
+  if (S.student) { var d = S.student; return Promise.resolve(d); }
+  return api('getStudentData').then(function (r) { S.student = r.data; return r.data; });
+}
 
-function projectForm(p) {
-  var editing = !!p;
-  var deptOpts = isAdmin() ? departmentOptions() : departmentOptions().filter(function (o) { return o.value === S.user.departmentId; });
+VIEWS.home = {
+  title: 'หน้าแรก',
+  load: studentLoad,
+  render: function (d) {
+    var p = d.profile;
+    var next = d.sessions.filter(function (s) { return s.status === 'open' || (s.status === 'scheduled' && s.sessionDate >= d.now.slice(0, 10)); })[0];
+    var online = d.assignments.filter(function (a) { return a.submissionMode === 'online'; });
+    var done = online.filter(function (a) { return a.submissions.length; }).length;
+    var todo = online.filter(function (a) { return !a.submissions.length && a.status === 'published'; }).slice(0, 5);
+    el('view').innerHTML = '<div class="stats">' +
+      '<div class="stat accent"><div class="label">' + esc(p.studentCode) + ' · กลุ่ม ' + esc(p.sectionCode) + '</div><div class="value" style="font-size:1.2rem">' + esc(p.fullName) + '</div><div class="sub">' + esc(p.program || '') + '</div></div>' +
+      '<div class="stat"><div class="label">การเข้าเรียน</div><div class="value">' + num(d.attendance.rate) + '%</div><div class="sub">มา ' + d.attendance.present + ' · สาย ' + d.attendance.late + ' · ขาด ' + d.attendance.absent + ' · ลา ' + d.attendance.excused + '</div></div>' +
+      '<div class="stat"><div class="label">ส่งงานแล้ว</div><div class="value">' + done + ' / ' + online.length + '</div><div class="sub">งานที่ส่งออนไลน์</div></div>' +
+      '<div class="stat"><div class="label">คะแนนสะสม (เผยแพร่แล้ว)</div><div class="value">' + num(d.grades ? d.grades.total : 0) + '</div><div class="sub">จาก 100 · รอผล ' + (d.grades ? d.grades.pending : 0) + ' งาน</div></div></div>' +
+      '<div class="grid grid-2"><div class="card"><div class="card-head"><h2>ตารางเรียนของฉัน</h2></div>' +
+      (d.section ? '<p><strong>' + esc(d.section.name) + '</strong> · วัน' + esc(d.section.dayLabel) + ' ' + esc(d.section.startTime) + '–' + esc(d.section.endTime) + ' น. · ห้อง ' + esc(d.section.room) + '</p>' : '') +
+      (next ? '<div class="session-info">คาบถัดไป: สัปดาห์ ' + next.week + ' · ' + dateTH(next.sessionDate) + ' · ' + esc(next.title) + (next.status === 'open' ? ' <strong>(กำลังเปิดเช็คชื่อ)</strong>' : '') + '</div>' : '') +
+      '<button class="btn primary" type="button" data-act="nav" data-view="checkin">เช็คชื่อเข้าเรียน</button></div>' +
+      '<div class="card"><div class="card-head"><h2>งานที่ยังไม่ส่ง</h2><button class="btn sm ghost" type="button" data-act="nav" data-view="myassignments">งานทั้งหมด</button></div>' +
+      (todo.length ? '<ul class="list">' + todo.map(function (a) { var late = a.due && d.now > a.due; return '<li><div><a href="#" data-act="my-assignment" data-id="' + esc(a.id) + '"><strong>' + esc(a.code) + '</strong> ' + esc(a.title) + '</a><div class="cell-sub">' + esc(a.categoryName) + '</div></div><span class="badge ' + (late ? 'bad' : 'warn') + '">' + (a.due ? dateTimeTH(a.due) : 'ไม่มีกำหนด') + '</span></li>'; }).join('') + '</ul>' : emptyState('ส่งงานครบแล้ว', '✓')) + '</div></div>';
+  }
+};
+
+VIEWS.checkin = {
+  title: 'เช็คชื่อเข้าเรียน',
+  load: function () { return Promise.resolve({}); },
+  render: function () {
+    el('view').innerHTML = '<div class="card" style="max-width:520px">' + checkinFormHtml('in') + '</div>';
+    bindCheckinForm('in', S.user.studentCode, S.startCode);
+    S.startCode = '';
+  }
+};
+
+VIEWS.myattendance = {
+  title: 'การเข้าเรียนของฉัน',
+  load: studentLoad,
+  render: function (d) {
+    el('view').innerHTML = '<div class="card"><div class="card-head"><h2>อัตราการเข้าเรียน ' + num(d.attendance.rate) + '%</h2><span class="muted small">นับจาก ' + d.attendance.held + ' คาบที่สอนแล้ว (ไม่นับสัปดาห์สอบ) · หากข้อมูลไม่ถูกต้องให้แจ้งอาจารย์</span></div>' + bar(d.attendance.rate, 'ok') + '</div><div class="card">' +
+      table([
+        { label: 'สัปดาห์', render: function (s) { return '<strong>W' + s.week + '</strong>'; } },
+        { label: 'วันที่', render: function (s) { return dateTH(s.sessionDate) + '<div class="cell-sub">' + esc(s.startTime) + '–' + esc(s.endTime) + '</div>'; } },
+        { label: 'หัวข้อ', render: function (s) { return esc(s.title); } },
+        { label: 'สถานะ', render: function (s) {
+          if (s.status === 'cancelled') return badge('cancelled', 'งดสอน');
+          if (s.myStatus) return badge(s.myStatus, S.meta.attendanceStatus[s.myStatus]) + (s.myCheckinAt ? '<div class="cell-sub">' + dateTimeTH(s.myCheckinAt) + '</div>' : '') + (s.myNote ? '<div class="cell-sub">' + esc(s.myNote) + '</div>' : '');
+          if (s.status === 'open') return badge('open', 'กำลังเปิดเช็คชื่อ');
+          if (s.status === 'closed') return badge('absent', 'ไม่ได้เช็คชื่อ');
+          return '<span class="muted">ยังไม่ถึง</span>';
+        } }
+      ], d.sessions, { empty: 'ยังไม่มีคาบเรียน' }) + '</div>';
+  }
+};
+
+VIEWS.myassignments = {
+  title: 'งานที่ได้รับมอบหมาย',
+  load: studentLoad,
+  render: function (d) {
+    register('myassignment', d.assignments);
+    el('view').innerHTML = '<div class="card">' + (d.assignments.length ? d.assignments.map(function (a) {
+      var last = a.submissions[0];
+      var late = a.due && d.now > a.due;
+      var state = a.grade ? badge('published', 'ได้ ' + num(a.grade.score) + '/' + num(a.maxScore)) : last ? badge('present', 'ส่งแล้ว ครั้งที่ ' + last.version) + (last.isLate ? ' ' + badge('late', 'ล่าช้า') : '') :
+        a.submissionMode !== 'online' ? badge('', 'ส่งในห้องเรียน') : late ? badge('absent', 'เลยกำหนด') : badge('late', 'ยังไม่ส่ง');
+      return '<div class="assign-card"><div><h3>' + esc(a.code) + ' · ' + esc(a.title) + '</h3><div class="cell-sub">' + esc(a.categoryName) + ' · ' + esc(a.clo) + ' · ' + num(a.maxScore) + ' คะแนน</div>' +
+        '<div class="small" style="margin-top:.3rem">กำหนดส่ง: ' + (a.due ? dateTimeTH(a.due) : '-') + (a.status === 'closed' ? ' · ปิดรับงานแล้ว' : '') + '</div></div>' +
+        '<div style="text-align:right">' + state + '<div style="margin-top:.5rem"><button class="btn sm primary" type="button" data-act="my-assignment" data-id="' + esc(a.id) + '">ดูรายละเอียด / ส่งงาน</button></div></div></div>';
+    }).join('') : emptyState('ยังไม่มีงานที่ได้รับมอบหมาย')) + '</div>';
+  }
+};
+
+VIEWS.mygrades = {
+  title: 'คะแนนของฉัน',
+  load: studentLoad,
+  render: function (d) {
+    var g = d.grades || { byCat: {}, total: 0, pending: 0 };
+    var cats = S.meta.categories;
+    el('view').innerHTML = '<div class="stats"><div class="stat accent"><div class="label">คะแนนสะสม</div><div class="value">' + num(g.total) + ' / 100</div><div class="sub">รวมเฉพาะคะแนนที่อาจารย์เผยแพร่แล้ว · รอผล ' + g.pending + ' งาน</div></div></div>' +
+      '<div class="card"><div class="card-head"><h2>ตามโครงสร้างคะแนน OBE-3</h2></div>' + table([
+        { label: 'หมวด', render: function (c) { return esc(c.name) + '<div class="cell-sub">' + esc(c.clo) + '</div>'; } },
+        { label: 'ได้', num: true, render: function (c) { var b = g.byCat[c.code]; return b && b.items ? num(b.earned) + (b.pending ? '<div class="cell-sub">รอผล ' + b.pending + '</div>' : '') : '<span class="muted">—</span>'; } },
+        { label: 'เต็ม', num: true, render: function (c) { return c.max; } }
+      ], cats) + '</div>' +
+      '<div class="card"><div class="card-head"><h2>คะแนนและ Feedback รายงาน</h2></div>' + table([
+        { label: 'งาน', render: function (a) { return '<strong>' + esc(a.code) + '</strong> ' + esc(a.title); } },
+        { label: 'คะแนน', num: true, render: function (a) { return a.grade ? num(a.grade.score) + ' / ' + num(a.maxScore) : '<span class="muted">รอผล</span>'; } },
+        { label: 'Feedback', render: function (a) { return a.grade && a.grade.feedback ? '<div style="white-space:pre-line">' + esc(a.grade.feedback) + '</div>' : '<span class="muted">-</span>'; } }
+      ], d.assignments, { empty: 'ยังไม่มีงาน' }) + '</div>';
+  }
+};
+
+VIEWS.account = {
+  title: 'เปลี่ยนรหัสผ่าน',
+  load: function () { return Promise.resolve({}); },
+  render: function () {
+    var intro = S.user.mustChange ? '<div class="notice">เข้าสู่ระบบครั้งแรก กรุณาตั้งรหัสผ่านใหม่ก่อนใช้งาน (รหัสผ่านปัจจุบันคือ 123456)</div>' : '';
+    el('view').innerHTML = '<div style="max-width:520px">' + passwordCard(intro) + '</div>';
+    bindPasswordForm();
+  }
+};
+
+function showMyAssignment(id) {
+  var a = item('myassignment', id) || (S.student ? S.student.assignments.filter(function (x) { return x.id === id; })[0] : null);
+  if (!a) return;
+  var d = S.student;
+  var late = a.due && d.now > a.due;
+  var canSubmit = a.submissionMode === 'online' && a.status === 'published' && !a.grade && (!late || a.allowLate);
+  var history = a.submissions.length ? a.submissions.map(function (s) {
+    return '<li><div><strong>ครั้งที่ ' + s.version + '</strong> · ' + dateTimeTH(s.submittedAt) + (s.isLate ? ' ' + badge('late', 'ล่าช้า') : '') +
+      '<div>' + s.files.map(function (f) { return '<span class="file-chip">' + esc(f.name) + ' · ' + fileSize(f.size) + ' <a href="#" data-act="file-download" data-id="' + esc(f.id) + '">⇩</a></span>'; }).join('') + '</div>' +
+      s.links.map(function (l) { return '<div class="cell-sub"><a href="' + esc(l) + '" target="_blank" rel="noopener">' + esc(l) + '</a></div>'; }).join('') + (s.note ? '<div class="cell-sub">' + esc(s.note) + '</div>' : '') + '</div></li>';
+  }).join('') : '';
+  var grade = a.grade ? '<div class="session-info"><strong>คะแนน ' + num(a.grade.score) + ' / ' + num(a.maxScore) + '</strong>' + (a.grade.feedback ? '<div style="white-space:pre-line;margin-top:.3rem">' + esc(a.grade.feedback) + '</div>' : '') + '</div>' : '';
+  var intro = '<p class="muted small">' + esc(a.categoryName) + ' · ' + esc(a.clo) + ' · ' + num(a.maxScore) + ' คะแนน · กำหนดส่ง ' + (a.due ? dateTimeTH(a.due) : '-') + (a.allowLate ? ' (รับงานล่าช้า)' : '') + '</p>' +
+    (a.description ? '<div style="white-space:pre-line;margin-bottom:1rem">' + esc(a.description) + '</div>' : '') + grade +
+    (history ? '<h3 style="margin:.8rem 0 .3rem;font-size:1rem">ประวัติการส่ง</h3><ul class="list">' + history + '</ul>' : '') +
+    (!canSubmit ? '<p class="muted">' + (a.grade ? 'งานนี้ได้รับคะแนนแล้ว' : a.submissionMode !== 'online' ? 'งานนี้ส่งในห้องเรียน' : a.status === 'closed' ? 'ปิดรับงานแล้ว' : late ? 'เลยกำหนดส่งและไม่รับงานล่าช้า' : '') + '</p>' :
+      '<h3 style="margin:1rem 0 .5rem;font-size:1rem">' + (a.submissions.length ? 'ส่งงานใหม่ (ครั้งที่ ' + (a.submissions[0].version + 1) + ')' : 'ส่งงาน') + '</h3>' + (late ? '<div class="notice">เลยกำหนดส่งแล้ว งานจะถูกบันทึกว่าส่งล่าช้า</div>' : ''));
+  if (!canSubmit) { openModal({ title: a.code + ' · ' + a.title, body: intro, size: 'lg' }); return; }
   openForm({
-    title: editing ? 'แก้ไขโครงการ' : 'เพิ่มโครงการ',
-    values: p || { departmentId: S.user.departmentId || (deptOpts.length === 1 ? deptOpts[0].value : ''), status: 'planning', startDate: todayISO() },
+    title: a.code + ' · ' + a.title,
+    size: 'lg',
+    intro: intro,
+    submitText: 'ส่งงาน',
     fields: [
-      { name: 'code', label: 'รหัสโครงการ', maxlength: 30 },
-      { name: 'name', label: 'ชื่อโครงการ', required: true, maxlength: 200 },
-      { name: 'departmentId', label: 'หน่วยงาน', type: 'select', required: true, options: deptOpts, placeholder: 'เลือกหน่วยงาน' },
-      { name: 'ownerName', label: 'ผู้รับผิดชอบ', maxlength: 120 },
-      { name: 'budget', label: 'งบประมาณ (' + cur() + ')', type: 'money', required: true, min: 0, help: editing ? 'ต้องไม่น้อยกว่างบกิจกรรมรวม ' + money(p.activityBudget) + ' และยอดเบิกจ่าย ' + money(p.committed) : '' },
-      { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.projectStatus) },
-      { name: 'startDate', label: 'วันที่เริ่ม', type: 'date', required: true },
-      { name: 'endDate', label: 'วันที่สิ้นสุด', type: 'date', required: true },
-      { name: 'description', label: 'รายละเอียด', type: 'textarea', full: true, maxlength: 3000 }
+      { name: 'files', label: 'ไฟล์งาน (เลือกได้หลายไฟล์)', type: 'file', multiple: true, full: true, help: 'รวมไม่เกิน ' + S.settings.maxUploadMB + ' MB · ไฟล์ใหญ่ให้อัปโหลดขึ้น Google Drive/YouTube แล้วแนบลิงก์' },
+      { name: 'links', label: 'ลิงก์ผลงาน (บรรทัดละ 1 ลิงก์)', type: 'textarea', full: true, rows: 2, placeholder: 'https://drive.google.com/file/d/xxxx' },
+      { name: 'note', label: 'หมายเหตุถึงอาจารย์', type: 'textarea', full: true, rows: 2, maxlength: 1000 }
     ],
-    validate: function (d) {
-      if (!deptOpts.length) return 'ยังไม่มีหน่วยงาน กรุณาให้ผู้ดูแลระบบเพิ่มหน่วยงานก่อน';
-      if (editing && Number(d.budget) < p.activityBudget) return 'งบประมาณโครงการต้องไม่น้อยกว่างบกิจกรรมรวม (' + money(p.activityBudget) + ')';
-      if (editing && Number(d.budget) < p.committed) return 'งบประมาณโครงการต้องไม่น้อยกว่ายอดเบิกจ่ายรวม (' + money(p.committed) + ')';
+    validate: function (data) {
+      var links = data.links.split(/\s+/).filter(String);
+      if (!data.files.length && !links.length) return 'กรุณาแนบไฟล์หรือลิงก์อย่างน้อย 1 รายการ';
+      for (var i = 0; i < links.length; i++) if (!/^https:\/\/\S{4,}$/.test(links[i])) return 'ลิงก์ต้องขึ้นต้นด้วย https:// : ' + links[i];
+      if (data.files.length > 10) return 'แนบไฟล์ได้ไม่เกิน 10 ไฟล์';
       return '';
     },
-    onSubmit: function (d) { if (editing) d.id = p.id; return api('saveProject', d); },
-    after: afterSave
+    onSubmit: function (data) {
+      return readUploads(data.files).then(function (files) { return api('submitAssignment', { assignmentId: a.id, links: data.links, note: data.note, files: files }); });
+    },
+    after: function (res) { S.student = res.data.student; refreshView(); }
   });
 }
 
-function activityForm(a, presetProjectId) {
-  var editing = !!a;
-  var opts = projectOptions(true);
-  var values = a || { projectId: presetProjectId || '', status: 'not_started', startDate: todayISO() };
+/* =========================================================================
+ * CHECK-IN (สาธารณะ + นักศึกษาที่เข้าสู่ระบบ)
+ * ========================================================================= */
+function checkinFormHtml(prefix) {
+  return '<h2>เช็คชื่อเข้าเรียน</h2><p class="muted small">สแกน QR บนจอหน้าห้อง หรือพิมพ์รหัส 6 ตัวที่แสดงใต้ QR</p>' +
+    '<div id="' + prefix + '-info"></div>' +
+    '<form id="' + prefix + '-form" class="stack" novalidate>' +
+    '<div class="field"><label for="' + prefix + '-student">รหัสนักศึกษา <span class="req">*</span></label><input class="input" id="' + prefix + '-student" inputmode="numeric" autocomplete="username" maxlength="15" required></div>' +
+    '<div class="field"><label for="' + prefix + '-code">รหัสเช็คชื่อ 6 ตัว <span class="req">*</span></label><input class="input code-input" id="' + prefix + '-code" maxlength="6" autocomplete="off" autocapitalize="characters" required></div>' +
+    '<div class="form-error" id="' + prefix + '-error" hidden></div>' +
+    '<button class="btn primary block" type="submit" id="' + prefix + '-submit">เช็คชื่อ</button></form><div id="' + prefix + '-result"></div>';
+}
+
+function bindCheckinForm(prefix, studentCode, code) {
+  var form = el(prefix + '-form');
+  var sInput = el(prefix + '-student');
+  var cInput = el(prefix + '-code');
+  if (studentCode) { sInput.value = studentCode; sInput.readOnly = true; }
+  if (code) cInput.value = code;
+  var lookup = function () {
+    var c = cInput.value.trim().toUpperCase();
+    cInput.value = c;
+    if (c.length !== 6) { el(prefix + '-info').innerHTML = ''; return; }
+    serverCall('getCheckinInfo', [c]).then(function (res) {
+      var d = res.data;
+      el(prefix + '-info').innerHTML = '<div class="session-info"><strong>' + esc(d.courseName) + '</strong><br>กลุ่ม ' + esc(d.sectionCode) + ' · สัปดาห์ ' + d.week + ' · ' + dateTH(d.sessionDate) + ' ' + esc(d.startTime) + ' น. · ' + esc(d.room) + '<br>' + esc(d.title) + '</div>';
+    }).catch(function (err) { el(prefix + '-info').innerHTML = '<div class="form-error" style="margin:0 0 1rem">' + esc(err.message) + '</div>'; });
+  };
+  cInput.addEventListener('input', function () { if (cInput.value.trim().length === 6) lookup(); });
+  if (code) lookup();
+  (studentCode ? cInput : sInput).focus();
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var box = el(prefix + '-error');
+    box.hidden = true;
+    var payload = { studentCode: sInput.value.trim(), code: cInput.value.trim().toUpperCase(), deviceHash: S.deviceHash };
+    var err = !/^\d{5,15}$/.test(payload.studentCode) ? 'กรุณากรอกรหัสนักศึกษาให้ถูกต้อง (ตัวเลข)' : payload.code.length !== 6 ? 'กรุณากรอกรหัสเช็คชื่อ 6 ตัว' : '';
+    if (err) { box.textContent = err; box.hidden = false; return; }
+    withButton(el(prefix + '-submit'), serverCall('checkIn', [payload])).then(function (res) {
+      var d = res.data;
+      form.hidden = true;
+      el(prefix + '-info').innerHTML = '';
+      el(prefix + '-result').innerHTML = '<div class="result-ok"><div class="big">' + (d.status === 'late' ? '⏰' : '✅') + '</div><h2 style="margin:.5rem 0">' + esc(res.message) + '</h2><p>' + esc(d.fullName) + '<br>กลุ่ม ' + esc(d.sectionCode) + ' · สัปดาห์ ' + d.week + '</p><p>' + badge(d.status, d.statusLabel) + ' เวลา ' + String(d.checkinAt).slice(11, 16) + ' น.</p></div>' +
+        '<button class="btn ghost block" type="button" data-act="checkin-again" data-id="' + prefix + '">เช็คชื่อให้รหัสอื่น / คาบอื่น</button>';
+      if (S.student) { S.student = null; }
+    }).catch(function (error) { box.textContent = error.message; box.hidden = false; });
+  });
+}
+
+/** ลายนิ้วมืออุปกรณ์แบบไม่บันทึกลงเครื่อง (ใช้ตรวจ 1 เครื่อง : 1 คน ต่อคาบ) */
+function computeDeviceHash() {
+  var parts = [navigator.userAgent, navigator.language, (navigator.languages || []).join(','), screen.width + 'x' + screen.height + 'x' + screen.colorDepth, window.devicePixelRatio,
+    new Date().getTimezoneOffset(), navigator.hardwareConcurrency || '', navigator.maxTouchPoints || '', navigator.platform || ''];
+  try {
+    var c = document.createElement('canvas');
+    c.width = 200; c.height = 40;
+    var x = c.getContext('2d');
+    x.textBaseline = 'top'; x.font = '16px Arial'; x.fillStyle = '#f60'; x.fillRect(0, 0, 80, 20); x.fillStyle = '#069'; x.fillText('2D animation ก๏', 2, 2);
+    parts.push(c.toDataURL().slice(-64));
+  } catch (e) { parts.push('nocanvas'); }
+  var text = parts.join('|');
+  if (window.crypto && crypto.subtle && window.TextEncoder) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    }).catch(function () { return simpleHash(text); });
+  }
+  return Promise.resolve(simpleHash(text));
+}
+function simpleHash(s) {
+  var h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (var i = 0; i < s.length; i++) { h1 = Math.imul(h1 ^ s.charCodeAt(i), 16777619) >>> 0; h2 = Math.imul(h2 + s.charCodeAt(i), 2246822519) >>> 0; }
+  return ('00000000' + h1.toString(16)).slice(-8) + ('00000000' + h2.toString(16)).slice(-8);
+}
+
+/* =========================================================================
+ * FORMS (CRUD)
+ * ========================================================================= */
+function sessionForm(s) {
   openForm({
-    title: editing ? 'แก้ไขกิจกรรม' : 'เพิ่มกิจกรรม',
-    values: values,
+    title: 'แก้ไขคาบ กลุ่ม ' + s.sectionCode + ' สัปดาห์ ' + s.week,
+    values: { sessionDate: s.sessionDate, startTime: s.startTime, endTime: s.endTime, room: s.room, title: s.title, cancelled: s.status === 'cancelled' ? 'yes' : 'no' },
     fields: [
-      { name: 'projectId', label: 'โครงการ', type: 'select', required: true, options: opts, placeholder: 'เลือกโครงการ', full: true },
-      { name: 'name', label: 'ชื่อกิจกรรม', required: true, maxlength: 200, full: true },
-      { name: 'responsible', label: 'ผู้รับผิดชอบ', maxlength: 120 },
-      { name: 'budget', label: 'งบประมาณกิจกรรม (' + cur() + ')', type: 'money', required: true, min: 0 },
-      { name: 'startDate', label: 'วันที่เริ่ม', type: 'date', required: true },
-      { name: 'endDate', label: 'วันที่สิ้นสุด', type: 'date', required: true },
-      { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.activityStatus) },
-      { name: 'description', label: 'รายละเอียด', type: 'textarea', full: true, maxlength: 2000 }
+      { name: 'title', label: 'หัวข้อ', required: true, full: true, maxlength: 300 },
+      { name: 'sessionDate', label: 'วันที่', type: 'date', required: true },
+      { name: 'room', label: 'ห้อง', maxlength: 60 },
+      { name: 'startTime', label: 'เวลาเริ่ม', type: 'time', required: true },
+      { name: 'endTime', label: 'เวลาสิ้นสุด', type: 'time', required: true },
+      { name: 'cancelled', label: 'งดสอน', type: 'select', options: [{ value: 'no', label: 'สอนตามปกติ' }, { value: 'yes', label: 'งดสอน' }], disabled: s.status !== 'scheduled' && s.status !== 'cancelled', full: true }
     ],
+    validate: function (d) { return d.endTime <= d.startTime ? 'เวลาสิ้นสุดต้องหลังเวลาเริ่ม' : ''; },
+    onSubmit: function (d) { return api('updateSession', { id: s.id, title: d.title, sessionDate: d.sessionDate, startTime: d.startTime, endTime: d.endTime, room: d.room, cancelled: d.cancelled === undefined ? undefined : d.cancelled === 'yes' }); },
+    after: function () { refreshView(); }
+  });
+}
+
+function closeSessionFlow(id, btn) {
+  openForm({
+    title: 'ปิดเช็คชื่อ',
+    values: { markAbsent: 'yes' },
+    fields: [{ name: 'markAbsent', label: 'นักศึกษาที่ยังไม่ได้เช็คชื่อ', type: 'select', full: true, options: [{ value: 'yes', label: 'บันทึกเป็น "ขาด" ทั้งหมด' }, { value: 'no', label: 'ยังไม่บันทึก (แก้ไขภายหลัง)' }] }],
+    submitText: 'ปิดเช็คชื่อ',
+    onSubmit: function (d) { return api('closeSession', id, d.markAbsent === 'yes'); },
+    after: function () { if (S.view === 'live') navigate('live', { id: id }); else refreshView(); }
+  });
+}
+
+function attendanceForm(sessionId, codes, title) {
+  openForm({
+    title: title,
+    values: { status: 'present' },
+    fields: [
+      { name: 'status', label: 'สถานะ', type: 'select', options: mapOptions(S.meta.attendanceStatus).concat([{ value: '', label: 'ล้างสถานะ (ยังไม่เช็คชื่อ)' }]), full: true },
+      { name: 'note', label: 'หมายเหตุ เช่น เหตุผลการลา', maxlength: 300, full: true }
+    ],
+    onSubmit: function (d) { return api('setAttendance', { sessionId: sessionId, studentCodes: codes, status: d.status, note: d.note }); },
+    after: function () { refreshView(); }
+  });
+}
+
+function studentForm(s) {
+  var editing = !!s;
+  openForm({
+    title: editing ? 'แก้ไขข้อมูลนักศึกษา' : 'เพิ่มนักศึกษา',
+    values: s || { sectionCode: S.section, status: 'active' },
+    fields: [
+      { name: 'studentCode', label: 'รหัสนักศึกษา', required: true, maxlength: 15, inputmode: 'numeric' },
+      { name: 'fullName', label: 'ชื่อ-สกุล', required: true, maxlength: 150 },
+      { name: 'sectionCode', label: 'กลุ่มเรียน', type: 'select', required: true, options: sectionOptions(), placeholder: 'เลือกกลุ่มเรียน', help: editing ? 'ย้ายกลุ่มได้ ประวัติการเข้าเรียนเดิมยังอยู่' : '' },
+      { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.userStatus) },
+      { name: 'program', label: 'สาขาวิชา', maxlength: 200, full: true },
+      { name: 'faculty', label: 'คณะ', maxlength: 200 },
+      { name: 'email', label: 'อีเมล', type: 'email', maxlength: 120 }
+    ],
+    validate: function (d) { return /^\d{5,15}$/.test(d.studentCode) ? '' : 'รหัสนักศึกษาต้องเป็นตัวเลข 5–15 หลัก'; },
+    onSubmit: function (d) { if (editing) d.id = s.id; return api('saveStudent', d); },
+    after: function () { refreshView(); }
+  });
+}
+
+/* ---------- Import ClassRoster CSV ---------- */
+function parseCsv(text) {
+  var rows = [], row = [], cell = '', q = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text.charAt(i);
+    if (q) {
+      if (ch === '"') { if (text.charAt(i + 1) === '"') { cell += '"'; i++; } else q = false; } else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',' || ch === '\t') { row.push(cell.trim()); cell = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text.charAt(i + 1) === '\n') i++; row.push(cell.trim()); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell.trim()); rows.push(row); }
+  return rows.filter(function (r) { return r.some(function (c) { return c !== ''; }); });
+}
+
+/** รองรับไฟล์ ClassRoster ของระบบทะเบียน และ CSV ทั่วไป (รหัส, ชื่อ, กลุ่ม) */
+function parseRoster(text, fallbackSection) {
+  var rows = parseCsv(text.replace(/^﻿/, ''));
+  var out = [], section = fallbackSection;
+  if (rows.length && /รหัสวิชา/.test(rows[0][0] || '')) {
+    var h = rows[0], v = rows[1] || [];
+    var gi = h.findIndex(function (x) { return /กลุ่ม/.test(x); });
+    if (gi >= 0 && v[gi]) section = String(v[gi]).replace(/^0+(?=\d)/, '');
+    var start = rows.findIndex(function (r) { return /^ลำดับ/.test(r[0] || ''); });
+    var cols = start >= 0 ? rows[start] : [];
+    var idx = function (re, d) { var k = cols.findIndex(function (c) { return re.test(c); }); return k >= 0 ? k : d; };
+    var ic = idx(/รหัส/, 1), inm = idx(/ชื่อ/, 2), ip = idx(/สาขา/, 3), ifc = idx(/คณะ/, 4);
+    rows.slice(start + 1).forEach(function (r) { if (r[ic]) out.push({ studentCode: r[ic], fullName: r[inm], program: r[ip] || '', faculty: r[ifc] || '', sectionCode: section }); });
+  } else {
+    var header = rows[0] || [];
+    var hasHeader = header.some(function (c) { return /รหัส|code|ชื่อ|name/i.test(c); });
+    var col = function (re, d) { var k = header.findIndex(function (c) { return re.test(c); }); return hasHeader && k >= 0 ? k : d; };
+    var c1 = col(/รหัส|code/i, 0), c2 = col(/ชื่อ|name/i, 1), c3 = col(/กลุ่ม|sec/i, 2);
+    rows.slice(hasHeader ? 1 : 0).forEach(function (r) { if (r[c1]) out.push({ studentCode: r[c1], fullName: r[c2] || '', sectionCode: (r[c3] || fallbackSection || '').replace(/^0+(?=\d)/, '') }); });
+  }
+  return out;
+}
+
+function readText(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var buf = reader.result;
+      try { resolve(new TextDecoder('utf-8', { fatal: true }).decode(buf)); } catch (e) {
+        try { resolve(new TextDecoder('windows-874').decode(buf)); } catch (e2) { reject(new Error('อ่านไฟล์ไม่ได้: ' + file.name)); }
+      }
+    };
+    reader.onerror = function () { reject(new Error('อ่านไฟล์ไม่ได้: ' + file.name)); };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function importForm() {
+  var parsed = null;
+  openForm({
+    title: 'นำเข้ารายชื่อนักศึกษา',
+    intro: '<p class="muted small">เลือกไฟล์ ClassRoster_xxxxx.csv จากระบบทะเบียนได้หลายไฟล์พร้อมกัน ระบบอ่าน "กลุ่มเรียน" จากหัวไฟล์ · รองรับ CSV ทั่วไปคอลัมน์ รหัสนักศึกษา, ชื่อ-สกุล, กลุ่ม · นำเข้าซ้ำได้ (อัปเดตชื่อ/กลุ่ม ไม่สร้างบัญชีซ้ำ ไม่เปลี่ยนรหัสผ่าน)</p>',
+    submitText: 'ตรวจไฟล์',
+    keepOpen: true,
+    fields: [
+      { name: 'files', label: 'ไฟล์ CSV', type: 'file', multiple: true, accept: '.csv,.txt', required: true, full: true },
+      { name: 'section', label: 'กลุ่มเรียน (ใช้เมื่อไฟล์ไม่ระบุกลุ่ม)', type: 'select', options: sectionOptions(), placeholder: 'ไม่ระบุ', full: true }
+    ],
+    onSubmit: function (d, form) {
+      if (parsed) {
+        return api('importStudents', { rows: parsed }).then(function (res) {
+          closeModal();
+          toast(res.message, res.data.errorCount ? 'warn' : 'success');
+          if (res.data.errors.length) openModal({ title: 'แถวที่ข้าม (' + res.data.errorCount + ')', body: '<ul class="list">' + res.data.errors.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' });
+          api('listSections').then(function (r) { setSections(r.data.items); });
+          refreshView();
+          return res;
+        });
+      }
+      return Promise.all(d.files.map(readText)).then(function (texts) {
+        var rows = [];
+        texts.forEach(function (t) { rows = rows.concat(parseRoster(t, d.section)); });
+        if (!rows.length) throw new Error('ไม่พบรายชื่อในไฟล์ที่เลือก');
+        var by = {};
+        rows.forEach(function (r) { by[r.sectionCode || '?'] = (by[r.sectionCode || '?'] || 0) + 1; });
+        parsed = rows;
+        var err = el('form-error');
+        err.hidden = true;
+        form.insertAdjacentHTML('beforeend', '<div class="session-info" style="margin-top:1rem">พบ ' + rows.length + ' รายชื่อ: ' + Object.keys(by).map(function (k) { return 'กลุ่ม ' + esc(k) + ' = ' + by[k] + ' คน'; }).join(' · ') + '<br>ตัวอย่าง: ' + rows.slice(0, 3).map(function (r) { return esc(r.studentCode + ' ' + r.fullName); }).join(', ') + '</div>');
+        el('modal-submit').textContent = 'ยืนยันนำเข้า ' + rows.length + ' รายชื่อ';
+        return null;
+      });
+    }
+  });
+}
+
+function assignmentForm(a) {
+  var editing = !!a;
+  var cap = (S.data.assignments && S.data.assignments.capacity) || [];
+  var secOpts = S.sections.map(function (s) { return { value: s.code, label: s.name }; });
+  var fields = [
+    { name: 'code', label: 'รหัสงาน', required: true, maxlength: 20, placeholder: 'A01' },
+    { name: 'title', label: 'ชื่องาน', required: true, maxlength: 200 },
+    { name: 'categoryCode', label: 'หมวดคะแนน (OBE-3)', type: 'select', required: true, full: true, options: S.meta.categories.map(function (c) { return { value: c.code, label: c.name + ' · ' + c.clo + ' (เต็ม ' + c.max + ')' }; }), placeholder: 'เลือกหมวด' },
+    { name: 'maxScore', label: 'คะแนนเต็ม', type: 'number', required: true, min: 0, max: 100, step: '0.5', positive: true },
+    { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.assignmentStatus) },
+    { name: 'sections', label: 'มอบหมายให้กลุ่ม (ไม่เลือก = ทุกกลุ่ม)', type: 'checks', options: secOpts, full: true },
+    { name: 'submissionMode', label: 'วิธีส่งงาน', type: 'select', options: mapOptions(S.meta.submissionMode) },
+    { name: 'allowLate', label: 'รับงานล่าช้า', type: 'select', options: [{ value: 'yes', label: 'รับ (บันทึกว่าล่าช้า)' }, { value: 'no', label: 'ไม่รับหลังกำหนด' }] },
+    { name: 'dueAt', label: 'กำหนดส่ง (ทุกกลุ่ม)', type: 'datetime-local', full: true }
+  ];
+  S.sections.forEach(function (s) { fields.push({ name: 'due_' + s.code, label: 'กำหนดส่งเฉพาะ' + s.name + ' (ถ้าต่างจากด้านบน)', type: 'datetime-local' }); });
+  fields.push({ name: 'description', label: 'รายละเอียด/โจทย์', type: 'textarea', rows: 5, full: true, maxlength: 5000 });
+  var values = a ? { code: a.code, title: a.title, categoryCode: a.categoryCode, maxScore: a.maxScore, status: a.status, sections: a.sections, submissionMode: a.submissionMode, allowLate: a.allowLate ? 'yes' : 'no', dueAt: a.dueAt, description: a.description } :
+    { status: 'draft', submissionMode: 'online', allowLate: 'yes', sections: S.section ? [S.section] : [] };
+  if (a) Object.keys(a.sectionDue || {}).forEach(function (k) { values['due_' + k] = a.sectionDue[k]; });
+  openForm({
+    title: editing ? 'แก้ไขงาน ' + a.code : 'สร้างงานใหม่',
+    size: 'lg',
+    values: values,
+    fields: fields,
     onReady: function (form) {
       var update = function () {
-        var p = projectLookup(form.projectId.value);
-        var help = el('help-budget');
-        if (!p) { help.textContent = ''; return; }
-        var own = editing && a.projectId === p.id ? a.budget : 0;
-        help.textContent = 'งบโครงการ ' + money(p.budget) + ' · จัดสรรได้อีก ' + money(p.budget - p.activityBudget + own);
+        var c = cap.filter(function (x) { return x.code === form.categoryCode.value; })[0];
+        el('help-maxScore').textContent = c ? 'ใช้ไปแล้ว: ' + S.sections.map(function (s) { var used = (c.bySection[s.code] || 0) - (editing && a.categoryCode === c.code && (!a.sections.length || a.sections.indexOf(s.code) >= 0) ? a.maxScore : 0); return 'กลุ่ม ' + s.code + ' ' + num(used) + '/' + c.max; }).join(' · ') : '';
       };
-      form.projectId.addEventListener('change', update);
+      form.categoryCode.addEventListener('change', update);
       update();
     },
     validate: function (d) {
-      if (!opts.length) return 'ไม่มีโครงการที่คุณจัดการได้';
-      var p = projectLookup(d.projectId);
-      if (!p) return 'กรุณาเลือกโครงการ';
-      var own = editing && a.projectId === p.id ? a.budget : 0;
-      var left = p.budget - p.activityBudget + own;
-      if (Number(d.budget) > left + 0.001) return 'งบกิจกรรมรวมเกินงบโครงการ (จัดสรรได้อีก ' + money(left) + ')';
-      if (editing && Number(d.budget) < a.committed) return 'งบกิจกรรมต้องไม่น้อยกว่ายอดเบิกจ่ายของกิจกรรม (' + money(a.committed) + ')';
-      return '';
-    },
-    onSubmit: function (d) { if (editing) d.id = a.id; return api('saveActivity', d); },
-    after: afterSave
-  });
-}
-
-function expenseForm(e, presetProjectId) {
-  var editing = !!e;
-  var values = e || { projectId: presetProjectId || '', expenseDate: todayISO() };
-  var oldAmount = editing && e.status !== 'rejected' ? e.amount : 0;
-  openForm({
-    title: editing ? 'แก้ไขรายการเบิกจ่าย' : 'บันทึกเบิกจ่าย',
-    values: values,
-    fields: [
-      { name: 'projectId', label: 'โครงการ', type: 'select', required: true, options: projectOptions(false), placeholder: 'เลือกโครงการ', full: true },
-      { name: 'activityId', label: 'กิจกรรม', type: 'select', options: activityOptions(values.projectId), placeholder: 'ไม่ระบุกิจกรรม', full: true },
-      { name: 'expenseDate', label: 'วันที่เบิกจ่าย', type: 'date', required: true },
-      { name: 'amount', label: 'จำนวนเงิน (' + cur() + ')', type: 'money', required: true, min: 0, positive: true },
-      { name: 'description', label: 'รายการ', required: true, maxlength: 500, full: true },
-      { name: 'payee', label: 'ผู้รับเงิน', maxlength: 200 },
-      { name: 'receiptNo', label: 'เลขที่ใบเสร็จ/เอกสาร', maxlength: 60 },
-      { name: 'file', label: editing && e.fileId ? 'แนบหลักฐานใหม่ (แทนไฟล์เดิม)' : 'แนบหลักฐาน', type: 'file', full: true, help: 'ไม่เกิน ' + (S.settings.maxUploadMB || 10) + ' MB' },
-      { name: 'note', label: 'หมายเหตุ', type: 'textarea', full: true, maxlength: 1000, rows: 2 }
-    ],
-    onReady: function (form) {
-      var update = function (reset) {
-        var pid = form.projectId.value;
-        if (reset) fillSelect(form.activityId, activityOptions(pid), 'ไม่ระบุกิจกรรม', '');
-        var p = projectLookup(pid);
-        var a = activityLookup(form.activityId.value);
-        var help = el('help-amount');
-        if (!p) { help.textContent = ''; return; }
-        var ownP = editing && e.projectId === pid ? oldAmount : 0;
-        var text = 'งบโครงการคงเหลือ ' + money(p.remaining + ownP);
-        if (a) { var ownA = editing && e.activityId === a.id ? oldAmount : 0; text += ' · งบกิจกรรมคงเหลือ ' + money(a.remaining + ownA); }
-        help.textContent = text;
-      };
-      form.projectId.addEventListener('change', function () { update(true); });
-      form.activityId.addEventListener('change', function () { update(false); });
-      update(false);
-    },
-    validate: function (d) {
-      var p = projectLookup(d.projectId);
-      if (!p) return 'กรุณาเลือกโครงการ';
-      var amount = Number(d.amount);
-      var ownP = editing && e.projectId === p.id ? oldAmount : 0;
-      if (amount > p.remaining + ownP + 0.001) return 'จำนวนเงินเกินงบคงเหลือของโครงการ (คงเหลือ ' + money(p.remaining + ownP) + ')';
-      var a = activityLookup(d.activityId);
-      if (a) {
-        var ownA = editing && e.activityId === a.id ? oldAmount : 0;
-        if (amount > a.remaining + ownA + 0.001) return 'จำนวนเงินเกินงบคงเหลือของกิจกรรม (คงเหลือ ' + money(a.remaining + ownA) + ')';
+      if (!/^[A-Za-z0-9_-]{1,20}$/.test(d.code)) return 'รหัสงานใช้ได้เฉพาะ A–Z 0–9 _ -';
+      var c = cap.filter(function (x) { return x.code === d.categoryCode; })[0];
+      if (c) {
+        var targets = d.sections.length ? d.sections : S.sections.map(function (s) { return s.code; });
+        for (var i = 0; i < targets.length; i++) {
+          var sc = targets[i];
+          var used = (c.bySection[sc] || 0) - (editing && a.categoryCode === c.code && (!a.sections.length || a.sections.indexOf(sc) >= 0) ? a.maxScore : 0);
+          if (used + Number(d.maxScore) > c.max + 0.001) return 'คะแนนเต็มรวมหมวดนี้ของกลุ่ม ' + sc + ' จะเกิน ' + c.max + ' (เหลือ ' + num(c.max - used) + ')';
+        }
       }
+      var hasDue = d.dueAt || S.sections.some(function (s) { return d['due_' + s.code]; });
+      if (d.status !== 'draft' && d.submissionMode === 'online' && !hasDue) return 'งานที่ส่งออนไลน์ต้องกำหนดวันส่งก่อนเผยแพร่';
       return '';
     },
     onSubmit: function (d) {
-      return readUpload(d.file).then(function (file) {
-        var payload = { projectId: d.projectId, activityId: d.activityId, expenseDate: d.expenseDate, amount: d.amount, description: d.description, payee: d.payee, receiptNo: d.receiptNo, note: d.note, file: file };
-        if (editing) payload.id = e.id;
-        return api('saveExpense', payload);
-      });
+      var due = {};
+      S.sections.forEach(function (s) { if (d['due_' + s.code]) due[s.code] = d['due_' + s.code]; });
+      var payload = { code: d.code, title: d.title, categoryCode: d.categoryCode, maxScore: d.maxScore, status: d.status, sections: d.sections, submissionMode: d.submissionMode, allowLate: d.allowLate === 'yes', dueAt: d.dueAt, sectionDue: due, description: d.description };
+      if (editing) payload.id = a.id;
+      return api('saveAssignment', payload);
     },
-    after: afterSave
+    after: function () { S.data.assignments = null; refreshView(); }
   });
 }
 
-function progressForm(r, presetProjectId) {
-  var editing = !!r;
-  var values = r || { projectId: presetProjectId || '', reportDate: todayISO() };
-  openForm({
-    title: editing ? 'แก้ไขรายงานความก้าวหน้า' : 'รายงานความก้าวหน้า',
-    values: values,
-    fields: [
-      { name: 'projectId', label: 'โครงการ', type: 'select', required: true, options: projectOptions(false), placeholder: 'เลือกโครงการ', full: true },
-      { name: 'activityId', label: 'กิจกรรม', type: 'select', options: activityOptions(values.projectId), placeholder: 'ภาพรวมโครงการ', full: true },
-      { name: 'reportDate', label: 'วันที่รายงาน', type: 'date', required: true },
-      { name: 'percent', label: 'ร้อยละความก้าวหน้า', type: 'number', required: true, min: 0, max: 100, step: '0.01' },
-      { name: 'detail', label: 'รายละเอียดความก้าวหน้า', type: 'textarea', required: true, full: true, maxlength: 3000 },
-      { name: 'problems', label: 'ปัญหา/อุปสรรค', type: 'textarea', full: true, maxlength: 2000, rows: 2 },
-      { name: 'nextSteps', label: 'แผนขั้นต่อไป', type: 'textarea', full: true, maxlength: 2000, rows: 2 }
-    ],
-    onReady: function (form) {
-      form.projectId.addEventListener('change', function () { fillSelect(form.activityId, activityOptions(form.projectId.value), 'ภาพรวมโครงการ', ''); });
-    },
-    onSubmit: function (d) { if (editing) d.id = r.id; return api('saveProgress', d); },
-    after: afterSave
-  });
-}
-
-function reportForm(r) {
-  var editing = !!r;
-  var fields = [
-    { name: 'title', label: 'ชื่อรายงาน', required: true, maxlength: 200, full: true },
-    { name: 'reportType', label: 'ประเภทรายงาน', type: 'select', required: true, options: mapOptions(S.meta.reportTypes) },
-    { name: 'projectId', label: 'โครงการ', type: 'select', options: projectOptions(false), placeholder: 'เลือกโครงการ', required: function (d) { return d.reportType === 'project'; } }
-  ];
-  if (isAdmin()) fields.push({ name: 'departmentId', label: 'หน่วยงาน', type: 'select', options: departmentOptions(), placeholder: 'ทุกหน่วยงาน' });
-  fields.push(
-    { name: 'startDate', label: 'ตั้งแต่วันที่', type: 'date' },
-    { name: 'endDate', label: 'ถึงวันที่', type: 'date' },
-    { name: 'note', label: 'หมายเหตุ', type: 'textarea', full: true, maxlength: 2000, rows: 2 }
-  );
-  openForm({
-    title: editing ? 'แก้ไขรายงาน' : 'สร้างรายงาน',
-    values: r || { reportType: 'budget' },
-    fields: fields,
-    onReady: function (form) {
-      var toggle = function () {
-        var isProject = form.reportType.value === 'project';
-        form.querySelector('[data-field="projectId"]').hidden = !isProject;
-        var dept = form.querySelector('[data-field="departmentId"]');
-        if (dept) dept.hidden = isProject;
-      };
-      form.reportType.addEventListener('change', toggle);
-      toggle();
-    },
-    onSubmit: function (d) { if (editing) d.id = r.id; return api('saveReport', d); },
-    after: afterSave
-  });
-}
-
-function uploadForm(presetProjectId) {
-  var opts = projectOptions(false);
-  var general = isManager();
-  openForm({
-    title: 'อัปโหลดไฟล์',
-    values: { projectId: presetProjectId || '' },
-    fields: [
-      { name: 'projectId', label: 'โครงการ', type: 'select', options: opts, placeholder: general ? 'เอกสารทั่วไป (ไม่ระบุโครงการ)' : 'เลือกโครงการ', required: !general, full: true },
-      { name: 'file', label: 'ไฟล์', type: 'file', required: true, full: true, help: 'ไม่เกิน ' + (S.settings.maxUploadMB || 10) + ' MB · เก็บใน Google Drive ของระบบ' },
-      { name: 'description', label: 'คำอธิบาย', type: 'textarea', full: true, maxlength: 500, rows: 2 }
-    ],
-    submitText: 'อัปโหลด',
-    onSubmit: function (d) {
-      return readUpload(d.file).then(function (file) { return api('uploadFile', { projectId: d.projectId, description: d.description, file: file }); });
-    },
-    after: afterSave
-  });
-}
-
-function userForm(u) {
-  var editing = !!u;
-  openForm({
-    title: editing ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้',
-    values: u || { role: 'staff', status: 'active' },
-    fields: [
-      { name: 'username', label: 'ชื่อผู้ใช้', required: true, maxlength: 30, help: 'ภาษาอังกฤษ ตัวเลข . _ - (3–30 ตัว)', autocomplete: 'off' },
-      { name: 'fullName', label: 'ชื่อ-นามสกุล', required: true, maxlength: 120 },
-      { name: 'email', label: 'อีเมล', type: 'email', maxlength: 120 },
-      { name: 'role', label: 'บทบาท', type: 'select', required: true, options: mapOptions(S.meta.roles) },
-      { name: 'departmentId', label: 'หน่วยงาน', type: 'select', options: departmentOptions(), placeholder: 'เลือกหน่วยงาน', required: function (d) { return d.role !== 'admin'; } },
-      { name: 'status', label: 'สถานะ', type: 'select', required: true, options: mapOptions(S.meta.userStatus) },
-      { name: 'password', label: editing ? 'ตั้งรหัสผ่านใหม่' : 'รหัสผ่านเริ่มต้น', type: 'password', required: !editing, maxlength: 100, autocomplete: 'new-password', help: editing ? 'เว้นว่างหากไม่ต้องการเปลี่ยน' : 'อย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร', full: true }
-    ],
-    validate: function (d) {
-      if (!/^[A-Za-z0-9._-]{3,30}$/.test(d.username)) return 'ชื่อผู้ใช้ต้องเป็นภาษาอังกฤษ ตัวเลข หรือ . _ - ความยาว 3–30 ตัวอักษร';
-      if (d.password && d.password.length < S.meta.minPasswordLength) return 'รหัสผ่านต้องมีอย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร';
-      var dup = (S.data.users ? S.data.users.items : []).some(function (x) { return x.username.toLowerCase() === d.username.toLowerCase() && (!editing || x.id !== u.id); });
-      if (dup) return 'ชื่อผู้ใช้ "' + d.username + '" มีอยู่แล้ว';
-      return '';
-    },
-    onSubmit: function (d) { if (editing) d.id = u.id; return api('saveUser', d); },
-    after: afterSave
-  });
-}
-
-function departmentForm(x) {
+function sectionForm(x) {
   var editing = !!x;
   openForm({
-    title: editing ? 'แก้ไขหน่วยงาน' : 'เพิ่มหน่วยงาน',
-    values: x || {},
+    title: editing ? 'แก้ไข' + x.name : 'เพิ่มกลุ่มเรียน',
+    values: x ? { code: x.code, name: x.name, meetingDay: x.meetingDay, startTime: x.startTime, endTime: x.endTime, room: x.room, firstDate: x.firstDate } : { meetingDay: 1, startTime: '13:00', endTime: '17:00', room: 'InC 204' },
     fields: [
-      { name: 'code', label: 'รหัสหน่วยงาน', maxlength: 30 },
-      { name: 'name', label: 'ชื่อหน่วยงาน', required: true, maxlength: 150 },
-      { name: 'description', label: 'รายละเอียด', type: 'textarea', full: true, maxlength: 1000 }
+      { name: 'code', label: 'รหัสกลุ่ม (Sec)', required: true, maxlength: 10, disabled: editing },
+      { name: 'name', label: 'ชื่อที่แสดง', maxlength: 60, placeholder: 'กลุ่ม 4' },
+      { name: 'meetingDay', label: 'วันเรียน', type: 'select', required: true, options: S.meta.days.map(function (d, i) { return { value: i, label: d }; }) },
+      { name: 'room', label: 'ห้องเรียน', maxlength: 60 },
+      { name: 'startTime', label: 'เวลาเริ่ม', type: 'time', required: true },
+      { name: 'endTime', label: 'เวลาสิ้นสุด', type: 'time', required: true },
+      { name: 'firstDate', label: 'วันที่เรียนสัปดาห์ที่ 1', type: 'date', required: true, full: true, help: 'ต้องตรงกับวันเรียน · ระบบสร้าง/เลื่อนคาบ 17 สัปดาห์ให้อัตโนมัติ (ไม่แตะคาบที่เปิดเช็คชื่อแล้ว)' }
     ],
-    onSubmit: function (d) { if (editing) d.id = x.id; return api('saveDepartment', d); },
-    after: afterSave
+    validate: function (d) {
+      if (d.endTime <= d.startTime) return 'เวลาสิ้นสุดต้องหลังเวลาเริ่ม';
+      var p = d.firstDate.split('-').map(Number);
+      if (new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay() !== Number(d.meetingDay)) return 'วันที่เรียนสัปดาห์ที่ 1 ต้องเป็นวัน' + S.meta.days[Number(d.meetingDay)];
+      return '';
+    },
+    onSubmit: function (d) { if (editing) { d.id = x.id; d.code = x.code; } return api('saveSection', d); },
+    after: function (res) { setSections(res.data.items); refreshView(); }
   });
 }
 
-function showReport(id) {
-  openModal({ title: 'รายงาน', size: 'lg', body: skeleton(), footer: '' });
-  api('getReportData', id).then(function (res) {
-    var r = res.data;
-    var cell = function (c, v) { return c.type === 'money' ? money(v) : c.type === 'number' ? num(v) : esc(v === undefined ? '' : v); };
-    var html = '<p class="muted">' + esc(r.subtitle) + '</p>' +
-      '<div class="card" style="box-shadow:none;border:1px solid var(--line)"><dl class="kv">' + r.summary.map(function (s) { return '<dt>' + esc(s.label) + '</dt><dd>' + (typeof s.value === 'number' ? num(s.value) : esc(s.value)) + '</dd>'; }).join('') + '</dl></div>' +
-      r.sections.map(function (sec) {
-        var cols = sec.columns.map(function (c) { return { label: c.label, num: c.type === 'money' || c.type === 'number', render: function (row) { return cell(c, row[c.key]); } }; });
-        var footer = sec.totals ? sec.columns.map(function (c) { var v = sec.totals[c.key]; return v === undefined ? '' : cell(c, v); }) : null;
-        return '<h3 style="margin:1.2rem 0 .6rem">' + esc(sec.title) + '</h3>' + table(cols, sec.rows, { empty: 'ไม่มีข้อมูล', footer: sec.rows.length ? footer : null });
-      }).join('');
-    el('modal-title').textContent = r.title;
-    el('modal-body').innerHTML = html;
-    el('modal-foot').hidden = false;
-    el('modal-foot').innerHTML = (r.fileUrl ? '<a class="btn ghost" href="' + esc(r.fileUrl) + '" target="_blank" rel="noopener">เปิดไฟล์ใน Drive</a>' : '') +
-      (isManager() ? '<button class="btn success" type="button" data-act="report-generate" data-id="' + esc(r.id) + '">สร้างไฟล์ Google Sheets</button>' : '') +
-      '<button class="btn ghost" type="button" data-act="modal-close">ปิด</button>';
-  }).catch(function (err) {
-    el('modal-body').innerHTML = '<div class="error-box"><p>' + esc(err.message) + '</p></div>';
-    el('modal-foot').hidden = false;
-    el('modal-foot').innerHTML = '<button class="btn ghost" type="button" data-act="modal-close">ปิด</button>';
+function teacherForm(t) {
+  var editing = !!t;
+  openForm({
+    title: editing ? 'แก้ไขบัญชีอาจารย์' : 'เพิ่มอาจารย์ผู้สอนร่วม',
+    values: t || { status: 'active' },
+    fields: [
+      { name: 'username', label: 'ชื่อผู้ใช้', required: true, maxlength: 30, autocomplete: 'off', help: 'ภาษาอังกฤษ ขึ้นต้นด้วยตัวอักษร เช่น piriya' },
+      { name: 'fullName', label: 'ชื่อ-สกุล', required: true, maxlength: 120 },
+      { name: 'status', label: 'สถานะ', type: 'select', options: mapOptions(S.meta.userStatus) },
+      { name: 'password', label: editing ? 'ตั้งรหัสผ่านใหม่' : 'รหัสผ่าน', type: 'password', required: !editing, autocomplete: 'new-password', help: editing ? 'เว้นว่างหากไม่เปลี่ยน' : 'อย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร' }
+    ],
+    validate: function (d) {
+      if (!/^[A-Za-z][A-Za-z0-9._-]{2,29}$/.test(d.username)) return 'ชื่อผู้ใช้ต้องขึ้นต้นด้วยตัวอักษรภาษาอังกฤษ ยาว 3–30 ตัว';
+      if (d.password && d.password.length < S.meta.minPasswordLength) return 'รหัสผ่านต้องมีอย่างน้อย ' + S.meta.minPasswordLength + ' ตัวอักษร';
+      return '';
+    },
+    onSubmit: function (d) { if (editing) d.id = t.id; return api('saveTeacher', d); },
+    after: function () { refreshView(); }
   });
 }
 
@@ -1506,12 +1907,26 @@ function downloadFile(id, btn) {
 function confirmAndRun(message, btn, fn, args, after) {
   confirmBox(message).then(function (yes) {
     if (!yes) return;
-    var callArgs = [fn].concat(args);
-    withButton(btn, api.apply(null, callArgs)).then(function (res) {
+    withButton(btn, api.apply(null, [fn].concat(args))).then(function (res) {
       toast(res.message, 'success');
       if (after) after(res); else refreshView();
     }).catch(function (err) { toast(err.message, 'error'); });
   });
+}
+
+function collectGrades() {
+  var out = [];
+  Array.prototype.forEach.call(document.querySelectorAll('[data-score]'), function (inp) {
+    var code = inp.getAttribute('data-score');
+    var fb = document.querySelector('[data-feedback="' + code + '"]');
+    var row = S.data.grading.grading.rows.filter(function (r) { return r.studentCode === code; })[0];
+    var oldScore = row && row.grade && row.grade.score !== '' ? String(row.grade.score) : '';
+    var oldFb = row && row.grade ? row.grade.feedback : '';
+    var score = inp.value.trim();
+    var feedback = fb ? fb.value.trim() : '';
+    if (score !== oldScore || feedback !== oldFb || (score !== '' && row && row.grade && row.grade.status === 'draft')) out.push({ studentCode: code, score: score, feedback: feedback });
+  });
+  return out;
 }
 
 /* =========================================================================
@@ -1521,87 +1936,100 @@ var ACTIONS = {
   'nav': function (t) { navigate(t.getAttribute('data-view')); },
   'menu-toggle': function () { var open = !el('app').classList.contains('menu-open'); el('app').classList.toggle('menu-open', open); el('backdrop').hidden = !open; },
   'menu-close': function () { closeMenu(); },
-  'refresh': function () { loadView(false); },
-  'logout': function (t) { doLogout(t); },
+  'refresh': function () { if (S.user && S.user.role === 'student') S.student = null; loadView(false); },
+  'logout': function () { doLogout(); },
   'modal-close': function () { closeModal(); },
-  'detail-tab': function (t) {
-    S.detailTab = t.getAttribute('data-id');
-    Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) { b.classList.toggle('active', b === t); });
-    VIEWS.project.renderTab(S.data.project);
+  'show-checkin': function () { showPublicCheckin(''); },
+  'show-login': function () { showLogin(); },
+  'checkin-again': function (t) {
+    var prefix = t.getAttribute('data-id');
+    if (prefix === 'in') { VIEWS.checkin.render(); return; }
+    showPublicCheckin('');
   },
-  'project-new': function () { projectForm(null); },
-  'project-open': function (t) { S.detailTab = 'activities'; closeModal(); navigate('project', { id: t.getAttribute('data-id') }); },
-  'project-edit': function (t) { var p = item('project', t.getAttribute('data-id')); if (p) projectForm(p); },
-  'project-delete': function (t) {
-    var p = item('project', t.getAttribute('data-id'));
-    if (!p) return;
-    confirmAndRun('ลบโครงการ "' + p.name + '" พร้อมกิจกรรม รายการเบิกจ่าย ความก้าวหน้า รายงาน และไฟล์ทั้งหมดของโครงการนี้? การลบไม่สามารถย้อนกลับได้', t, 'deleteProject', [p.id], function () {
-      if (S.view === 'project') navigate('projects'); else refreshView();
-    });
-  },
-  'activity-new': function (t) { activityForm(null, t.getAttribute('data-id')); },
-  'activity-edit': function (t) { var a = item('activity', t.getAttribute('data-id')); if (a) activityForm(a); },
-  'activity-delete': function (t) { var a = item('activity', t.getAttribute('data-id')); if (a) confirmAndRun('ลบกิจกรรม "' + a.name + '"?', t, 'deleteActivity', [a.id]); },
-  'expense-new': function (t) { if (!S.lookups.projects.length) { toast('ยังไม่มีโครงการที่คุณเข้าถึงได้', 'warn'); return; } expenseForm(null, t.getAttribute('data-id')); },
-  'expense-edit': function (t) { var e = item('expense', t.getAttribute('data-id')); if (e) expenseForm(e); },
-  'expense-delete': function (t) { var e = item('expense', t.getAttribute('data-id')); if (e) confirmAndRun('ลบรายการเบิกจ่าย "' + e.description + '" จำนวน ' + money(e.amount) + ' ' + cur() + '?', t, 'deleteExpense', [e.id]); },
-  'expense-status': function (t) {
-    var e = item('expense', t.getAttribute('data-id'));
-    var status = t.getAttribute('data-status');
-    if (!e) return;
-    var label = S.meta.expenseStatus[status];
-    confirmAndRun('เปลี่ยนสถานะรายการ "' + e.description + '" (' + money(e.amount) + ') เป็น "' + label + '"?', t, 'setExpenseStatus', [e.id, status]);
-  },
-  'progress-new': function (t) { if (!S.lookups.projects.length) { toast('ยังไม่มีโครงการที่คุณเข้าถึงได้', 'warn'); return; } progressForm(null, t.getAttribute('data-id')); },
-  'progress-edit': function (t) { var r = item('progress', t.getAttribute('data-id')); if (r) progressForm(r); },
-  'progress-delete': function (t) { var r = item('progress', t.getAttribute('data-id')); if (r) confirmAndRun('ลบรายงานความก้าวหน้าวันที่ ' + dateTH(r.reportDate) + '?', t, 'deleteProgress', [r.id]); },
-  'report-new': function () { reportForm(null); },
-  'report-edit': function (t) { var r = item('report', t.getAttribute('data-id')); if (r) reportForm(r); },
-  'report-delete': function (t) { var r = item('report', t.getAttribute('data-id')); if (r) confirmAndRun('ลบรายงาน "' + r.title + '" (รวมไฟล์รายงานใน Drive)?', t, 'deleteReport', [r.id]); },
-  'report-view': function (t) { showReport(t.getAttribute('data-id')); },
-  'report-generate': function (t) {
+  'session-open': function (t) {
     var id = t.getAttribute('data-id');
-    withButton(t, api('generateReportFile', id)).then(function (res) {
+    withButton(t, api('openSession', id)).then(function (res) { toast(res.message, 'success'); navigate('live', { id: id }); }).catch(function (err) { toast(err.message, 'error'); });
+  },
+  'session-live': function (t) { navigate('live', { id: t.getAttribute('data-id') }); },
+  'session-close': function (t) { closeSessionFlow(t.getAttribute('data-id'), t); },
+  'session-edit': function (t) { var s = item('session', t.getAttribute('data-id')); if (s) sessionForm(s); },
+  'present-toggle': function () { document.body.classList.toggle('presenting'); },
+  'att-one': function (t) { var r = item('roster', t.getAttribute('data-id')); if (r) attendanceForm(S.data.live.session.id, [r.studentCode], r.studentCode + ' ' + r.fullName); },
+  'att-bulk': function (t) {
+    var codes = Array.prototype.map.call(document.querySelectorAll('#roster-card input[data-code]:checked'), function (x) { return x.getAttribute('data-code'); });
+    if (!codes.length) { toast('กรุณาเลือกนักศึกษาอย่างน้อย 1 คน', 'warn'); return; }
+    var status = t.getAttribute('data-status');
+    withButton(t, api('setAttendance', { sessionId: S.data.live.session.id, studentCodes: codes, status: status, note: '' })).then(function (res) {
       toast(res.message, 'success');
-      if (!el('modal-root').hidden) showReport(id);
-      if (S.view === 'reports') refreshView();
+      Array.prototype.forEach.call(document.querySelectorAll('#roster-card input[data-code]:checked'), function (x) { x.checked = false; });
+      refreshView();
     }).catch(function (err) { toast(err.message, 'error'); });
   },
-  'file-upload': function (t) {
-    if (!isManager() && !S.lookups.projects.length) { toast('ยังไม่มีโครงการที่คุณเข้าถึงได้', 'warn'); return; }
-    uploadForm(t.getAttribute('data-id'));
+  'att-cell': function (t) {
+    var s = item('matrixSession', t.getAttribute('data-id'));
+    var code = t.getAttribute('data-code');
+    if (s) attendanceForm(s.id, [code], code + ' · สัปดาห์ ' + s.week);
+  },
+  'student-new': function () { studentForm(null); },
+  'student-import': function () { importForm(); },
+  'student-edit': function (t) { var s = item('student', t.getAttribute('data-id')); if (s) studentForm(s); },
+  'student-reset': function (t) { var s = item('student', t.getAttribute('data-id')); if (s) confirmAndRun('รีเซ็ตรหัสผ่านของ ' + s.studentCode + ' ' + s.fullName + ' เป็น 123456?', t, 'resetStudentPassword', [s.id]); },
+  'student-delete': function (t) { var s = item('student', t.getAttribute('data-id')); if (s) confirmAndRun('ลบนักศึกษา ' + s.studentCode + ' ' + s.fullName + '?', t, 'deleteStudent', [s.id]); },
+  'assignment-new': function () { assignmentForm(null); },
+  'assignment-edit': function (t) { var a = item('assignment', t.getAttribute('data-id')); if (a) assignmentForm(a); },
+  'assignment-delete': function (t) { var a = item('assignment', t.getAttribute('data-id')); if (a) confirmAndRun('ลบงาน ' + a.code + ' ' + a.title + '?', t, 'deleteAssignment', [a.id], function () { S.data.assignments = null; refreshView(); }); },
+  'grade-open': function (t) { navigate('grading', { id: t.getAttribute('data-id') }); },
+  'grades-save': function (t) {
+    var grades = collectGrades();
+    var a = S.data.grading.grading.assignment;
+    for (var i = 0; i < grades.length; i++) {
+      var g = grades[i];
+      if (g.score !== '' && (!/^\d+(\.\d+)?$/.test(g.score) || Number(g.score) > a.maxScore)) { toast('คะแนนของ ' + g.studentCode + ' ต้องเป็นตัวเลข 0–' + a.maxScore, 'error'); return; }
+    }
+    if (!grades.length) { toast('ไม่มีคะแนนที่เปลี่ยนแปลง', 'warn'); return; }
+    withButton(t, api('saveGrades', { assignmentId: a.id, grades: grades, publish: t.getAttribute('data-id') === 'publish' })).then(function (res) { toast(res.message, 'success'); S.data.assignments = null; refreshView(); }).catch(function (err) { toast(err.message, 'error'); });
+  },
+  'grades-publish-all': function (t) {
+    var a = S.data.grading.grading.assignment;
+    confirmAndRun('เผยแพร่คะแนนที่บันทึกไว้ทั้งหมดของ ' + a.code + ' ให้นักศึกษาเห็น?', t, 'publishGrades', [a.id], function () { S.data.assignments = null; refreshView(); });
+  },
+  'gradebook-export': function (t) {
+    withButton(t, api('exportGradebook', S.section)).then(function (res) {
+      var box = el('export-result');
+      box.hidden = false;
+      box.innerHTML = '<strong>' + esc(res.message) + '</strong> · <a href="' + esc(res.data.url) + '" target="_blank" rel="noopener">เปิด ' + esc(res.data.name) + '</a>';
+    }).catch(function (err) { toast(err.message, 'error'); });
   },
   'file-download': function (t) { downloadFile(t.getAttribute('data-id'), t.tagName === 'BUTTON' ? t : null); },
-  'file-delete': function (t) {
-    var id = t.getAttribute('data-id');
-    var f = item('file', id);
-    confirmAndRun('ลบไฟล์ "' + (f ? f.name : '') + '" ออกจากระบบและ Google Drive?', t, 'deleteFile', [id]);
-  },
-  'user-new': function () { if (!S.departments.length) toast('แนะนำให้เพิ่มหน่วยงานก่อนสร้างผู้ใช้', 'warn'); userForm(null); },
-  'user-edit': function (t) { var u = item('user', t.getAttribute('data-id')); if (u) userForm(u); },
-  'user-delete': function (t) { var u = item('user', t.getAttribute('data-id')); if (u) confirmAndRun('ลบผู้ใช้ "' + u.username + '"?', t, 'deleteUser', [u.id]); },
-  'dept-new': function () { departmentForm(null); },
-  'dept-edit': function (t) { var x = item('department', t.getAttribute('data-id')); if (x) departmentForm(x); },
-  'dept-delete': function (t) { var x = item('department', t.getAttribute('data-id')); if (x) confirmAndRun('ลบหน่วยงาน "' + x.name + '"?', t, 'deleteDepartment', [x.id]); },
+  'my-assignment': function (t) { showMyAssignment(t.getAttribute('data-id')); },
+  'section-new': function () { sectionForm(null); },
+  'section-edit': function (t) { var x = item('section', t.getAttribute('data-id')); if (x) sectionForm(x); },
+  'section-delete': function (t) { var x = item('section', t.getAttribute('data-id')); if (x) confirmAndRun('ลบ' + x.name + ' และคาบเรียนทั้งหมดของกลุ่มนี้?', t, 'deleteSection', [x.id], function (res) { setSections(res.data.items); refreshView(); }); },
+  'teacher-new': function () { teacherForm(null); },
+  'teacher-edit': function (t) { var x = item('teacher', t.getAttribute('data-id')); if (x) teacherForm(x); },
+  'teacher-delete': function (t) { var x = item('teacher', t.getAttribute('data-id')); if (x) confirmAndRun('ลบบัญชีอาจารย์ ' + x.username + '?', t, 'deleteTeacher', [x.id]); },
   'backup-create': function (t) {
-    withButton(t, api('createBackup')).then(function (res) { toast(res.message, 'success'); refreshBackups(); }).catch(function (err) { toast(err.message, 'error'); });
+    withButton(t, api('createBackup')).then(function (res) {
+      toast(res.message, 'success');
+      var b = S.data.settings.backups || {};
+      b.items = res.data.items; b.lastBackupAt = res.data.lastBackupAt;
+      VIEWS.settings.renderBackups(b);
+    }).catch(function (err) { toast(err.message, 'error'); });
   },
-  'backup-delete': function (t) { confirmAndRun('ลบไฟล์สำรองข้อมูลนี้?', t, 'deleteBackup', [t.getAttribute('data-id')], function () { refreshBackups(); }); },
+  'backup-delete': function (t) {
+    confirmAndRun('ลบไฟล์สำรองข้อมูลนี้?', t, 'deleteBackup', [t.getAttribute('data-id')], function (res) {
+      var b = S.data.settings.backups || {};
+      b.items = res.data.items;
+      VIEWS.settings.renderBackups(b);
+    });
+  },
   'backup-toggle': function (t) {
     var enabled = t.checked;
     t.disabled = true;
-    api('setDailyBackup', enabled).then(function (res) { t.disabled = false; toast(res.message, 'success'); })
+    api('setDailyBackup', enabled).then(function (res) { t.disabled = false; S.data.settings.backups.dailyBackupActive = enabled; toast(res.message, 'success'); })
       .catch(function (err) { t.disabled = false; t.checked = !enabled; toast(err.message, 'error'); });
   }
 };
-
-function refreshBackups() {
-  api('listBackups').then(function (res) {
-    if (S.view !== 'settings' || !S.data.settings) return;
-    S.data.settings.backups = res.data;
-    VIEWS.settings.renderBackups(S.data.settings);
-  }).catch(function (err) { toast(err.message, 'error'); });
-}
 
 document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-act]');
@@ -1615,8 +2043,17 @@ document.addEventListener('click', function (e) {
 });
 document.addEventListener('change', function (e) {
   var t = e.target;
-  if (t.getAttribute && t.getAttribute('data-act') === 'backup-toggle') { ACTIONS['backup-toggle'](t); return; }
-  if (t.getAttribute && t.getAttribute('data-filter') && t.type !== 'search') applyFilter(t);
+  if (!t.getAttribute) return;
+  if (t.getAttribute('data-act') === 'backup-toggle') { ACTIONS['backup-toggle'](t); return; }
+  if (t.id === 'section-switch') {
+    S.section = t.value;
+    var v = VIEWS[S.view];
+    if (!v || S.view === 'live') return;
+    if (S.view === 'attendance' || S.view === 'gradebook') loadView(false);
+    else if (S.data[S.view]) v.render(S.data[S.view]);
+    return;
+  }
+  if (t.getAttribute('data-filter') && t.type !== 'search') applyFilter(t);
 });
 document.addEventListener('input', function (e) {
   var t = e.target;
@@ -1625,7 +2062,8 @@ document.addEventListener('input', function (e) {
 document.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape') return;
   if (!el('confirm-root').hidden) { el('confirm-cancel').click(); return; }
-  if (!el('modal-root').hidden) closeModal();
+  if (!el('modal-root').hidden) { closeModal(); return; }
+  if (document.body.classList.contains('presenting')) { document.body.classList.remove('presenting'); return; }
   closeMenu();
 });
 el('modal-root').addEventListener('click', function (e) { if (e.target === el('modal-root')) closeModal(); });
@@ -1652,62 +2090,94 @@ el('login-form').addEventListener('submit', function (e) {
     el('login-password').value = '';
     applyBootstrap(res.data.bootstrap);
     el('login-view').hidden = true;
+    el('public-view').hidden = true;
     el('app').hidden = false;
     toast('ยินดีต้อนรับ ' + S.user.fullName, 'success');
-    navigate('dashboard');
+    navigate(S.user.mustChange ? 'account' : S.startCode && !isTeacher() ? 'checkin' : isTeacher() ? 'dashboard' : 'home');
   }).catch(function (err) { box.textContent = err.message; box.hidden = false; });
 });
 
 function applyBootstrap(b) {
   S.user = b.user;
   S.settings = b.settings;
+  S.course = b.course;
+  S.sections = b.sections;
   S.meta = b.meta;
-  S.departments = b.departments;
-  S.lookups = b.lookups;
   S.appUrl = b.appUrl;
-  S.bootDashboard = b.dashboard;
+  S.bootDashboard = b.dashboard || null;
+  S.student = b.student || null;
   S.data = {};
   S.filters = {};
   S.reg = {};
   el('side-user-name').textContent = b.user.fullName;
-  el('side-user-role').textContent = b.user.roleLabel + (b.user.departmentName ? ' · ' + b.user.departmentName : '');
+  el('side-user-role').textContent = b.user.roleLabel + (b.user.sectionCode ? ' · กลุ่ม ' + b.user.sectionCode : '');
   el('hdr-user-name').textContent = b.user.fullName;
   el('hdr-user-role').textContent = b.user.roleLabel;
-  applyOrg();
+  applyCourse();
   renderNav();
 }
 
-function applyOrg() {
-  var org = S.settings.orgName || '';
-  var year = S.settings.fiscalYear ? 'ปีงบประมาณ ' + S.settings.fiscalYear : '';
-  el('side-org').textContent = org || year;
-  el('header-org').textContent = [org, year].filter(Boolean).join(' · ');
+function applyCourse() {
+  var c = S.course || {};
+  el('side-org').textContent = (c.courseCode || '') + ' · ' + (c.semester || '') + '/' + (c.academicYear || '');
+  el('header-org').textContent = (c.courseCode || '') + ' ' + (c.courseName || '');
 }
 
-function doLogout(btn) {
+function doLogout() {
   confirmBox('ออกจากระบบ?', { okText: 'ออกจากระบบ', danger: false }).then(function (yes) {
     if (!yes) return;
     showLoading('กำลังออกจากระบบ');
-    var token = S.token;
-    serverCall('logout', [token]).then(function () { hideLoading(); resetSession(); toast('ออกจากระบบแล้ว', 'success'); })
+    serverCall('logout', [S.token]).then(function () { hideLoading(); resetSession(); toast('ออกจากระบบแล้ว', 'success'); })
       .catch(function () { hideLoading(); resetSession(); });
   });
 }
 
 function resetSession() {
+  stopTimers();
   S.token = '';
   S.user = null;
   S.data = {};
   S.reg = {};
+  S.student = null;
   S.seq += 1;
   closeModal();
   el('confirm-root').hidden = true;
   el('app').hidden = true;
-  el('login-view').hidden = false;
   el('view').innerHTML = '';
-  el('login-username').focus();
+  showLogin();
 }
 
+function showLogin() {
+  el('public-view').hidden = true;
+  el('login-view').hidden = false;
+  el('login-username').focus();
+  renderPublicSchedule();
+}
+
+function showPublicCheckin(code) {
+  el('login-view').hidden = true;
+  el('public-view').hidden = false;
+  el('public-card').innerHTML = checkinFormHtml('pub');
+  bindCheckinForm('pub', '', code);
+}
+
+function renderPublicSchedule() {
+  var p = S.publicInfo;
+  if (!p) return;
+  el('login-course').textContent = p.course.courseCode + ' ' + p.course.courseName + ' · ภาคเรียน ' + p.course.semester + '/' + p.course.academicYear;
+  el('login-schedule').innerHTML = '<strong>ตารางเรียน</strong><table>' + p.sections.map(function (s) { return '<tr><td>' + esc(s.name) + '</td><td>วัน' + esc(s.dayLabel) + '</td><td>' + esc(s.startTime) + '–' + esc(s.endTime) + '</td><td>' + esc(s.room) + '</td></tr>'; }).join('') + '</table>';
+  el('login-schedule').hidden = false;
+}
+
+/* ---------- Start ---------- */
+computeDeviceHash().then(function (h) { S.deviceHash = h; });
+serverCall('getPublicInfo', []).then(function (res) { S.publicInfo = res.data; renderPublicSchedule(); }).catch(function () { /* หน้าเข้าสู่ระบบยังใช้งานได้ */ });
+if (google.script.url && google.script.url.getLocation) {
+  google.script.url.getLocation(function (loc) {
+    var code = loc && loc.parameter && loc.parameter.checkin ? String(loc.parameter.checkin).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) : '';
+    if (code && !S.token) { S.startCode = code; showPublicCheckin(code); }
+  });
+}
 el('login-username').focus();
 </script>
 </body>

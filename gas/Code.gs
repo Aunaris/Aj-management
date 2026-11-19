@@ -1,14 +1,17 @@
 /**
  * ============================================================================
- *  2D animation — ระบบบริหารโครงการ กิจกรรม งบประมาณ และเอกสาร
- *  Google Apps Script Web App | ฐานข้อมูล: Google Sheets | ไฟล์: Google Drive
+ *  2D animation — ระบบเช็คชื่อ ส่งงาน และให้คะแนนระหว่างคาบ
+ *  รายวิชา 10801327 การสร้างภาพเคลื่อนไหวด้วยเทคนิคภาพ 2 มิติ
+ *  Google Apps Script Web App | ฐานข้อมูล: Google Sheets | ไฟล์งาน: Google Drive
  *
  *  วิธีติดตั้ง
  *   1) แก้ค่า SHEET_ID, WEB_APP_URL, FOLDER_ID, ADMIN_PASSWORD ในส่วน CONFIGURATION
  *   2) Deploy > New deployment > Web app
- *        Execute as: Me  |  Who has access: ตามนโยบายสถานศึกษา
- *   3) เปิด Web App แล้วเข้าสู่ระบบด้วยชื่อผู้ใช้ admin และ ADMIN_PASSWORD
- *      ระบบจะสร้างชีตและโฟลเดอร์ที่จำเป็นให้อัตโนมัติเมื่อเข้าสู่ระบบครั้งแรก
+ *        Execute as: Me | Who has access: Anyone (นักศึกษาเช็คชื่อได้โดยไม่ต้องมีบัญชี Google)
+ *   3) นำ URL ของ Web App มาใส่ WEB_APP_URL แล้ว Deploy ใหม่ (Manage deployments > Edit > New version)
+ *   4) เข้าสู่ระบบด้วยชื่อผู้ใช้ aunalyst และรหัสผ่าน ADMIN_PASSWORD
+ *      ระบบจะสร้างชีต กลุ่มเรียน 3 กลุ่ม และคาบเรียน 17 สัปดาห์ให้อัตโนมัติ
+ *      จากนั้นนำเข้ารายชื่อนักศึกษาจากไฟล์ ClassRoster ที่เมนู "นักศึกษา"
  * ============================================================================
  */
 
@@ -22,45 +25,108 @@ const CONFIG = {
   ADMIN_PASSWORD: 'ใส่_ADMIN_PASSWORD',
 
   APP_NAME: '2D animation',
-  ADMIN_USERNAME: 'admin',
+  TEACHER_USERNAME: 'aunalyst',
+  TEACHER_NAME: 'อาจารย์ทักษิณ อินตะพิงค์',
+  STUDENT_DEFAULT_PASSWORD: '123456',
+  MIN_PASSWORD_LENGTH: 8,
   TIMEZONE: 'Asia/Bangkok',
+  UTC_OFFSET_HOURS: 7,
   SESSION_TTL_SECONDS: 21600,
-  MAX_LOGIN_ATTEMPTS: 5,
+  MAX_LOGIN_ATTEMPTS: 10,
   LOGIN_LOCK_SECONDS: 900,
+  QR_ROTATE_SECONDS: 30,
+  CHECKIN_RATE_PER_MINUTE: 10,
   LOG_VIEW_LIMIT: 500,
-  LOCK_WAIT_MS: 20000,
-  MIN_PASSWORD_LENGTH: 6,
+  LOCK_WAIT_MS: 25000,
 
-  ROLES: { admin: 'ผู้ดูแลระบบ', manager: 'หัวหน้างาน', staff: 'เจ้าหน้าที่' },
+  COURSE: {
+    courseCode: '10801327',
+    courseName: 'การสร้างภาพเคลื่อนไหวด้วยเทคนิคภาพ 2 มิติ',
+    courseNameEn: '2D Animation Techniques',
+    semester: '2',
+    academicYear: '2569',
+    instructors: 'ผู้ช่วยศาสตราจารย์พิริยะ กาญจนคงคา (ผู้ประสานงานรายวิชา); อาจารย์ทักษิณ อินตะพิงค์'
+  },
+  CLOS: {
+    CLO1: 'อธิบายหลักการ เทคนิค และกระบวนการสร้างภาพเคลื่อนไหวแบบ 2 มิติได้',
+    CLO2: 'วิเคราะห์และออกแบบตัวละคร สตอรี่บอร์ด และการเล่าเรื่องอย่างสร้างสรรค์สำหรับงานแอนิเมชัน 2 มิติได้',
+    CLO3: 'ใช้ซอฟต์แวร์สร้างสรรค์ชิ้นงานแอนิเมชัน 2 มิติที่นำเสนอแนวคิด เรื่องราว และสื่อสารได้อย่างมีประสิทธิภาพ',
+    CLO4: 'ทำงานร่วมกับผู้อื่น รับฟังและเคารพความคิดเห็นของผู้อื่น ยึดมั่นในคุณธรรม จริยธรรม และจรรยาบรรณในการผลิตงานแอนิเมชัน'
+  },
+  // โครงสร้างคะแนน OBE-3 หมวด 8 (รวม 100 คะแนน)
+  CATEGORIES: [
+    { code: 'PRE_CLO1', name: 'งานรายบุคคลก่อนกลางภาค: หลักการ/เทคนิค', max: 15, clo: 'CLO1' },
+    { code: 'PRE_CLO2', name: 'งานรายบุคคลก่อนกลางภาค: ตัวละคร/Storyboard/การเล่าเรื่อง', max: 15, clo: 'CLO2' },
+    { code: 'POST_CLO2', name: 'งานรายบุคคลหลังกลางภาค: การเคลื่อนไหว/การเล่าเรื่อง', max: 15, clo: 'CLO2' },
+    { code: 'POST_CLO3', name: 'งานรายบุคคลหลังกลางภาค: การใช้ซอฟต์แวร์', max: 15, clo: 'CLO3' },
+    { code: 'FP_WORK', name: 'Final Project: ผลงาน', max: 20, clo: 'CLO3' },
+    { code: 'FP_PRESENT', name: 'Final Project: การนำเสนอ', max: 10, clo: 'CLO4' },
+    { code: 'AFFECTIVE', name: 'จิตพิสัย', max: 10, clo: 'CLO4' }
+  ],
+  // แผนการสอน 17 สัปดาห์ (สัปดาห์ 9 และ 17 สอบ)
+  PLAN: [
+    [1, 'แนะนำรายวิชาและภาพรวมกระบวนการผลิต (Production Pipeline)', 'CLO1'],
+    [2, 'หลักการเคลื่อนไหว 12 ประการ ตอนที่ 1', 'CLO1'],
+    [3, 'หลักการเคลื่อนไหว 12 ประการ ตอนที่ 2 และ Bouncing Ball', 'CLO1'],
+    [4, 'การออกแบบตัวละคร โครงสร้าง สัดส่วน', 'CLO2'],
+    [5, 'การออกแบบตัวละคร Model Sheet และการแสดงอารมณ์', 'CLO2'],
+    [6, 'การเขียนบทและสตอรี่บอร์ด การวางช็อต', 'CLO2'],
+    [7, 'การจัดองค์ประกอบภาพ และ Animatic', 'CLO2'],
+    [8, 'การเคลื่อนไหวพื้นฐาน Walk Cycle, Keyframe และ In-between', 'CLO1'],
+    [9, 'สอบกลางภาค', ''],
+    [10, 'เทคนิคการสร้างแอนิเมชันด้วยซอฟต์แวร์ (Frame-by-Frame)', 'CLO3'],
+    [11, 'เทคนิคการสร้างแอนิเมชันด้วยซอฟต์แวร์ (Cut-out / Rigging)', 'CLO3'],
+    [12, 'การลงสี ฉากหลัง เสียง และการประกอบภาพ (Compositing)', 'CLO2, CLO3'],
+    [13, 'การทำ Lip Sync และการเรนเดอร์', 'CLO2, CLO3'],
+    [14, 'Final Project พัฒนาชิ้นงานแอนิเมชัน 2 มิติสั้น', 'CLO3, CLO4'],
+    [15, 'Final Project ติดตามความก้าวหน้า', 'CLO3, CLO4'],
+    [16, 'นำเสนอ Final Project และสรุปบทเรียน', 'CLO3, CLO4'],
+    [17, 'สอบปลายภาค', '']
+  ],
+  EXAM_WEEKS: [9, 17],
+  // ตารางเรียนภาคเรียน 2/2569 (meetingDay: 0=อาทิตย์, 1=จันทร์, 2=อังคาร, 3=พุธ, 4=พฤหัสบดี, 5=ศุกร์, 6=เสาร์)
+  DEFAULT_SECTIONS: [
+    { code: '1', meetingDay: 2, startTime: '13:00', endTime: '17:00', room: 'InC 204' },
+    { code: '2', meetingDay: 5, startTime: '13:00', endTime: '17:00', room: 'InC 204' },
+    { code: '3', meetingDay: 1, startTime: '13:00', endTime: '17:00', room: 'InC 204' }
+  ],
+  DEFAULT_TERM_START: '2026-11-16',
+
+  ROLES: { admin: 'อาจารย์ผู้สอนหลัก', teacher: 'อาจารย์ผู้สอน', student: 'นักศึกษา' },
+  DAYS: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'],
+  SESSION_STATUS: { scheduled: 'ยังไม่เปิด', open: 'กำลังเช็คชื่อ', closed: 'ปิดเช็คชื่อแล้ว', cancelled: 'งดสอน' },
+  ATTENDANCE_STATUS: { present: 'มาเรียน', late: 'สาย', absent: 'ขาด', excused: 'ลา' },
+  ASSIGNMENT_STATUS: { draft: 'ฉบับร่าง', published: 'เผยแพร่', closed: 'ปิดรับงาน' },
+  SUBMISSION_MODE: { online: 'ส่งออนไลน์ (ไฟล์/ลิงก์)', offline: 'ส่งในห้องเรียน/ให้คะแนนโดยตรง' },
+  GRADE_STATUS: { draft: 'ยังไม่เผยแพร่', published: 'เผยแพร่แล้ว' },
   USER_STATUS: { active: 'ใช้งาน', inactive: 'ปิดใช้งาน' },
-  PROJECT_STATUS: { planning: 'วางแผน', active: 'ดำเนินการ', on_hold: 'ระงับชั่วคราว', completed: 'เสร็จสิ้น', cancelled: 'ยกเลิก' },
-  ACTIVITY_STATUS: { not_started: 'ยังไม่เริ่ม', in_progress: 'กำลังดำเนินการ', completed: 'เสร็จสิ้น', cancelled: 'ยกเลิก' },
-  EXPENSE_STATUS: { pending: 'รออนุมัติ', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ' },
-  REPORT_TYPES: { project: 'รายงานสรุปโครงการ', budget: 'รายงานสรุปงบประมาณ', expense: 'รายงานการเบิกจ่าย' },
-  FILE_SHARING: { private: 'เฉพาะเจ้าของไฟล์', domain: 'ทุกคนในองค์กรที่มีลิงก์', anyone: 'ทุกคนที่มีลิงก์' },
-  FOLDERS: { projects: 'Projects', reports: 'Reports', backups: 'Backups', general: 'General' },
+  FOLDERS: { submissions: 'Submissions', exports: 'Exports', backups: 'Backups' },
 
-  NUMERIC_FIELDS: ['budget', 'amount', 'percent', 'size', 'progress'],
+  NUMERIC_FIELDS: ['meetingDay', 'week', 'maxScore', 'score', 'version', 'size'],
 
   SHEETS: {
-    Users: ['id', 'username', 'password', 'fullName', 'email', 'role', 'departmentId', 'status', 'lastLoginAt', 'createdAt', 'updatedAt'],
-    Departments: ['id', 'code', 'name', 'description', 'createdAt', 'updatedAt'],
-    Projects: ['id', 'code', 'name', 'departmentId', 'ownerName', 'description', 'budget', 'startDate', 'endDate', 'status', 'progress', 'folderId', 'createdBy', 'createdAt', 'updatedAt'],
-    Activities: ['id', 'projectId', 'name', 'description', 'responsible', 'budget', 'startDate', 'endDate', 'status', 'createdBy', 'createdAt', 'updatedAt'],
-    Expenses: ['id', 'projectId', 'activityId', 'expenseDate', 'description', 'payee', 'receiptNo', 'amount', 'fileId', 'status', 'note', 'createdBy', 'createdAt', 'updatedAt', 'approvedBy', 'approvedAt'],
-    Progress: ['id', 'projectId', 'activityId', 'reportDate', 'percent', 'detail', 'problems', 'nextSteps', 'createdBy', 'createdAt', 'updatedAt'],
-    Reports: ['id', 'title', 'reportType', 'projectId', 'departmentId', 'startDate', 'endDate', 'note', 'fileId', 'fileUrl', 'generatedAt', 'createdBy', 'createdAt', 'updatedAt'],
-    Files: ['id', 'name', 'mimeType', 'size', 'driveId', 'url', 'refType', 'refId', 'projectId', 'description', 'uploadedBy', 'createdAt'],
     Settings: ['key', 'value', 'updatedAt'],
+    Teachers: ['id', 'username', 'password', 'fullName', 'status', 'lastLoginAt', 'createdAt', 'updatedAt'],
+    Sections: ['id', 'code', 'name', 'meetingDay', 'startTime', 'endTime', 'room', 'firstDate', 'createdAt', 'updatedAt'],
+    Students: ['id', 'studentCode', 'fullName', 'sectionCode', 'program', 'faculty', 'email', 'password', 'mustChange', 'status', 'lastLoginAt', 'createdAt', 'updatedAt'],
+    Sessions: ['id', 'sectionCode', 'week', 'sessionDate', 'startTime', 'endTime', 'room', 'title', 'clo', 'status', 'openedAt', 'closedAt', 'createdAt', 'updatedAt'],
+    Attendance: ['id', 'sessionId', 'studentCode', 'status', 'checkinAt', 'method', 'deviceHash', 'note', 'updatedBy', 'updatedAt'],
+    Assignments: ['id', 'code', 'title', 'description', 'categoryCode', 'maxScore', 'sectionScope', 'dueAt', 'sectionDue', 'submissionMode', 'allowLate', 'status', 'createdBy', 'createdAt', 'updatedAt'],
+    Submissions: ['id', 'assignmentId', 'studentCode', 'version', 'submittedAt', 'isLate', 'fileIds', 'links', 'note', 'createdAt'],
+    Grades: ['id', 'assignmentId', 'studentCode', 'score', 'feedback', 'status', 'gradedBy', 'gradedAt', 'publishedAt'],
+    Files: ['id', 'name', 'mimeType', 'size', 'driveId', 'url', 'submissionId', 'assignmentId', 'studentCode', 'createdAt'],
     AuditLog: ['timestamp', 'username', 'action', 'entity', 'entityId', 'detail']
   },
 
   DEFAULT_SETTINGS: {
-    orgName: '',
-    fiscalYear: '',
-    currency: 'บาท',
-    maxUploadMB: '10',
-    fileSharing: 'private',
+    courseCode: '10801327',
+    courseName: 'การสร้างภาพเคลื่อนไหวด้วยเทคนิคภาพ 2 มิติ',
+    semester: '2',
+    academicYear: '2569',
+    termStart: '2026-11-16',
+    lateMinutes: '15',
+    deviceLock: 'on',
+    maxUploadMB: '20',
     backupRetention: '30',
     dailyBackup: 'off'
   }
@@ -88,8 +154,7 @@ function setupSystem() {
 }
 
 function ensureSetup_() {
-  const cache = CacheService.getScriptCache();
-  if (cache.get('setup:ok')) return;
+  if (CacheService.getScriptCache().get('setup:ok')) return;
   runSetup_();
 }
 
@@ -98,14 +163,40 @@ function runSetup_() {
   withLock_(function () {
     initSheets_();
     ensureDefaultSettings_();
+    ensureDefaultSections_();
     Object.keys(CONFIG.FOLDERS).forEach(function (key) { subFolder_(key); });
   });
   CacheService.getScriptCache().put('setup:ok', '1', 21600);
 }
 
 function assertConfigured_() {
-  if (!CONFIG.SHEET_ID || CONFIG.SHEET_ID.indexOf('ใส่_') === 0) throw appError_('ระบบยังไม่ได้ตั้งค่า SHEET_ID กรุณาติดต่อผู้ดูแลระบบ');
-  if (!CONFIG.FOLDER_ID || CONFIG.FOLDER_ID.indexOf('ใส่_') === 0) throw appError_('ระบบยังไม่ได้ตั้งค่า FOLDER_ID กรุณาติดต่อผู้ดูแลระบบ');
+  if (!CONFIG.SHEET_ID || CONFIG.SHEET_ID.indexOf('ใส่_') === 0) throw appError_('ระบบยังไม่ได้ตั้งค่า SHEET_ID กรุณาติดต่ออาจารย์ผู้ดูแลระบบ');
+  if (!CONFIG.FOLDER_ID || CONFIG.FOLDER_ID.indexOf('ใส่_') === 0) throw appError_('ระบบยังไม่ได้ตั้งค่า FOLDER_ID กรุณาติดต่ออาจารย์ผู้ดูแลระบบ');
+}
+
+function ensureDefaultSettings_() {
+  const map = settingsMap_();
+  const add = [];
+  const stamp = now_();
+  Object.keys(CONFIG.DEFAULT_SETTINGS).forEach(function (key) {
+    if (map[key] === undefined) add.push({ key: key, value: CONFIG.DEFAULT_SETTINGS[key], updatedAt: stamp });
+  });
+  if (add.length) insertRows_('Settings', add);
+}
+
+/** สร้างกลุ่มเรียนตามตารางเรียนจริงของรายวิชา (เฉพาะครั้งแรกที่ยังไม่มีกลุ่มเรียน) */
+function ensureDefaultSections_() {
+  if (readTable_('Sections').rows.length) return;
+  const termStart = publicSettings_().termStart || CONFIG.DEFAULT_TERM_START;
+  const stamp = now_();
+  const rows = CONFIG.DEFAULT_SECTIONS.map(function (s) {
+    return {
+      id: newId_('SEC'), code: s.code, name: 'กลุ่ม ' + s.code, meetingDay: s.meetingDay, startTime: s.startTime, endTime: s.endTime,
+      room: s.room, firstDate: firstOnOrAfter_(termStart, s.meetingDay), createdAt: stamp, updatedAt: stamp
+    };
+  });
+  insertRows_('Sections', rows);
+  rows.forEach(function (s) { syncSessions_(s); });
 }
 
 /* ============================================================================
@@ -126,18 +217,13 @@ function initSheets_() {
       for (let i = 0; i < used.length && i < headers.length; i++) {
         if (current[i] !== headers[i]) throw appError_('โครงสร้างชีต "' + name + '" ไม่ตรงกับระบบ (คอลัมน์ที่ ' + (i + 1) + ')');
       }
-      if (used.length < headers.length) {
-        sh.getRange(1, used.length + 1, 1, headers.length - used.length).setValues([headers.slice(used.length)]);
-      }
+      if (used.length < headers.length) sh.getRange(1, used.length + 1, 1, headers.length - used.length).setValues([headers.slice(used.length)]);
     }
     sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e8eefc');
+    sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e6f4f1');
     const textCols = [];
     headers.forEach(function (h, i) {
-      if (CONFIG.NUMERIC_FIELDS.indexOf(h) < 0) {
-        const col = columnLetter_(i + 1);
-        textCols.push(col + ':' + col);
-      }
+      if (CONFIG.NUMERIC_FIELDS.indexOf(h) < 0) { const col = columnLetter_(i + 1); textCols.push(col + ':' + col); }
     });
     if (textCols.length) sh.getRangeList(textCols).setNumberFormat('@');
   });
@@ -147,83 +233,51 @@ function initSheets_() {
   });
 }
 
-function ensureDefaultSettings_() {
-  const map = settingsMap_();
-  const add = [];
-  const stamp = now_();
-  Object.keys(CONFIG.DEFAULT_SETTINGS).forEach(function (key) {
-    if (map[key] === undefined) {
-      let value = CONFIG.DEFAULT_SETTINGS[key];
-      if (key === 'fiscalYear') {
-        // ปีงบประมาณไทยเริ่ม 1 ตุลาคม
-        const y = Number(Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy'));
-        const m = Number(Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'MM'));
-        value = String(y + 543 + (m >= 10 ? 1 : 0));
-      }
-      add.push({ key: key, value: value, updatedAt: stamp });
-    }
-  });
-  if (add.length) insertRows_('Settings', add);
-}
-
 /* ============================================================================
  * Authentication
  * ========================================================================== */
 const SESSION_EXPIRED_MSG = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
 
-function createSession_(user) {
+function createSession_(kind, id) {
   const token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-  CacheService.getScriptCache().put('sess:' + token, JSON.stringify({ id: user.id }), CONFIG.SESSION_TTL_SECONDS);
+  CacheService.getScriptCache().put('sess:' + token, JSON.stringify({ kind: kind, id: id }), CONFIG.SESSION_TTL_SECONDS);
   return token;
 }
 
-function auth_(token) {
+/** ตรวจสิทธิ์ทุกคำขอ: allowMustChange = ยอมให้นักศึกษาที่ยังไม่เปลี่ยนรหัสผ่านเรียกได้ */
+function auth_(token, roles, allowMustChange) {
   if (!token || typeof token !== 'string' || token.length > 80) throw appError_(SESSION_EXPIRED_MSG, 'SESSION_EXPIRED');
   const cache = CacheService.getScriptCache();
   const raw = cache.get('sess:' + token);
   if (!raw) throw appError_(SESSION_EXPIRED_MSG, 'SESSION_EXPIRED');
   const s = JSON.parse(raw);
   let user;
-  if (s.id === 'admin') {
-    user = builtinAdmin_();
+  if (s.kind === 'admin') {
+    user = mainTeacher_();
+  } else if (s.kind === 'teacher') {
+    const row = findById_('Teachers', s.id);
+    if (!row || row.status !== 'active') { cache.remove('sess:' + token); throw appError_('บัญชีนี้ถูกปิดการใช้งาน', 'SESSION_EXPIRED'); }
+    user = { id: row.id, username: row.username, fullName: row.fullName, role: 'teacher', builtin: false };
   } else {
-    const row = findById_('Users', s.id);
-    if (!row || row.status !== 'active') {
-      cache.remove('sess:' + token);
-      throw appError_('บัญชีนี้ถูกปิดการใช้งานหรือถูกลบแล้ว', 'SESSION_EXPIRED');
-    }
-    user = sessionUser_(row);
+    const st = findById_('Students', s.id);
+    if (!st || st.status !== 'active') { cache.remove('sess:' + token); throw appError_('บัญชีนักศึกษานี้ถูกปิดการใช้งาน', 'SESSION_EXPIRED'); }
+    user = studentUser_(st);
   }
+  if (roles && roles.indexOf(user.role) < 0) throw appError_('คุณไม่มีสิทธิ์ใช้งานส่วนนี้');
+  if (user.role === 'student' && user.mustChange && !allowMustChange) throw appError_('กรุณาเปลี่ยนรหัสผ่านก่อนใช้งาน', 'MUST_CHANGE_PASSWORD');
   cache.put('sess:' + token, raw, CONFIG.SESSION_TTL_SECONDS);
   return user;
 }
 
-function builtinAdmin_() {
-  return { id: 'admin', username: CONFIG.ADMIN_USERNAME, fullName: 'ผู้ดูแลระบบ', email: '', role: 'admin', departmentId: '', builtin: true };
+function mainTeacher_() {
+  return { id: 'admin', username: CONFIG.TEACHER_USERNAME, fullName: CONFIG.TEACHER_NAME, role: 'admin', builtin: true };
 }
 
-function sessionUser_(row) {
-  return { id: row.id, username: row.username, fullName: row.fullName, email: row.email, role: row.role, departmentId: row.departmentId, builtin: false };
+function studentUser_(st) {
+  return { id: st.id, username: st.studentCode, studentCode: st.studentCode, fullName: st.fullName, sectionCode: st.sectionCode, role: 'student', mustChange: st.mustChange === '1', builtin: false };
 }
 
-function requireRole_(user, roles) {
-  if (roles.indexOf(user.role) < 0) throw appError_('คุณไม่มีสิทธิ์ใช้งานส่วนนี้');
-}
-
-function canSeeProject_(user, p) {
-  return user.role === 'admin' || (!!p.departmentId && p.departmentId === user.departmentId);
-}
-
-function canManageProject_(user, p) {
-  return user.role === 'admin' || (user.role === 'manager' && p.departmentId === user.departmentId);
-}
-
-function projectFor_(user, projectId, manage) {
-  const p = findById_('Projects', projectId);
-  if (!p || !canSeeProject_(user, p)) throw appError_('ไม่พบโครงการ หรือคุณไม่มีสิทธิ์เข้าถึง');
-  if (manage && !canManageProject_(user, p)) throw appError_('คุณไม่มีสิทธิ์แก้ไขข้อมูลของโครงการนี้');
-  return p;
-}
+const TEACHERS_ = ['admin', 'teacher'];
 
 /* ============================================================================
  * Login / Logout
@@ -240,15 +294,27 @@ function login(username, password) {
     const fails = Number(cache.get(failKey) || 0);
     if (fails >= CONFIG.MAX_LOGIN_ATTEMPTS) throw appError_('เข้าสู่ระบบผิดเกินกำหนด กรุณาลองใหม่ใน ' + Math.round(CONFIG.LOGIN_LOCK_SECONDS / 60) + ' นาที');
 
+    let kind = '';
+    let id = '';
     let user = null;
-    if (name.toLowerCase() === CONFIG.ADMIN_USERNAME.toLowerCase()) {
-      const adminReady = CONFIG.ADMIN_PASSWORD && CONFIG.ADMIN_PASSWORD.indexOf('ใส่_') !== 0;
-      if (adminReady && pass === CONFIG.ADMIN_PASSWORD) user = builtinAdmin_();
+    if (name.toLowerCase() === CONFIG.TEACHER_USERNAME.toLowerCase()) {
+      const ready = CONFIG.ADMIN_PASSWORD && CONFIG.ADMIN_PASSWORD.indexOf('ใส่_') !== 0;
+      if (ready && pass === CONFIG.ADMIN_PASSWORD) { kind = 'admin'; id = 'admin'; user = mainTeacher_(); }
     } else {
-      const row = readTable_('Users').rows.filter(function (u) { return u.username.toLowerCase() === name.toLowerCase(); })[0];
-      if (row && row.status === 'active' && row.password === pass) {
-        user = sessionUser_(row);
-        withLock_(function () { updateRow_('Users', findById_('Users', row.id), { lastLoginAt: now_() }); });
+      const teacher = readTable_('Teachers').rows.filter(function (t) { return t.username.toLowerCase() === name.toLowerCase(); })[0];
+      if (teacher) {
+        if (teacher.status === 'active' && teacher.password === pass) {
+          kind = 'teacher'; id = teacher.id;
+          user = { id: teacher.id, username: teacher.username, fullName: teacher.fullName, role: 'teacher' };
+          withLock_(function () { updateRow_('Teachers', findById_('Teachers', teacher.id), { lastLoginAt: now_() }); });
+        }
+      } else {
+        const st = readTable_('Students').rows.filter(function (s) { return s.studentCode === name; })[0];
+        if (st && st.status === 'active' && st.password === pass) {
+          kind = 'student'; id = st.id;
+          user = studentUser_(st);
+          withLock_(function () { updateRow_('Students', findById_('Students', st.id), { lastLoginAt: now_() }); });
+        }
       }
     }
     if (!user) {
@@ -257,8 +323,8 @@ function login(username, password) {
       throw appError_('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     }
     cache.remove(failKey);
-    const token = createSession_(user);
-    audit_(user, 'login', 'Auth', user.id, 'เข้าสู่ระบบ');
+    const token = createSession_(kind, id);
+    audit_(user, 'login', 'Auth', id, 'เข้าสู่ระบบ');
     return ok_({ token: token, bootstrap: buildBootstrap_(user) }, 'เข้าสู่ระบบสำเร็จ');
   });
 }
@@ -266,13 +332,8 @@ function login(username, password) {
 function logout(token) {
   return handle_(function () {
     const cache = CacheService.getScriptCache();
-    if (token && typeof token === 'string') {
-      const raw = cache.get('sess:' + token);
-      if (raw) {
-        const s = JSON.parse(raw);
-        const user = s.id === 'admin' ? builtinAdmin_() : (findById_('Users', s.id) || { username: 'unknown' });
-        audit_(user, 'logout', 'Auth', s.id, 'ออกจากระบบ');
-      }
+    if (token && typeof token === 'string' && token.length <= 80) {
+      if (cache.get('sess:' + token)) audit_({ username: 'session' }, 'logout', 'Auth', '', 'ออกจากระบบ');
       cache.remove('sess:' + token);
     }
     return ok_({}, 'ออกจากระบบแล้ว');
@@ -281,47 +342,55 @@ function logout(token) {
 
 function getBootstrap(token) {
   return handle_(function () {
-    const user = auth_(token);
+    const user = auth_(token, null, true);
     return ok_(buildBootstrap_(user));
   });
 }
 
 function buildBootstrap_(user) {
-  const ctx = context_();
-  return {
+  const settings = publicSettings_();
+  const out = {
     appName: CONFIG.APP_NAME,
     appUrl: appUrl_(),
-    user: publicUser_(user, ctx),
-    settings: publicSettings_(),
-    departments: departmentList_(ctx),
-    lookups: lookups_(user, ctx),
-    dashboard: dashboard_(user, ctx),
+    user: { id: user.id, username: user.username, fullName: user.fullName, role: user.role, roleLabel: CONFIG.ROLES[user.role], builtin: !!user.builtin, mustChange: !!user.mustChange, sectionCode: user.sectionCode || '', studentCode: user.studentCode || '' },
+    settings: settings,
+    course: courseInfo_(settings),
+    sections: sectionList_(),
     meta: {
-      roles: CONFIG.ROLES,
-      userStatus: CONFIG.USER_STATUS,
-      projectStatus: CONFIG.PROJECT_STATUS,
-      activityStatus: CONFIG.ACTIVITY_STATUS,
-      expenseStatus: CONFIG.EXPENSE_STATUS,
-      reportTypes: CONFIG.REPORT_TYPES,
-      fileSharing: CONFIG.FILE_SHARING,
-      minPasswordLength: CONFIG.MIN_PASSWORD_LENGTH
+      days: CONFIG.DAYS, categories: CONFIG.CATEGORIES, clos: CONFIG.CLOS, sessionStatus: CONFIG.SESSION_STATUS,
+      attendanceStatus: CONFIG.ATTENDANCE_STATUS, assignmentStatus: CONFIG.ASSIGNMENT_STATUS, submissionMode: CONFIG.SUBMISSION_MODE,
+      gradeStatus: CONFIG.GRADE_STATUS, roles: CONFIG.ROLES, userStatus: CONFIG.USER_STATUS, minPasswordLength: CONFIG.MIN_PASSWORD_LENGTH,
+      qrRotateSeconds: CONFIG.QR_ROTATE_SECONDS, examWeeks: CONFIG.EXAM_WEEKS
     }
+  };
+  if (user.role === 'student') {
+    if (!user.mustChange) out.student = studentData_(user);
+  } else {
+    out.dashboard = dashboard_();
+  }
+  return out;
+}
+
+function courseInfo_(settings) {
+  return {
+    courseCode: settings.courseCode, courseName: settings.courseName, courseNameEn: CONFIG.COURSE.courseNameEn,
+    semester: settings.semester, academicYear: settings.academicYear, instructors: CONFIG.COURSE.instructors
   };
 }
 
-function publicUser_(user, ctx) {
-  const dept = user.departmentId ? ctx.deptMap[user.departmentId] : null;
-  return {
-    id: user.id, username: user.username, fullName: user.fullName, email: user.email || '',
-    role: user.role, roleLabel: CONFIG.ROLES[user.role] || user.role,
-    departmentId: user.departmentId || '', departmentName: dept ? dept.name : '', builtin: !!user.builtin
-  };
+/** ข้อมูลสาธารณะสำหรับหน้าเข้าสู่ระบบ (ไม่มีข้อมูลส่วนบุคคล) */
+function getPublicInfo() {
+  return handle_(function () {
+    ensureSetup_();
+    const settings = publicSettings_();
+    return ok_({ course: courseInfo_(settings), sections: sectionList_().map(function (s) { return { code: s.code, name: s.name, dayLabel: s.dayLabel, startTime: s.startTime, endTime: s.endTime, room: s.room }; }) });
+  });
 }
 
 function changeMyPassword(token, data) {
   return handle_(function () {
-    const user = auth_(token);
-    if (user.builtin) throw appError_('รหัสผ่านของผู้ดูแลระบบหลักเปลี่ยนได้ที่ ADMIN_PASSWORD ใน Code.gs เท่านั้น');
+    const user = auth_(token, null, true);
+    if (user.builtin) throw appError_('รหัสผ่านของอาจารย์ผู้สอนหลักเปลี่ยนได้ที่ส่วน CONFIGURATION ใน Code.gs เท่านั้น');
     const d = data || {};
     const current = String(d.currentPassword || '');
     const next = String(d.newPassword || '');
@@ -330,1034 +399,1075 @@ function changeMyPassword(token, data) {
     if (next.length < CONFIG.MIN_PASSWORD_LENGTH) throw appError_('รหัสผ่านใหม่ต้องมีอย่างน้อย ' + CONFIG.MIN_PASSWORD_LENGTH + ' ตัวอักษร');
     if (next.length > 100) throw appError_('รหัสผ่านยาวเกินไป');
     if (next !== confirm) throw appError_('ยืนยันรหัสผ่านไม่ตรงกัน');
+    if (next === CONFIG.STUDENT_DEFAULT_PASSWORD) throw appError_('ห้ามใช้รหัสผ่านเริ่มต้นเป็นรหัสผ่านใหม่');
     return withLock_(function () {
-      const row = findById_('Users', user.id);
+      const sheet = user.role === 'student' ? 'Students' : 'Teachers';
+      const row = findById_(sheet, user.id);
       if (!row || row.password !== current) throw appError_('รหัสผ่านปัจจุบันไม่ถูกต้อง');
       if (current === next) throw appError_('รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม');
-      updateRow_('Users', row, { password: next, updatedAt: now_() });
-      audit_(user, 'change_password', 'User', user.id, 'เปลี่ยนรหัสผ่านตนเอง');
-      return ok_({}, 'เปลี่ยนรหัสผ่านเรียบร้อย');
+      const patch = { password: next, updatedAt: now_() };
+      if (sheet === 'Students') patch.mustChange = '0';
+      updateRow_(sheet, row, patch);
+      audit_(user, 'change_password', sheet === 'Students' ? 'Student' : 'Teacher', user.id, 'เปลี่ยนรหัสผ่านตนเอง');
+      const fresh = sheet === 'Students' ? studentUser_(findById_('Students', user.id)) : user;
+      return ok_({ bootstrap: buildBootstrap_(fresh) }, 'เปลี่ยนรหัสผ่านเรียบร้อย');
     });
   });
 }
 
 /* ============================================================================
- * User Management
+ * Section & Schedule Management
  * ========================================================================== */
-function listUsers(token) {
+function sectionList_() {
+  const students = readTable_('Students').rows.filter(function (s) { return s.status === 'active'; });
+  const sessions = readTable_('Sessions').rows;
+  const today = today_();
+  return readTable_('Sections').rows.map(function (s) {
+    const mine = sessions.filter(function (x) { return x.sectionCode === s.code && x.status !== 'cancelled'; })
+      .sort(function (a, b) { return a.sessionDate.localeCompare(b.sessionDate); });
+    const next = mine.filter(function (x) { return x.status === 'open' || (x.sessionDate >= today && x.status === 'scheduled'); })[0] || null;
+    return {
+      id: s.id, code: s.code, name: s.name || ('กลุ่ม ' + s.code), meetingDay: s.meetingDay, dayLabel: CONFIG.DAYS[s.meetingDay] || '',
+      startTime: s.startTime, endTime: s.endTime, room: s.room, firstDate: s.firstDate,
+      studentCount: students.filter(function (x) { return x.sectionCode === s.code; }).length,
+      next: next ? { id: next.id, week: next.week, sessionDate: next.sessionDate, status: next.status } : null
+    };
+  }).sort(function (a, b) { return ((a.meetingDay + 6) % 7) - ((b.meetingDay + 6) % 7) || a.code.localeCompare(b.code); });
+}
+
+function listSections(token) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
-    const ctx = context_();
-    const items = readTable_('Users').rows.map(function (u) { return userView_(u, ctx); })
-      .sort(function (a, b) { return a.username.localeCompare(b.username); });
+    auth_(token, TEACHERS_);
+    return ok_({ items: sectionList_() });
+  });
+}
+
+function saveSection(token, data) {
+  return handle_(function () {
+    const user = auth_(token, ['admin']);
+    const d = data || {};
+    const input = {
+      code: req_(str_(d.code, 10), 'รหัสกลุ่มเรียน'),
+      name: str_(d.name, 60),
+      meetingDay: intRange_(d.meetingDay, 0, 6, 'วันเรียน'),
+      startTime: time_(d.startTime, 'เวลาเริ่ม'),
+      endTime: time_(d.endTime, 'เวลาสิ้นสุด'),
+      room: str_(d.room, 60),
+      firstDate: date_(d.firstDate, 'วันที่เรียนสัปดาห์ที่ 1', true)
+    };
+    if (!/^[A-Za-z0-9]{1,10}$/.test(input.code)) throw appError_('รหัสกลุ่มเรียนต้องเป็นตัวอักษรหรือตัวเลข');
+    if (input.endTime <= input.startTime) throw appError_('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');
+    if (weekdayOf_(input.firstDate) !== input.meetingDay) throw appError_('วันที่เรียนสัปดาห์ที่ 1 ต้องตรงกับวัน' + CONFIG.DAYS[input.meetingDay]);
+    if (!input.name) input.name = 'กลุ่ม ' + input.code;
+    return withLock_(function () {
+      const rows = readTable_('Sections').rows;
+      if (rows.some(function (r) { return r.code === input.code && r.id !== d.id; })) throw appError_('รหัสกลุ่มเรียนซ้ำ');
+      let saved;
+      if (d.id) {
+        const cur = findById_('Sections', d.id);
+        if (!cur) throw appError_('ไม่พบกลุ่มเรียน');
+        if (cur.code !== input.code) throw appError_('ไม่สามารถเปลี่ยนรหัสกลุ่มเรียนที่สร้างแล้วได้');
+        saved = updateRow_('Sections', cur, Object.assign({}, input, { updatedAt: now_() }));
+      } else {
+        saved = Object.assign({ id: newId_('SEC'), createdAt: now_(), updatedAt: now_() }, input);
+        insertRows_('Sections', [saved]);
+      }
+      const result = syncSessions_(saved);
+      audit_(user, d.id ? 'update' : 'create', 'Section', saved.id, saved.name + ' (สร้างคาบ ' + result.created + ', เลื่อนวัน ' + result.moved + ')');
+      return ok_({ items: sectionList_() }, 'บันทึกกลุ่มเรียนแล้ว · สร้างคาบใหม่ ' + result.created + ' คาบ · ปรับวันที่ ' + result.moved + ' คาบ');
+    });
+  });
+}
+
+function deleteSection(token, id) {
+  return handle_(function () {
+    const user = auth_(token, ['admin']);
+    return withLock_(function () {
+      const cur = findById_('Sections', id);
+      if (!cur) throw appError_('ไม่พบกลุ่มเรียน');
+      if (readTable_('Students').rows.some(function (s) { return s.sectionCode === cur.code; })) throw appError_('ไม่สามารถลบได้ เนื่องจากยังมีนักศึกษาในกลุ่มนี้');
+      const sessionIds = {};
+      readTable_('Sessions').rows.forEach(function (s) { if (s.sectionCode === cur.code) sessionIds[s.id] = true; });
+      if (readTable_('Attendance').rows.some(function (a) { return sessionIds[a.sessionId]; })) throw appError_('ไม่สามารถลบได้ เนื่องจากมีข้อมูลการเข้าเรียนแล้ว');
+      deleteWhere_('Sessions', function (s) { return s.sectionCode === cur.code; });
+      deleteWhere_('Sections', function (s) { return s.id === cur.id; });
+      audit_(user, 'delete', 'Section', cur.id, cur.name);
+      return ok_({ items: sectionList_() }, 'ลบกลุ่มเรียนแล้ว');
+    });
+  });
+}
+
+/** ตั้งวันเปิดภาค แล้วคำนวณวันที่เรียนสัปดาห์ที่ 1 ของทุกกลุ่มใหม่ (ไม่แตะคาบที่เปิด/ปิดเช็คชื่อแล้ว) */
+function setTermStart(token, dateStr) {
+  return handle_(function () {
+    const user = auth_(token, ['admin']);
+    const termStart = date_(dateStr, 'วันเปิดภาคเรียน', true);
+    return withLock_(function () {
+      setSettingValues_([['termStart', termStart]]);
+      let created = 0;
+      let moved = 0;
+      readTable_('Sections').rows.forEach(function (s) {
+        const updated = updateRow_('Sections', findById_('Sections', s.id), { firstDate: firstOnOrAfter_(termStart, s.meetingDay), updatedAt: now_() });
+        const r = syncSessions_(updated);
+        created += r.created;
+        moved += r.moved;
+      });
+      audit_(user, 'update', 'Settings', 'termStart', termStart);
+      return ok_({ items: sectionList_(), settings: publicSettings_() }, 'ตั้งวันเปิดภาคแล้ว · สร้างคาบ ' + created + ' · ปรับวันที่ ' + moved + ' คาบ');
+    });
+  });
+}
+
+/** สร้างคาบ 17 สัปดาห์ให้กลุ่มเรียน และเลื่อนวันที่/เวลาของคาบที่ยังไม่เปิดเช็คชื่อให้ตรงตาราง */
+function syncSessions_(section) {
+  const all = readTable_('Sessions').rows;
+  const mine = all.filter(function (s) { return s.sectionCode === section.code; });
+  const touched = {};
+  readTable_('Attendance').rows.forEach(function (a) { touched[a.sessionId] = true; });
+  const stamp = now_();
+  const add = [];
+  let moved = 0;
+  const updates = {};
+  CONFIG.PLAN.forEach(function (p) {
+    const week = p[0];
+    const date = addDays_(section.firstDate, (week - 1) * 7);
+    const existing = mine.filter(function (s) { return s.week === week; })[0];
+    if (!existing) {
+      add.push({
+        id: newId_('SES'), sectionCode: section.code, week: week, sessionDate: date, startTime: section.startTime, endTime: section.endTime,
+        room: section.room, title: p[1], clo: p[2], status: 'scheduled', openedAt: '', closedAt: '', createdAt: stamp, updatedAt: stamp
+      });
+    } else if (existing.status === 'scheduled' && !touched[existing.id]) {
+      if (existing.sessionDate !== date || existing.startTime !== section.startTime || existing.endTime !== section.endTime || existing.room !== section.room) {
+        updates[existing.id] = { sessionDate: date, startTime: section.startTime, endTime: section.endTime, room: section.room, updatedAt: stamp };
+        moved += 1;
+      }
+    }
+  });
+  if (moved) {
+    rewriteTable_('Sessions', all.map(function (s) { return updates[s.id] ? Object.assign({}, s, updates[s.id]) : s; }));
+  }
+  if (add.length) insertRows_('Sessions', add);
+  return { created: add.length, moved: moved };
+}
+
+/* ============================================================================
+ * Student Management
+ * ========================================================================== */
+function listStudents(token) {
+  return handle_(function () {
+    auth_(token, TEACHERS_);
+    const items = readTable_('Students').rows.map(studentView_)
+      .sort(function (a, b) { return a.sectionCode.localeCompare(b.sectionCode) || a.studentCode.localeCompare(b.studentCode); });
     return ok_({ items: items });
   });
 }
 
-function userView_(u, ctx) {
-  const dept = ctx.deptMap[u.departmentId];
+function studentView_(s) {
   return {
-    id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role,
-    roleLabel: CONFIG.ROLES[u.role] || u.role, departmentId: u.departmentId, departmentName: dept ? dept.name : '',
-    status: u.status, lastLoginAt: u.lastLoginAt, createdAt: u.createdAt, updatedAt: u.updatedAt
+    id: s.id, studentCode: s.studentCode, fullName: s.fullName, sectionCode: s.sectionCode, program: s.program, faculty: s.faculty,
+    email: s.email, mustChange: s.mustChange === '1', status: s.status, lastLoginAt: s.lastLoginAt, createdAt: s.createdAt
   };
 }
 
-function saveUser(token, data) {
+/**
+ * นำเข้ารายชื่อเป็นชุด (setValues ครั้งเดียว) — rows: [{studentCode, fullName, sectionCode, program, faculty, email}]
+ * รหัสที่มีอยู่แล้วจะอัปเดตชื่อ/กลุ่ม ไม่สร้างซ้ำ และไม่เปลี่ยนรหัสผ่าน
+ */
+function importStudents(token, payload) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
+    const user = auth_(token, ['admin']);
+    const list = payload && payload.rows;
+    if (!list || !list.length) throw appError_('ไม่พบรายชื่อนักศึกษาในไฟล์');
+    if (list.length > 2000) throw appError_('นำเข้าได้ครั้งละไม่เกิน 2000 รายการ');
+    return withLock_(function () {
+      const sectionCodes = {};
+      readTable_('Sections').rows.forEach(function (s) { sectionCodes[s.code] = true; });
+      const t = readTable_('Students');
+      const byCode = indexBy_(t.rows, 'studentCode');
+      const rows = t.rows.map(function (r) { return Object.assign({}, r); });
+      const rowByCode = indexBy_(rows, 'studentCode');
+      const stamp = now_();
+      const errors = [];
+      let created = 0;
+      let updated = 0;
+      const seen = {};
+      list.forEach(function (r, i) {
+        const code = str_(r.studentCode, 20).replace(/\s/g, '');
+        const name = str_(r.fullName, 150);
+        const sec = str_(r.sectionCode, 10);
+        const line = 'แถวที่ ' + (i + 1);
+        if (!/^\d{5,15}$/.test(code)) { errors.push(line + ': รหัสนักศึกษาไม่ถูกต้อง'); return; }
+        if (!name) { errors.push(line + ': ไม่มีชื่อ-สกุล'); return; }
+        if (!sectionCodes[sec]) { errors.push(line + ': ไม่พบกลุ่มเรียน "' + sec + '"'); return; }
+        if (seen[code]) { errors.push(line + ': รหัส ' + code + ' ซ้ำในไฟล์'); return; }
+        seen[code] = true;
+        if (byCode[code]) {
+          const row = rowByCode[code];
+          row.fullName = name;
+          row.sectionCode = sec;
+          if (r.program) row.program = str_(r.program, 200);
+          if (r.faculty) row.faculty = str_(r.faculty, 200);
+          if (r.email) row.email = str_(r.email, 120);
+          row.status = 'active';
+          row.updatedAt = stamp;
+          updated += 1;
+        } else {
+          rows.push({
+            id: newId_('STD'), studentCode: code, fullName: name, sectionCode: sec, program: str_(r.program, 200), faculty: str_(r.faculty, 200),
+            email: str_(r.email, 120), password: CONFIG.STUDENT_DEFAULT_PASSWORD, mustChange: '1', status: 'active', lastLoginAt: '', createdAt: stamp, updatedAt: stamp
+          });
+          created += 1;
+        }
+      });
+      if (created || updated) rewriteTable_('Students', rows);
+      audit_(user, 'import', 'Student', '', 'เพิ่ม ' + created + ' · อัปเดต ' + updated + ' · ข้อผิดพลาด ' + errors.length);
+      return ok_({ created: created, updated: updated, errors: errors.slice(0, 50), errorCount: errors.length }, 'นำเข้าแล้ว: เพิ่มใหม่ ' + created + ' คน · อัปเดต ' + updated + ' คน' + (errors.length ? ' · ข้าม ' + errors.length + ' แถว' : ''));
+    });
+  });
+}
+
+function saveStudent(token, data) {
+  return handle_(function () {
+    const user = auth_(token, ['admin']);
     const d = data || {};
     const input = {
-      username: req_(str_(d.username, 30), 'ชื่อผู้ใช้'),
-      fullName: req_(str_(d.fullName, 120), 'ชื่อ-นามสกุล'),
+      studentCode: req_(str_(d.studentCode, 20), 'รหัสนักศึกษา'),
+      fullName: req_(str_(d.fullName, 150), 'ชื่อ-สกุล'),
+      sectionCode: req_(str_(d.sectionCode, 10), 'กลุ่มเรียน'),
+      program: str_(d.program, 200),
+      faculty: str_(d.faculty, 200),
       email: str_(d.email, 120),
-      role: oneOf_(d.role, CONFIG.ROLES, 'บทบาท'),
-      departmentId: str_(d.departmentId, 50),
       status: oneOf_(d.status || 'active', CONFIG.USER_STATUS, 'สถานะ')
     };
-    if (!/^[A-Za-z0-9._-]{3,30}$/.test(input.username)) throw appError_('ชื่อผู้ใช้ต้องเป็นภาษาอังกฤษ ตัวเลข หรือ . _ - ความยาว 3–30 ตัวอักษร');
-    if (input.username.toLowerCase() === CONFIG.ADMIN_USERNAME.toLowerCase()) throw appError_('ชื่อผู้ใช้นี้สงวนไว้สำหรับผู้ดูแลระบบหลัก');
+    if (!/^\d{5,15}$/.test(input.studentCode)) throw appError_('รหัสนักศึกษาต้องเป็นตัวเลข 5–15 หลัก');
     if (input.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) throw appError_('รูปแบบอีเมลไม่ถูกต้อง');
-    if (input.role !== 'admin' && !input.departmentId) throw appError_('กรุณาเลือกหน่วยงานของผู้ใช้');
-    const password = String(d.password || '');
-    if (password && password.length < CONFIG.MIN_PASSWORD_LENGTH) throw appError_('รหัสผ่านต้องมีอย่างน้อย ' + CONFIG.MIN_PASSWORD_LENGTH + ' ตัวอักษร');
-    if (password.length > 100) throw appError_('รหัสผ่านยาวเกินไป');
     return withLock_(function () {
-      if (input.departmentId && !findById_('Departments', input.departmentId)) throw appError_('ไม่พบหน่วยงานที่เลือก');
-      const users = readTable_('Users').rows;
-      const dup = users.some(function (u) { return u.username.toLowerCase() === input.username.toLowerCase() && u.id !== d.id; });
-      if (dup) throw appError_('ชื่อผู้ใช้ "' + input.username + '" มีอยู่แล้ว');
+      if (!readTable_('Sections').rows.some(function (s) { return s.code === input.sectionCode; })) throw appError_('ไม่พบกลุ่มเรียน');
+      const rows = readTable_('Students').rows;
+      if (rows.some(function (s) { return s.studentCode === input.studentCode && s.id !== d.id; })) throw appError_('รหัสนักศึกษา ' + input.studentCode + ' มีอยู่แล้ว');
       let saved;
       if (d.id) {
-        const cur = findById_('Users', d.id);
-        if (!cur) throw appError_('ไม่พบผู้ใช้');
-        const patch = Object.assign({}, input, { updatedAt: now_() });
-        if (password) patch.password = password;
-        saved = updateRow_('Users', cur, patch);
-        audit_(user, 'update', 'User', cur.id, input.username + (password ? ' (ตั้งรหัสผ่านใหม่)' : ''));
+        const cur = findById_('Students', d.id);
+        if (!cur) throw appError_('ไม่พบนักศึกษา');
+        if (cur.studentCode !== input.studentCode && hasStudentRecords_(cur.studentCode)) throw appError_('ไม่สามารถเปลี่ยนรหัสนักศึกษาที่มีประวัติเข้าเรียน/ส่งงานแล้วได้');
+        saved = updateRow_('Students', cur, Object.assign({}, input, { updatedAt: now_() }));
+        audit_(user, 'update', 'Student', cur.id, input.studentCode + ' ' + input.fullName + ' กลุ่ม ' + input.sectionCode);
       } else {
-        if (!password) throw appError_('กรุณากำหนดรหัสผ่านเริ่มต้น');
-        saved = Object.assign({ id: newId_('USR'), password: password, lastLoginAt: '', createdAt: now_(), updatedAt: now_() }, input);
-        insertRows_('Users', [saved]);
-        audit_(user, 'create', 'User', saved.id, input.username);
+        saved = Object.assign({ id: newId_('STD'), password: CONFIG.STUDENT_DEFAULT_PASSWORD, mustChange: '1', lastLoginAt: '', createdAt: now_(), updatedAt: now_() }, input);
+        insertRows_('Students', [saved]);
+        audit_(user, 'create', 'Student', saved.id, input.studentCode + ' ' + input.fullName);
       }
-      return ok_(userView_(saved, context_()), 'บันทึกผู้ใช้แล้ว');
+      return ok_(studentView_(saved), 'บันทึกข้อมูลนักศึกษาแล้ว');
     });
   });
 }
 
-function deleteUser(token, id) {
+function resetStudentPassword(token, id) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
+    const user = auth_(token, TEACHERS_);
     return withLock_(function () {
-      const cur = findById_('Users', id);
-      if (!cur) throw appError_('ไม่พบผู้ใช้');
-      if (cur.id === user.id) throw appError_('ไม่สามารถลบบัญชีของตนเองได้');
-      deleteWhere_('Users', function (u) { return u.id === cur.id; });
-      audit_(user, 'delete', 'User', cur.id, cur.username);
-      return ok_({ id: cur.id }, 'ลบผู้ใช้แล้ว');
+      const cur = findById_('Students', id);
+      if (!cur) throw appError_('ไม่พบนักศึกษา');
+      updateRow_('Students', cur, { password: CONFIG.STUDENT_DEFAULT_PASSWORD, mustChange: '1', updatedAt: now_() });
+      audit_(user, 'reset_password', 'Student', cur.id, cur.studentCode);
+      return ok_({ id: cur.id }, 'รีเซ็ตรหัสผ่านของ ' + cur.studentCode + ' เป็น ' + CONFIG.STUDENT_DEFAULT_PASSWORD + ' แล้ว (บังคับเปลี่ยนเมื่อเข้าสู่ระบบ)');
     });
   });
+}
+
+function deleteStudent(token, id) {
+  return handle_(function () {
+    const user = auth_(token, ['admin']);
+    return withLock_(function () {
+      const cur = findById_('Students', id);
+      if (!cur) throw appError_('ไม่พบนักศึกษา');
+      if (hasStudentRecords_(cur.studentCode)) throw appError_('นักศึกษามีประวัติเข้าเรียนหรือส่งงานแล้ว ให้เปลี่ยนสถานะเป็น "ปิดใช้งาน" แทนการลบ');
+      deleteWhere_('Students', function (s) { return s.id === cur.id; });
+      audit_(user, 'delete', 'Student', cur.id, cur.studentCode + ' ' + cur.fullName);
+      return ok_({ id: cur.id }, 'ลบนักศึกษาแล้ว');
+    });
+  });
+}
+
+function hasStudentRecords_(code) {
+  return readTable_('Attendance').rows.some(function (a) { return a.studentCode === code; }) ||
+    readTable_('Submissions').rows.some(function (s) { return s.studentCode === code; }) ||
+    readTable_('Grades').rows.some(function (g) { return g.studentCode === code; });
 }
 
 /* ============================================================================
- * Department Management
+ * Class Sessions & Attendance (เช็คชื่อ)
  * ========================================================================== */
-function listDepartments(token) {
+function listSessions(token) {
   return handle_(function () {
-    auth_(token);
-    return ok_({ items: departmentList_(context_()) });
+    auth_(token, TEACHERS_);
+    const att = readTable_('Attendance').rows;
+    const counts = {};
+    att.forEach(function (a) {
+      const c = counts[a.sessionId] || (counts[a.sessionId] = { present: 0, late: 0, absent: 0, excused: 0 });
+      if (c[a.status] !== undefined) c[a.status] += 1;
+    });
+    const sectionSize = {};
+    readTable_('Students').rows.forEach(function (s) { if (s.status === 'active') sectionSize[s.sectionCode] = (sectionSize[s.sectionCode] || 0) + 1; });
+    const items = readTable_('Sessions').rows.map(function (s) {
+      return Object.assign(sessionView_(s), { counts: counts[s.id] || { present: 0, late: 0, absent: 0, excused: 0 }, studentCount: sectionSize[s.sectionCode] || 0 });
+    }).sort(function (a, b) { return a.sessionDate.localeCompare(b.sessionDate) || a.sectionCode.localeCompare(b.sectionCode); });
+    return ok_({ items: items });
   });
 }
 
-function departmentList_(ctx) {
-  const users = readTable_('Users').rows;
-  return ctx.departments.map(function (dp) {
-    return {
-      id: dp.id, code: dp.code, name: dp.name, description: dp.description, createdAt: dp.createdAt, updatedAt: dp.updatedAt,
-      userCount: users.filter(function (u) { return u.departmentId === dp.id; }).length,
-      projectCount: ctx.projects.filter(function (p) { return p.departmentId === dp.id; }).length
-    };
-  }).sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
+function sessionView_(s) {
+  return {
+    id: s.id, sectionCode: s.sectionCode, week: s.week, sessionDate: s.sessionDate, startTime: s.startTime, endTime: s.endTime, room: s.room,
+    title: s.title, clo: s.clo, status: s.status, statusLabel: CONFIG.SESSION_STATUS[s.status] || s.status,
+    isExam: CONFIG.EXAM_WEEKS.indexOf(s.week) >= 0, openedAt: s.openedAt, closedAt: s.closedAt
+  };
 }
 
-function saveDepartment(token, data) {
+function updateSession(token, data) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
+    const user = auth_(token, ['admin']);
     const d = data || {};
-    const input = { code: str_(d.code, 30), name: req_(str_(d.name, 150), 'ชื่อหน่วยงาน'), description: str_(d.description, 1000) };
     return withLock_(function () {
-      const rows = readTable_('Departments').rows;
-      if (rows.some(function (r) { return r.name.toLowerCase() === input.name.toLowerCase() && r.id !== d.id; })) throw appError_('ชื่อหน่วยงานซ้ำ');
-      if (input.code && rows.some(function (r) { return r.code.toLowerCase() === input.code.toLowerCase() && r.id !== d.id; })) throw appError_('รหัสหน่วยงานซ้ำ');
-      let saved;
-      if (d.id) {
-        const cur = findById_('Departments', d.id);
-        if (!cur) throw appError_('ไม่พบหน่วยงาน');
-        saved = updateRow_('Departments', cur, Object.assign({}, input, { updatedAt: now_() }));
-        audit_(user, 'update', 'Department', cur.id, input.name);
-      } else {
-        saved = Object.assign({ id: newId_('DEP'), createdAt: now_(), updatedAt: now_() }, input);
-        insertRows_('Departments', [saved]);
-        audit_(user, 'create', 'Department', saved.id, input.name);
+      const cur = findById_('Sessions', d.id);
+      if (!cur) throw appError_('ไม่พบคาบเรียน');
+      const input = {
+        sessionDate: date_(d.sessionDate, 'วันที่', true),
+        startTime: time_(d.startTime, 'เวลาเริ่ม'),
+        endTime: time_(d.endTime, 'เวลาสิ้นสุด'),
+        room: str_(d.room, 60),
+        title: req_(str_(d.title, 300), 'หัวข้อ'),
+        status: cur.status
+      };
+      if (input.endTime <= input.startTime) throw appError_('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');
+      if (d.cancelled === true && cur.status === 'scheduled') input.status = 'cancelled';
+      if (d.cancelled === false && cur.status === 'cancelled') input.status = 'scheduled';
+      if (d.cancelled === true && cur.status !== 'scheduled' && cur.status !== 'cancelled') throw appError_('งดสอนได้เฉพาะคาบที่ยังไม่เปิดเช็คชื่อ');
+      const saved = updateRow_('Sessions', cur, Object.assign({}, input, { updatedAt: now_() }));
+      audit_(user, 'update', 'Session', cur.id, 'กลุ่ม ' + cur.sectionCode + ' สัปดาห์ ' + cur.week);
+      return ok_(sessionView_(saved), 'บันทึกคาบเรียนแล้ว');
+    });
+  });
+}
+
+function openSession(token, id) {
+  return handle_(function () {
+    const user = auth_(token, TEACHERS_);
+    return withLock_(function () {
+      const cur = findById_('Sessions', id);
+      if (!cur) throw appError_('ไม่พบคาบเรียน');
+      if (cur.status === 'cancelled') throw appError_('คาบนี้ถูกตั้งเป็นงดสอน');
+      const patch = { status: 'open', updatedAt: now_() };
+      if (!cur.openedAt) patch.openedAt = now_();
+      patch.closedAt = '';
+      updateRow_('Sessions', cur, patch);
+      rotateCode_(cur.id, true);
+      audit_(user, 'open', 'Session', cur.id, 'เปิดเช็คชื่อ กลุ่ม ' + cur.sectionCode + ' สัปดาห์ ' + cur.week);
+      return ok_({ id: cur.id }, 'เปิดเช็คชื่อแล้ว');
+    });
+  });
+}
+
+function closeSession(token, id, markAbsent) {
+  return handle_(function () {
+    const user = auth_(token, TEACHERS_);
+    return withLock_(function () {
+      const cur = findById_('Sessions', id);
+      if (!cur) throw appError_('ไม่พบคาบเรียน');
+      if (cur.status !== 'open') throw appError_('คาบนี้ไม่ได้เปิดเช็คชื่ออยู่');
+      updateRow_('Sessions', cur, { status: 'closed', closedAt: now_(), updatedAt: now_() });
+      const cache = CacheService.getScriptCache();
+      const state = cache.get('qrs:' + cur.id);
+      if (state) {
+        const st = JSON.parse(state);
+        [st.code, st.prev].forEach(function (c) { if (c) cache.remove('qrc:' + c); });
+        cache.remove('qrs:' + cur.id);
       }
-      return ok_(clean_(saved), 'บันทึกหน่วยงานแล้ว');
+      let absent = 0;
+      if (markAbsent) {
+        const done = {};
+        readTable_('Attendance').rows.forEach(function (a) { if (a.sessionId === cur.id) done[a.studentCode] = true; });
+        const stamp = now_();
+        const add = readTable_('Students').rows.filter(function (s) { return s.status === 'active' && s.sectionCode === cur.sectionCode && !done[s.studentCode]; })
+          .map(function (s) { return { id: newId_('ATT'), sessionId: cur.id, studentCode: s.studentCode, status: 'absent', checkinAt: '', method: 'auto_close', deviceHash: '', note: 'ไม่ได้เช็คชื่อ', updatedBy: user.username, updatedAt: stamp }; });
+        insertRows_('Attendance', add);
+        absent = add.length;
+      }
+      audit_(user, 'close', 'Session', cur.id, 'ปิดเช็คชื่อ กลุ่ม ' + cur.sectionCode + ' สัปดาห์ ' + cur.week + (markAbsent ? ' (บันทึกขาด ' + absent + ')' : ''));
+      return ok_({ id: cur.id, absent: absent }, 'ปิดเช็คชื่อแล้ว' + (markAbsent ? ' · บันทึกขาด ' + absent + ' คน' : ''));
     });
   });
 }
 
-function deleteDepartment(token, id) {
-  return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
-    return withLock_(function () {
-      const cur = findById_('Departments', id);
-      if (!cur) throw appError_('ไม่พบหน่วยงาน');
-      const usedByUser = readTable_('Users').rows.some(function (u) { return u.departmentId === cur.id; });
-      const usedByProject = readTable_('Projects').rows.some(function (p) { return p.departmentId === cur.id; });
-      if (usedByUser || usedByProject) throw appError_('ไม่สามารถลบได้ เนื่องจากยังมีผู้ใช้หรือโครงการอยู่ในหน่วยงานนี้');
-      deleteWhere_('Departments', function (r) { return r.id === cur.id; });
-      audit_(user, 'delete', 'Department', cur.id, cur.name);
-      return ok_({ id: cur.id }, 'ลบหน่วยงานแล้ว');
-    });
-  });
+/** รหัสเช็คชื่อ 6 ตัว หมุนทุก QR_ROTATE_SECONDS วินาที (รหัสก่อนหน้ายังใช้ได้อีก 1 รอบ) */
+function rotateCode_(sessionId, force) {
+  const cache = CacheService.getScriptCache();
+  const raw = cache.get('qrs:' + sessionId);
+  const nowMs = Date.now();
+  let st = raw ? JSON.parse(raw) : null;
+  if (!st || force || nowMs - st.issuedAt >= CONFIG.QR_ROTATE_SECONDS * 1000) {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + nowMs);
+    for (let i = 0; i < 6; i++) code += alphabet.charAt((bytes[i] + 256) % alphabet.length);
+    const prev = st ? st.code : '';
+    st = { code: code, prev: prev, issuedAt: nowMs };
+    const ttl = CONFIG.QR_ROTATE_SECONDS * 2 + 15;
+    cache.put('qrc:' + code, sessionId, ttl);
+    if (prev) cache.put('qrc:' + prev, sessionId, CONFIG.QR_ROTATE_SECONDS + 15);
+    cache.put('qrs:' + sessionId, JSON.stringify(st), 21600);
+  }
+  return { code: st.code, expiresIn: Math.max(1, Math.round((st.issuedAt + CONFIG.QR_ROTATE_SECONDS * 1000 - nowMs) / 1000)) };
 }
 
-/* ============================================================================
- * Project CRUD
- * ========================================================================== */
-function listProjects(token) {
+/** ข้อมูลหน้าระหว่างคาบ (เรียกซ้ำทุกไม่กี่วินาทีจากจอโปรเจกเตอร์) */
+function getLiveSession(token, id) {
   return handle_(function () {
-    const user = auth_(token);
-    const ctx = context_();
-    const items = ctx.projects.filter(function (p) { return canSeeProject_(user, p); })
-      .map(function (p) { return projectView_(p, ctx); })
-      .sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
-    return ok_({ items: items, lookups: lookups_(user, ctx) });
-  });
-}
-
-function getProjectDetail(token, id) {
-  return handle_(function () {
-    const user = auth_(token);
-    const p = projectFor_(user, id, false);
-    const ctx = context_();
-    const actMap = indexBy_(ctx.activities, 'id');
-    const fileMap = indexBy_(readTable_('Files').rows, 'id');
-    const activities = ctx.activities.filter(function (a) { return a.projectId === p.id; })
-      .map(function (a) { return activityView_(a, ctx); })
-      .sort(function (a, b) { return String(a.startDate).localeCompare(String(b.startDate)); });
-    const expenses = ctx.expenses.filter(function (e) { return e.projectId === p.id; })
-      .map(function (e) { return expenseView_(e, ctx, actMap, fileMap); })
-      .sort(function (a, b) { return String(b.expenseDate).localeCompare(String(a.expenseDate)); });
-    const progress = readTable_('Progress').rows.filter(function (r) { return r.projectId === p.id; })
-      .map(function (r) { return progressView_(r, ctx, actMap); })
-      .sort(function (a, b) { return String(b.reportDate + b.createdAt).localeCompare(String(a.reportDate + a.createdAt)); });
-    const files = readTable_('Files').rows.filter(function (f) { return f.projectId === p.id; })
-      .map(function (f) { return fileView_(f, ctx); })
-      .sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
+    auth_(token, TEACHERS_);
+    const s = findById_('Sessions', id);
+    if (!s) throw appError_('ไม่พบคาบเรียน');
+    const qr = s.status === 'open' ? rotateCode_(s.id, false) : null;
+    const att = indexBy_(readTable_('Attendance').rows.filter(function (a) { return a.sessionId === s.id; }), 'studentCode');
+    const roster = readTable_('Students').rows.filter(function (st) { return st.sectionCode === s.sectionCode && st.status === 'active'; })
+      .sort(function (a, b) { return a.studentCode.localeCompare(b.studentCode); })
+      .map(function (st) {
+        const a = att[st.studentCode];
+        return { studentCode: st.studentCode, fullName: st.fullName, status: a ? a.status : '', checkinAt: a ? a.checkinAt : '', method: a ? a.method : '', note: a ? a.note : '' };
+      });
+    const counts = { present: 0, late: 0, absent: 0, excused: 0, none: 0 };
+    roster.forEach(function (r) { if (r.status) counts[r.status] += 1; else counts.none += 1; });
+    const base = appUrl_();
     return ok_({
-      project: projectView_(p, ctx), activities: activities, expenses: expenses, progress: progress, files: files,
-      canManage: canManageProject_(user, p), lookups: lookups_(user, ctx)
+      session: sessionView_(s), code: qr ? qr.code : '', expiresIn: qr ? qr.expiresIn : 0,
+      checkinUrl: qr && base ? base + '?checkin=' + qr.code : '', roster: roster, counts: counts, serverTime: now_()
     });
   });
 }
 
-function saveProject(token, data) {
+/** เช็คชื่อโดยนักศึกษา (ไม่ต้องเข้าสู่ระบบ) — กรอกรหัสนักศึกษา + รหัส 6 ตัวจาก QR */
+function checkIn(payload) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
-    const d = data || {};
-    const input = {
-      code: str_(d.code, 30),
-      name: req_(str_(d.name, 200), 'ชื่อโครงการ'),
-      departmentId: req_(str_(d.departmentId, 50), 'หน่วยงาน'),
-      ownerName: str_(d.ownerName, 120),
-      description: str_(d.description, 3000),
-      budget: money_(d.budget, 'งบประมาณโครงการ', false),
-      startDate: date_(d.startDate, 'วันที่เริ่ม', true),
-      endDate: date_(d.endDate, 'วันที่สิ้นสุด', true),
-      status: oneOf_(d.status || 'planning', CONFIG.PROJECT_STATUS, 'สถานะโครงการ')
-    };
-    dateOrder_(input.startDate, input.endDate);
+    const d = payload || {};
+    const code = String(d.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    const studentCode = String(d.studentCode || '').trim().replace(/\s/g, '').slice(0, 20);
+    const deviceHash = String(d.deviceHash || '').replace(/[^a-f0-9]/gi, '').slice(0, 64);
+    if (code.length !== 6) throw appError_('กรุณากรอกรหัสเช็คชื่อ 6 ตัวที่แสดงบนจอ');
+    if (!/^\d{5,15}$/.test(studentCode)) throw appError_('กรุณากรอกรหัสนักศึกษาให้ถูกต้อง');
+    const cache = CacheService.getScriptCache();
+    rateLimit_(cache, 'rl:s:' + studentCode);
+    if (deviceHash) rateLimit_(cache, 'rl:d:' + deviceHash);
+    const sessionId = cache.get('qrc:' + code);
+    if (!sessionId) throw appError_('รหัสเช็คชื่อหมดอายุหรือไม่ถูกต้อง กรุณาสแกน QR ล่าสุดบนจออีกครั้ง');
     return withLock_(function () {
-      if (!findById_('Departments', input.departmentId)) throw appError_('ไม่พบหน่วยงานที่เลือก');
-      if (user.role !== 'admin' && input.departmentId !== user.departmentId) throw appError_('สร้างหรือแก้ไขได้เฉพาะโครงการของหน่วยงานตนเอง');
-      const projects = readTable_('Projects').rows;
-      if (input.code && projects.some(function (p) { return p.code.toLowerCase() === input.code.toLowerCase() && p.id !== d.id; })) throw appError_('รหัสโครงการ "' + input.code + '" ซ้ำ');
-      let saved;
-      if (d.id) {
-        const cur = projectFor_(user, d.id, true);
-        const st = context_().pStat[cur.id];
-        if (input.budget < st.activityBudget) throw appError_('งบประมาณโครงการต้องไม่น้อยกว่างบกิจกรรมรวม (' + fmtMoney_(st.activityBudget) + ')');
-        if (input.budget < st.committed) throw appError_('งบประมาณโครงการต้องไม่น้อยกว่ายอดเบิกจ่ายรวม (' + fmtMoney_(st.committed) + ')');
-        saved = updateRow_('Projects', cur, Object.assign({}, input, { updatedAt: now_() }));
-        audit_(user, 'update', 'Project', cur.id, input.name);
-      } else {
-        saved = Object.assign({ id: newId_('PRJ'), progress: 0, folderId: '', createdBy: user.username, createdAt: now_(), updatedAt: now_() }, input);
-        insertRows_('Projects', [saved]);
-        audit_(user, 'create', 'Project', saved.id, input.name);
+      const s = findById_('Sessions', sessionId);
+      if (!s || s.status !== 'open') throw appError_('คาบนี้ปิดเช็คชื่อแล้ว');
+      const st = readTable_('Students').rows.filter(function (x) { return x.studentCode === studentCode; })[0];
+      if (!st || st.status !== 'active') throw appError_('ไม่พบรหัสนักศึกษานี้ในรายวิชา');
+      if (st.sectionCode !== s.sectionCode) throw appError_('คาบนี้เป็นของกลุ่ม ' + s.sectionCode + ' แต่คุณอยู่กลุ่ม ' + st.sectionCode);
+      const sessionAtt = readTable_('Attendance').rows.filter(function (a) { return a.sessionId === s.id; });
+      const mine = sessionAtt.filter(function (a) { return a.studentCode === studentCode; })[0];
+      if (mine) {
+        return ok_({ fullName: maskName_(st.fullName), status: mine.status, statusLabel: CONFIG.ATTENDANCE_STATUS[mine.status], checkinAt: mine.checkinAt, week: s.week, sectionCode: s.sectionCode, already: true }, 'คุณเช็คชื่อคาบนี้ไว้แล้ว');
       }
-      return ok_(projectView_(saved, context_()), 'บันทึกโครงการแล้ว');
-    });
-  });
-}
-
-function deleteProject(token, id) {
-  return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
-    return withLock_(function () {
-      const p = projectFor_(user, id, true);
-      const files = deleteWhere_('Files', function (f) { return f.projectId === p.id; });
-      files.forEach(function (f) { trashDriveFile_(f.driveId); });
-      const reports = deleteWhere_('Reports', function (r) { return r.projectId === p.id; });
-      reports.forEach(function (r) { if (r.fileId) trashDriveFile_(r.fileId); });
-      const acts = deleteWhere_('Activities', function (a) { return a.projectId === p.id; });
-      const exps = deleteWhere_('Expenses', function (e) { return e.projectId === p.id; });
-      const prog = deleteWhere_('Progress', function (r) { return r.projectId === p.id; });
-      deleteWhere_('Projects', function (r) { return r.id === p.id; });
-      if (p.folderId) trashDriveFolder_(p.folderId);
-      audit_(user, 'delete', 'Project', p.id, p.name + ' (กิจกรรม ' + acts.length + ', เบิกจ่าย ' + exps.length + ', ความก้าวหน้า ' + prog.length + ', ไฟล์ ' + files.length + ')');
-      return ok_({ id: p.id }, 'ลบโครงการและข้อมูลที่เกี่ยวข้องแล้ว');
-    });
-  });
-}
-
-function projectView_(p, ctx) {
-  const st = ctx.pStat[p.id] || emptyStat_();
-  const dept = ctx.deptMap[p.departmentId];
-  return {
-    id: p.id, code: p.code, name: p.name, departmentId: p.departmentId, departmentName: dept ? dept.name : '',
-    ownerName: p.ownerName, description: p.description, budget: p.budget, startDate: p.startDate, endDate: p.endDate,
-    status: p.status, statusLabel: CONFIG.PROJECT_STATUS[p.status] || p.status, progress: p.progress,
-    activityBudget: round2_(st.activityBudget), unallocated: round2_(p.budget - st.activityBudget),
-    spent: round2_(st.spent), pending: round2_(st.pending), committed: round2_(st.committed),
-    remaining: round2_(p.budget - st.committed), usedPct: p.budget > 0 ? round2_(st.committed / p.budget * 100) : 0,
-    activityCount: st.activityCount, expenseCount: st.expenseCount,
-    createdBy: p.createdBy, createdAt: p.createdAt, updatedAt: p.updatedAt
-  };
-}
-
-/* ============================================================================
- * Activity CRUD
- * ========================================================================== */
-function listActivities(token, projectId) {
-  return handle_(function () {
-    const user = auth_(token);
-    const ctx = context_();
-    const visible = {};
-    ctx.projects.forEach(function (p) { if (canSeeProject_(user, p)) visible[p.id] = true; });
-    const items = ctx.activities.filter(function (a) { return visible[a.projectId] && (!projectId || a.projectId === projectId); })
-      .map(function (a) { return activityView_(a, ctx); })
-      .sort(function (a, b) { return String(a.projectName + a.startDate).localeCompare(String(b.projectName + b.startDate), 'th'); });
-    return ok_({ items: items, lookups: lookups_(user, ctx) });
-  });
-}
-
-function saveActivity(token, data) {
-  return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
-    const d = data || {};
-    const input = {
-      projectId: req_(str_(d.projectId, 50), 'โครงการ'),
-      name: req_(str_(d.name, 200), 'ชื่อกิจกรรม'),
-      description: str_(d.description, 2000),
-      responsible: str_(d.responsible, 120),
-      budget: money_(d.budget, 'งบประมาณกิจกรรม', false),
-      startDate: date_(d.startDate, 'วันที่เริ่ม', true),
-      endDate: date_(d.endDate, 'วันที่สิ้นสุด', true),
-      status: oneOf_(d.status || 'not_started', CONFIG.ACTIVITY_STATUS, 'สถานะกิจกรรม')
-    };
-    dateOrder_(input.startDate, input.endDate);
-    return withLock_(function () {
-      const p = projectFor_(user, input.projectId, true);
-      const ctx = context_();
-      const others = ctx.activities.filter(function (a) { return a.projectId === p.id && a.id !== d.id; })
-        .reduce(function (t, a) { return t + a.budget; }, 0);
-      if (others + input.budget > p.budget) {
-        throw appError_('งบกิจกรรมรวมเกินงบโครงการ (งบโครงการ ' + fmtMoney_(p.budget) + ', จัดสรรแล้ว ' + fmtMoney_(others) + ', คงเหลือให้จัดสรร ' + fmtMoney_(p.budget - others) + ')');
-      }
-      let saved;
-      if (d.id) {
-        const cur = findById_('Activities', d.id);
-        if (!cur) throw appError_('ไม่พบกิจกรรม');
-        if (cur.projectId !== p.id) {
-          const linked = ctx.expenses.some(function (e) { return e.activityId === cur.id; });
-          if (linked) throw appError_('ไม่สามารถย้ายกิจกรรมที่มีรายการเบิกจ่ายไปโครงการอื่นได้');
-          projectFor_(user, cur.projectId, true);
+      if (publicSettings_().deviceLock === 'on' && deviceHash) {
+        const used = sessionAtt.filter(function (a) { return a.deviceHash === deviceHash && a.studentCode !== studentCode; })[0];
+        if (used) {
+          audit_({ username: studentCode }, 'checkin_blocked', 'Attendance', s.id, 'อุปกรณ์ซ้ำกับ ' + used.studentCode);
+          throw appError_('อุปกรณ์นี้ถูกใช้เช็คชื่อให้นักศึกษาคนอื่นในคาบนี้แล้ว (1 เครื่อง : 1 คน) หากเป็นความผิดพลาด กรุณาแจ้งอาจารย์');
         }
-        const st = ctx.aStat[cur.id] || emptyStat_();
-        if (input.budget < st.committed) throw appError_('งบกิจกรรมต้องไม่น้อยกว่ายอดเบิกจ่ายของกิจกรรม (' + fmtMoney_(st.committed) + ')');
-        saved = updateRow_('Activities', cur, Object.assign({}, input, { updatedAt: now_() }));
-        audit_(user, 'update', 'Activity', cur.id, input.name);
-      } else {
-        saved = Object.assign({ id: newId_('ACT'), createdBy: user.username, createdAt: now_(), updatedAt: now_() }, input);
-        insertRows_('Activities', [saved]);
-        audit_(user, 'create', 'Activity', saved.id, input.name);
       }
-      return ok_(activityView_(saved, context_()), 'บันทึกกิจกรรมแล้ว');
+      const nowStr = now_();
+      const status = isLate_(s) ? 'late' : 'present';
+      const rec = { id: newId_('ATT'), sessionId: s.id, studentCode: studentCode, status: status, checkinAt: nowStr, method: 'qr', deviceHash: deviceHash, note: '', updatedBy: studentCode, updatedAt: nowStr };
+      insertRows_('Attendance', [rec]);
+      audit_({ username: studentCode }, 'checkin', 'Attendance', rec.id, 'กลุ่ม ' + s.sectionCode + ' สัปดาห์ ' + s.week + ' ' + status);
+      return ok_({ fullName: maskName_(st.fullName), status: status, statusLabel: CONFIG.ATTENDANCE_STATUS[status], checkinAt: nowStr, week: s.week, sectionCode: s.sectionCode, already: false }, status === 'late' ? 'เช็คชื่อแล้ว (สาย)' : 'เช็คชื่อสำเร็จ');
     });
   });
 }
 
-function deleteActivity(token, id) {
+/** ข้อมูลคาบจากรหัส QR (ไม่มีข้อมูลส่วนบุคคล) — ใช้แสดงก่อนกดยืนยันเช็คชื่อ */
+function getCheckinInfo(code) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
-    return withLock_(function () {
-      const cur = findById_('Activities', id);
-      if (!cur) throw appError_('ไม่พบกิจกรรม');
-      projectFor_(user, cur.projectId, true);
-      const linked = readTable_('Expenses').rows.some(function (e) { return e.activityId === cur.id; });
-      if (linked) throw appError_('ไม่สามารถลบกิจกรรมที่มีรายการเบิกจ่ายได้ กรุณาลบหรือย้ายรายการเบิกจ่ายก่อน');
-      const prog = readTable_('Progress');
-      const linkedProgress = prog.rows.filter(function (r) { return r.activityId === cur.id; });
-      if (linkedProgress.length) {
-        rewriteTable_('Progress', prog.rows.map(function (r) { return r.activityId === cur.id ? Object.assign({}, r, { activityId: '' }) : r; }));
-      }
-      deleteWhere_('Activities', function (a) { return a.id === cur.id; });
-      audit_(user, 'delete', 'Activity', cur.id, cur.name);
-      return ok_({ id: cur.id }, 'ลบกิจกรรมแล้ว');
-    });
+    const c = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    if (c.length !== 6) throw appError_('รหัสเช็คชื่อไม่ถูกต้อง');
+    const sessionId = CacheService.getScriptCache().get('qrc:' + c);
+    if (!sessionId) throw appError_('รหัสเช็คชื่อหมดอายุ กรุณาสแกน QR ล่าสุดบนจออีกครั้ง');
+    const s = findById_('Sessions', sessionId);
+    if (!s || s.status !== 'open') throw appError_('คาบนี้ปิดเช็คชื่อแล้ว');
+    return ok_({ week: s.week, sectionCode: s.sectionCode, title: s.title, sessionDate: s.sessionDate, startTime: s.startTime, room: s.room, courseName: publicSettings_().courseName });
   });
 }
 
-function activityView_(a, ctx) {
-  const st = ctx.aStat[a.id] || emptyStat_();
-  const p = ctx.projectMap[a.projectId];
-  return {
-    id: a.id, projectId: a.projectId, projectName: p ? p.name : '', projectCode: p ? p.code : '',
-    name: a.name, description: a.description, responsible: a.responsible, budget: a.budget,
-    startDate: a.startDate, endDate: a.endDate, status: a.status, statusLabel: CONFIG.ACTIVITY_STATUS[a.status] || a.status,
-    spent: round2_(st.spent), pending: round2_(st.pending), committed: round2_(st.committed), remaining: round2_(a.budget - st.committed),
-    usedPct: a.budget > 0 ? round2_(st.committed / a.budget * 100) : 0,
-    createdBy: a.createdBy, createdAt: a.createdAt, updatedAt: a.updatedAt
-  };
+function rateLimit_(cache, key) {
+  const n = Number(cache.get(key) || 0);
+  if (n >= CONFIG.CHECKIN_RATE_PER_MINUTE) throw appError_('ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่');
+  cache.put(key, String(n + 1), 60);
 }
 
-/* ============================================================================
- * Expense CRUD
- * ========================================================================== */
-function listExpenses(token) {
-  return handle_(function () {
-    const user = auth_(token);
-    const ctx = context_();
-    const actMap = indexBy_(ctx.activities, 'id');
-    const fileMap = indexBy_(readTable_('Files').rows, 'id');
-    const items = ctx.expenses.filter(function (e) { const p = ctx.projectMap[e.projectId]; return p && canSeeProject_(user, p); })
-      .map(function (e) { return expenseView_(e, ctx, actMap, fileMap); })
-      .sort(function (a, b) { return String(b.expenseDate + b.createdAt).localeCompare(String(a.expenseDate + a.createdAt)); });
-    return ok_({ items: items, lookups: lookups_(user, ctx) });
-  });
+function isLate_(s) {
+  const lateMinutes = Number(publicSettings_().lateMinutes) || 15;
+  const p = s.sessionDate.split('-').map(Number);
+  const t = s.startTime.split(':').map(Number);
+  const startMs = Date.UTC(p[0], p[1] - 1, p[2], t[0] - CONFIG.UTC_OFFSET_HOURS, t[1]);
+  return Date.now() > startMs + lateMinutes * 60000;
 }
 
-function saveExpense(token, data) {
+function maskName_(name) {
+  const parts = String(name || '').split(/\s+/).filter(String);
+  if (!parts.length) return '';
+  const first = parts[0];
+  const last = parts.length > 1 ? parts[parts.length - 1] : '';
+  return first + (last ? ' ' + last.charAt(0) + '.' : '');
+}
+
+/** ผู้สอนแก้สถานะการเข้าเรียนด้วยตนเอง (หลายคนพร้อมกันได้) */
+function setAttendance(token, data) {
   return handle_(function () {
-    const user = auth_(token);
+    const user = auth_(token, TEACHERS_);
     const d = data || {};
-    const input = {
-      projectId: req_(str_(d.projectId, 50), 'โครงการ'),
-      activityId: str_(d.activityId, 50),
-      expenseDate: date_(d.expenseDate, 'วันที่เบิกจ่าย', true),
-      description: req_(str_(d.description, 500), 'รายการ'),
-      payee: str_(d.payee, 200),
-      receiptNo: str_(d.receiptNo, 60),
-      amount: money_(d.amount, 'จำนวนเงิน', true),
-      note: str_(d.note, 1000)
-    };
-    const upload = d.file && d.file.data ? validateUpload_(d.file) : null;
+    const codes = (d.studentCodes || []).map(function (c) { return str_(c, 20); }).filter(String);
+    if (!codes.length) throw appError_('กรุณาเลือกนักศึกษา');
+    if (codes.length > 500) throw appError_('เลือกนักศึกษาได้ครั้งละไม่เกิน 500 คน');
+    const clear = d.status === '';
+    const status = clear ? '' : oneOf_(d.status, CONFIG.ATTENDANCE_STATUS, 'สถานะการเข้าเรียน');
+    const note = str_(d.note, 300);
     return withLock_(function () {
-      const p = projectFor_(user, input.projectId, false);
-      const ctx = context_();
-      let cur = null;
-      if (d.id) {
-        cur = findById_('Expenses', d.id);
-        if (!cur) throw appError_('ไม่พบรายการเบิกจ่าย');
-        const oldProject = projectFor_(user, cur.projectId, false);
-        const manager = canManageProject_(user, oldProject);
-        if (!manager && !(cur.createdBy === user.username && cur.status === 'pending')) throw appError_('แก้ไขได้เฉพาะรายการของตนเองที่ยังรออนุมัติ');
-        if (cur.projectId !== p.id && !canManageProject_(user, p) && !(cur.createdBy === user.username)) throw appError_('คุณไม่มีสิทธิ์ย้ายรายการไปโครงการนี้');
-      }
-      let act = null;
-      if (input.activityId) {
-        act = ctx.activities.filter(function (a) { return a.id === input.activityId; })[0];
-        if (!act || act.projectId !== p.id) throw appError_('กิจกรรมที่เลือกไม่อยู่ในโครงการนี้');
-      }
-      const excludeId = cur ? cur.id : '';
-      const countsInBudget = !cur || cur.status !== 'rejected';
-      if (countsInBudget) checkExpenseBudget_(ctx, p, act, input.amount, excludeId);
-      let fileId = cur ? cur.fileId : '';
-      let saved;
-      if (cur) {
-        saved = updateRow_('Expenses', cur, Object.assign({}, input, { updatedAt: now_() }));
-        audit_(user, 'update', 'Expense', cur.id, input.description + ' ' + fmtMoney_(input.amount));
-      } else {
-        saved = Object.assign({ id: newId_('EXP'), fileId: '', status: 'pending', createdBy: user.username, createdAt: now_(), updatedAt: now_(), approvedBy: '', approvedAt: '' }, input);
-        insertRows_('Expenses', [saved]);
-        audit_(user, 'create', 'Expense', saved.id, input.description + ' ' + fmtMoney_(input.amount));
-      }
-      if (upload) {
-        if (fileId) removeFileRecord_(fileId);
-        const rec = storeFile_(user, upload, p, 'expense', saved.id, 'หลักฐานการเบิกจ่าย: ' + input.description);
-        fileId = rec.id;
-        saved = updateRow_('Expenses', findById_('Expenses', saved.id), { fileId: fileId });
-      }
-      const fresh = context_();
-      return ok_(expenseView_(saved, fresh, indexBy_(fresh.activities, 'id'), indexBy_(readTable_('Files').rows, 'id')), 'บันทึกรายการเบิกจ่ายแล้ว');
-    });
-  });
-}
-
-function checkExpenseBudget_(ctx, project, activity, amount, excludeId) {
-  const projectUsed = ctx.expenses.filter(function (e) { return e.projectId === project.id && e.status !== 'rejected' && e.id !== excludeId; })
-    .reduce(function (t, e) { return t + e.amount; }, 0);
-  const projectLeft = round2_(project.budget - projectUsed);
-  if (amount > projectLeft) throw appError_('จำนวนเงินเกินงบคงเหลือของโครงการ (คงเหลือ ' + fmtMoney_(projectLeft) + ')');
-  if (activity) {
-    const actUsed = ctx.expenses.filter(function (e) { return e.activityId === activity.id && e.status !== 'rejected' && e.id !== excludeId; })
-      .reduce(function (t, e) { return t + e.amount; }, 0);
-    const actLeft = round2_(activity.budget - actUsed);
-    if (amount > actLeft) throw appError_('จำนวนเงินเกินงบคงเหลือของกิจกรรม (คงเหลือ ' + fmtMoney_(actLeft) + ')');
-  }
-}
-
-function setExpenseStatus(token, id, status) {
-  return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
-    const next = oneOf_(status, CONFIG.EXPENSE_STATUS, 'สถานะ');
-    return withLock_(function () {
-      const cur = findById_('Expenses', id);
-      if (!cur) throw appError_('ไม่พบรายการเบิกจ่าย');
-      const p = projectFor_(user, cur.projectId, true);
-      if (cur.status === next) return ok_({ id: cur.id }, 'สถานะไม่เปลี่ยนแปลง');
-      if (cur.status === 'rejected' && next !== 'rejected') {
-        const ctx = context_();
-        const act = cur.activityId ? ctx.activities.filter(function (a) { return a.id === cur.activityId; })[0] : null;
-        checkExpenseBudget_(ctx, p, act, cur.amount, cur.id);
-      }
+      const s = findById_('Sessions', d.sessionId);
+      if (!s) throw appError_('ไม่พบคาบเรียน');
+      if (s.status === 'scheduled' || s.status === 'cancelled') throw appError_('บันทึกการเข้าเรียนได้เมื่อเปิดเช็คชื่อแล้ว');
+      const valid = {};
+      readTable_('Students').rows.forEach(function (st) { if (st.sectionCode === s.sectionCode) valid[st.studentCode] = true; });
+      codes.forEach(function (c) { if (!valid[c]) throw appError_('รหัส ' + c + ' ไม่อยู่ในกลุ่ม ' + s.sectionCode); });
+      const t = readTable_('Attendance');
+      const want = {};
+      codes.forEach(function (c) { want[c] = true; });
       const stamp = now_();
-      updateRow_('Expenses', cur, {
-        status: next, updatedAt: stamp,
-        approvedBy: next === 'pending' ? '' : user.username, approvedAt: next === 'pending' ? '' : stamp
+      const rows = [];
+      const done = {};
+      t.rows.forEach(function (a) {
+        if (a.sessionId === s.id && want[a.studentCode]) {
+          done[a.studentCode] = true;
+          if (clear) return;
+          rows.push(Object.assign({}, a, { status: status, method: a.method === 'qr' ? 'qr' : 'manual', note: note || a.note, updatedBy: user.username, updatedAt: stamp }));
+        } else {
+          rows.push(a);
+        }
       });
-      audit_(user, 'status_' + next, 'Expense', cur.id, cur.description + ' ' + fmtMoney_(cur.amount));
-      return ok_({ id: cur.id, status: next }, 'เปลี่ยนสถานะเป็น "' + CONFIG.EXPENSE_STATUS[next] + '" แล้ว');
+      if (!clear) {
+        codes.forEach(function (c) {
+          if (!done[c]) rows.push({ id: newId_('ATT'), sessionId: s.id, studentCode: c, status: status, checkinAt: '', method: 'manual', deviceHash: '', note: note, updatedBy: user.username, updatedAt: stamp });
+        });
+      }
+      rewriteTable_('Attendance', rows);
+      audit_(user, 'attendance', 'Session', s.id, 'สัปดาห์ ' + s.week + ' กลุ่ม ' + s.sectionCode + ': ' + (clear ? 'ล้างสถานะ' : status) + ' ' + codes.length + ' คน');
+      return ok_({ count: codes.length }, 'บันทึกการเข้าเรียน ' + codes.length + ' คนแล้ว');
     });
   });
 }
 
-function deleteExpense(token, id) {
+/** ตารางการเข้าเรียน นักศึกษา × สัปดาห์ */
+function getAttendanceMatrix(token, sectionCode) {
   return handle_(function () {
-    const user = auth_(token);
-    return withLock_(function () {
-      const cur = findById_('Expenses', id);
-      if (!cur) throw appError_('ไม่พบรายการเบิกจ่าย');
-      const p = projectFor_(user, cur.projectId, false);
-      if (!canManageProject_(user, p) && !(cur.createdBy === user.username && cur.status === 'pending')) throw appError_('ลบได้เฉพาะรายการของตนเองที่ยังรออนุมัติ');
-      if (cur.fileId) removeFileRecord_(cur.fileId);
-      deleteWhere_('Expenses', function (e) { return e.id === cur.id; });
-      audit_(user, 'delete', 'Expense', cur.id, cur.description + ' ' + fmtMoney_(cur.amount));
-      return ok_({ id: cur.id }, 'ลบรายการเบิกจ่ายแล้ว');
+    auth_(token, TEACHERS_);
+    const sec = req_(str_(sectionCode, 10), 'กลุ่มเรียน');
+    const sessions = readTable_('Sessions').rows.filter(function (s) { return s.sectionCode === sec; }).sort(function (a, b) { return a.week - b.week; });
+    const ids = {};
+    sessions.forEach(function (s) { ids[s.id] = s.week; });
+    const byStudent = {};
+    readTable_('Attendance').rows.forEach(function (a) {
+      if (ids[a.sessionId] === undefined) return;
+      (byStudent[a.studentCode] = byStudent[a.studentCode] || {})[ids[a.sessionId]] = a.status;
     });
+    const held = sessions.filter(function (s) { return (s.status === 'open' || s.status === 'closed') && countable_(s); });
+    const closedWeeks = sessions.filter(function (s) { return s.status === 'closed' && countable_(s); }).map(function (s) { return s.week; });
+    const openWeeks = sessions.filter(function (s) { return s.status === 'open' && countable_(s); }).map(function (s) { return s.week; });
+    const students = readTable_('Students').rows.filter(function (s) { return s.sectionCode === sec && s.status === 'active'; })
+      .sort(function (a, b) { return a.studentCode.localeCompare(b.studentCode); })
+      .map(function (s) {
+        const marks = byStudent[s.studentCode] || {};
+        const sum = attendanceSummary_(marks, closedWeeks, openWeeks);
+        return { studentCode: s.studentCode, fullName: s.fullName, marks: marks, summary: sum };
+      });
+    return ok_({ sectionCode: sec, sessions: sessions.map(sessionView_), students: students, heldCount: held.length });
   });
 }
 
-function expenseView_(e, ctx, actMap, fileMap) {
-  const p = ctx.projectMap[e.projectId];
-  const a = e.activityId ? actMap[e.activityId] : null;
-  const f = e.fileId ? fileMap[e.fileId] : null;
-  return {
-    id: e.id, projectId: e.projectId, projectName: p ? p.name : '', projectCode: p ? p.code : '',
-    activityId: e.activityId, activityName: a ? a.name : '', expenseDate: e.expenseDate, description: e.description,
-    payee: e.payee, receiptNo: e.receiptNo, amount: e.amount, note: e.note,
-    fileId: e.fileId, fileName: f ? f.name : '', fileUrl: f ? f.url : '',
-    status: e.status, statusLabel: CONFIG.EXPENSE_STATUS[e.status] || e.status,
-    createdBy: e.createdBy, createdAt: e.createdAt, updatedAt: e.updatedAt, approvedBy: e.approvedBy, approvedAt: e.approvedAt
-  };
+/** นับเฉพาะคาบที่ปิดเช็คชื่อแล้ว (ไม่มีข้อมูล = ขาด) และคาบที่เปิดอยู่ซึ่งนักศึกษามีสถานะแล้ว */
+function attendanceSummary_(marks, closedWeeks, openWeeks) {
+  const weeks = closedWeeks.concat((openWeeks || []).filter(function (w) { return !!marks[w]; }));
+  const out = { present: 0, late: 0, absent: 0, excused: 0, held: weeks.length, rate: 0 };
+  weeks.forEach(function (w) { const m = marks[w]; if (m && out[m] !== undefined) out[m] += 1; else out.absent += 1; });
+  out.rate = weeks.length ? round2_((out.present + out.late + out.excused) / weeks.length * 100) : 0;
+  return out;
+}
+
+function countable_(s) {
+  return CONFIG.EXAM_WEEKS.indexOf(s.week) < 0;
 }
 
 /* ============================================================================
- * Progress CRUD
+ * Assignments (งานที่มอบหมาย)
  * ========================================================================== */
-function listProgress(token) {
+function listAssignments(token) {
   return handle_(function () {
-    const user = auth_(token);
-    const ctx = context_();
-    const actMap = indexBy_(ctx.activities, 'id');
-    const items = readTable_('Progress').rows.filter(function (r) { const p = ctx.projectMap[r.projectId]; return p && canSeeProject_(user, p); })
-      .map(function (r) { return progressView_(r, ctx, actMap); })
-      .sort(function (a, b) { return String(b.reportDate + b.createdAt).localeCompare(String(a.reportDate + a.createdAt)); });
-    return ok_({ items: items, lookups: lookups_(user, ctx) });
+    auth_(token, TEACHERS_);
+    const subs = readTable_('Submissions').rows;
+    const grades = readTable_('Grades').rows;
+    const items = readTable_('Assignments').rows.map(function (a) {
+      const v = assignmentView_(a);
+      const subStudents = {};
+      subs.forEach(function (s) { if (s.assignmentId === a.id) subStudents[s.studentCode] = true; });
+      v.submittedCount = Object.keys(subStudents).length;
+      v.gradedCount = grades.filter(function (g) { return g.assignmentId === a.id && g.score !== ''; }).length;
+      v.publishedCount = grades.filter(function (g) { return g.assignmentId === a.id && g.status === 'published'; }).length;
+      return v;
+    }).sort(function (a, b) { return a.code.localeCompare(b.code); });
+    return ok_({ items: items, capacity: categoryCapacity_() });
   });
 }
 
-function saveProgress(token, data) {
-  return handle_(function () {
-    const user = auth_(token);
-    const d = data || {};
-    const input = {
-      projectId: req_(str_(d.projectId, 50), 'โครงการ'),
-      activityId: str_(d.activityId, 50),
-      reportDate: date_(d.reportDate, 'วันที่รายงาน', true),
-      percent: percent_(d.percent),
-      detail: req_(str_(d.detail, 3000), 'รายละเอียดความก้าวหน้า'),
-      problems: str_(d.problems, 2000),
-      nextSteps: str_(d.nextSteps, 2000)
-    };
-    return withLock_(function () {
-      const p = projectFor_(user, input.projectId, false);
-      if (input.activityId) {
-        const act = findById_('Activities', input.activityId);
-        if (!act || act.projectId !== p.id) throw appError_('กิจกรรมที่เลือกไม่อยู่ในโครงการนี้');
-      }
-      let saved;
-      let oldProjectId = '';
-      if (d.id) {
-        const cur = findById_('Progress', d.id);
-        if (!cur) throw appError_('ไม่พบรายงานความก้าวหน้า');
-        const oldP = projectFor_(user, cur.projectId, false);
-        if (!canManageProject_(user, oldP) && cur.createdBy !== user.username) throw appError_('แก้ไขได้เฉพาะรายงานของตนเอง');
-        oldProjectId = cur.projectId;
-        saved = updateRow_('Progress', cur, Object.assign({}, input, { updatedAt: now_() }));
-        audit_(user, 'update', 'Progress', cur.id, p.name + ' ' + input.percent + '%');
-      } else {
-        saved = Object.assign({ id: newId_('PRG'), createdBy: user.username, createdAt: now_(), updatedAt: now_() }, input);
-        insertRows_('Progress', [saved]);
-        audit_(user, 'create', 'Progress', saved.id, p.name + ' ' + input.percent + '%');
-      }
-      recalcProjectProgress_(p.id);
-      if (oldProjectId && oldProjectId !== p.id) recalcProjectProgress_(oldProjectId);
-      const ctx = context_();
-      return ok_(progressView_(saved, ctx, indexBy_(ctx.activities, 'id')), 'บันทึกความก้าวหน้าแล้ว');
-    });
-  });
-}
-
-function deleteProgress(token, id) {
-  return handle_(function () {
-    const user = auth_(token);
-    return withLock_(function () {
-      const cur = findById_('Progress', id);
-      if (!cur) throw appError_('ไม่พบรายงานความก้าวหน้า');
-      const p = projectFor_(user, cur.projectId, false);
-      if (!canManageProject_(user, p) && cur.createdBy !== user.username) throw appError_('ลบได้เฉพาะรายงานของตนเอง');
-      deleteWhere_('Progress', function (r) { return r.id === cur.id; });
-      recalcProjectProgress_(p.id);
-      audit_(user, 'delete', 'Progress', cur.id, p.name);
-      return ok_({ id: cur.id }, 'ลบรายงานความก้าวหน้าแล้ว');
-    });
-  });
-}
-
-/** ความก้าวหน้าโครงการ = เปอร์เซ็นต์ของรายงานระดับโครงการล่าสุด (ถ้าไม่มี ใช้ค่าเฉลี่ยของรายงานล่าสุดของแต่ละกิจกรรม) */
-function recalcProjectProgress_(projectId) {
-  const p = findById_('Projects', projectId);
-  if (!p) return;
-  const rows = readTable_('Progress').rows.filter(function (r) { return r.projectId === projectId; })
-    .sort(function (a, b) { return String(b.reportDate + b.createdAt).localeCompare(String(a.reportDate + a.createdAt)); });
-  let value = 0;
-  const projectLevel = rows.filter(function (r) { return !r.activityId; })[0];
-  if (projectLevel) {
-    value = projectLevel.percent;
-  } else {
-    const latestByAct = {};
-    rows.forEach(function (r) { if (r.activityId && latestByAct[r.activityId] === undefined) latestByAct[r.activityId] = r.percent; });
-    const vals = Object.keys(latestByAct).map(function (k) { return latestByAct[k]; });
-    value = vals.length ? round2_(vals.reduce(function (t, v) { return t + v; }, 0) / vals.length) : 0;
-  }
-  if (p.progress !== value) updateRow_('Projects', p, { progress: value });
-}
-
-function progressView_(r, ctx, actMap) {
-  const p = ctx.projectMap[r.projectId];
-  const a = r.activityId ? actMap[r.activityId] : null;
+function assignmentView_(a) {
+  const cat = categoryOf_(a.categoryCode);
   return {
-    id: r.id, projectId: r.projectId, projectName: p ? p.name : '', activityId: r.activityId, activityName: a ? a.name : '',
-    reportDate: r.reportDate, percent: r.percent, detail: r.detail, problems: r.problems, nextSteps: r.nextSteps,
-    createdBy: r.createdBy, createdAt: r.createdAt, updatedAt: r.updatedAt
+    id: a.id, code: a.code, title: a.title, description: a.description, categoryCode: a.categoryCode, categoryName: cat ? cat.name : '', clo: cat ? cat.clo : '',
+    maxScore: a.maxScore, sectionScope: a.sectionScope, sections: scopeList_(a.sectionScope), dueAt: a.dueAt, sectionDue: parseJson_(a.sectionDue, {}),
+    submissionMode: a.submissionMode, submissionModeLabel: CONFIG.SUBMISSION_MODE[a.submissionMode] || a.submissionMode, allowLate: a.allowLate === '1',
+    status: a.status, statusLabel: CONFIG.ASSIGNMENT_STATUS[a.status] || a.status, createdBy: a.createdBy, createdAt: a.createdAt, updatedAt: a.updatedAt
   };
 }
 
-/* ============================================================================
- * Report CRUD
- * ========================================================================== */
-function listReports(token) {
-  return handle_(function () {
-    const user = auth_(token);
-    const ctx = context_();
-    const items = readTable_('Reports').rows.filter(function (r) { return canSeeReport_(user, r, ctx); })
-      .map(function (r) { return reportView_(r, ctx); })
-      .sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
-    return ok_({ items: items, lookups: lookups_(user, ctx) });
+function scopeList_(scope) {
+  if (!scope || scope === 'all') return [];
+  return String(scope).split(',').map(function (x) { return x.trim(); }).filter(String);
+}
+
+function appliesTo_(a, sectionCode) {
+  const list = scopeList_(a.sectionScope);
+  return !list.length || list.indexOf(sectionCode) >= 0;
+}
+
+function dueFor_(a, sectionCode) {
+  const map = parseJson_(a.sectionDue, {});
+  return map[sectionCode] || a.dueAt || '';
+}
+
+/** คะแนนเต็มที่ใช้ไปในแต่ละหมวด แยกตามกลุ่มเรียน (ต้องไม่เกินโครงสร้าง OBE-3) */
+function categoryCapacity_(excludeId) {
+  const sections = readTable_('Sections').rows.map(function (s) { return s.code; });
+  const assigns = readTable_('Assignments').rows.filter(function (a) { return a.id !== excludeId; });
+  return CONFIG.CATEGORIES.map(function (c) {
+    const bySection = {};
+    sections.forEach(function (code) {
+      bySection[code] = round2_(assigns.filter(function (a) { return a.categoryCode === c.code && appliesTo_(a, code); }).reduce(function (t, a) { return t + a.maxScore; }, 0));
+    });
+    return { code: c.code, name: c.name, max: c.max, clo: c.clo, bySection: bySection };
   });
 }
 
-function canSeeReport_(user, r, ctx) {
-  if (user.role === 'admin') return true;
-  if (r.projectId) { const p = ctx.projectMap[r.projectId]; return !!p && canSeeProject_(user, p); }
-  return r.departmentId === user.departmentId;
-}
-
-function saveReport(token, data) {
+function saveAssignment(token, data) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
+    const user = auth_(token, TEACHERS_);
     const d = data || {};
     const input = {
-      title: req_(str_(d.title, 200), 'ชื่อรายงาน'),
-      reportType: oneOf_(d.reportType, CONFIG.REPORT_TYPES, 'ประเภทรายงาน'),
-      projectId: str_(d.projectId, 50),
-      departmentId: str_(d.departmentId, 50),
-      startDate: date_(d.startDate, 'วันที่เริ่ม', false),
-      endDate: date_(d.endDate, 'วันที่สิ้นสุด', false),
-      note: str_(d.note, 2000)
+      code: req_(str_(d.code, 20), 'รหัสงาน').toUpperCase(),
+      title: req_(str_(d.title, 200), 'ชื่องาน'),
+      description: str_(d.description, 5000),
+      categoryCode: req_(str_(d.categoryCode, 20), 'หมวดคะแนน'),
+      maxScore: score_(d.maxScore, 'คะแนนเต็ม', 100, true),
+      dueAt: dateTime_(d.dueAt, 'กำหนดส่ง', false),
+      submissionMode: oneOf_(d.submissionMode || 'online', CONFIG.SUBMISSION_MODE, 'วิธีส่งงาน'),
+      allowLate: d.allowLate ? '1' : '0',
+      status: oneOf_(d.status || 'draft', CONFIG.ASSIGNMENT_STATUS, 'สถานะ')
     };
-    if (input.startDate && input.endDate) dateOrder_(input.startDate, input.endDate);
-    if (input.reportType === 'project' && !input.projectId) throw appError_('รายงานสรุปโครงการต้องเลือกโครงการ');
-    if (input.reportType !== 'project') input.projectId = '';
-    if (user.role !== 'admin') input.departmentId = user.departmentId;
+    if (!/^[A-Z0-9_-]{1,20}$/.test(input.code)) throw appError_('รหัสงานใช้ได้เฉพาะ A–Z 0–9 _ -');
+    const cat = categoryOf_(input.categoryCode);
+    if (!cat) throw appError_('หมวดคะแนนไม่ถูกต้อง');
+    const sectionCodes = readTable_('Sections').rows.map(function (s) { return s.code; });
+    const scope = (d.sections || []).map(function (x) { return str_(x, 10); }).filter(String);
+    scope.forEach(function (c) { if (sectionCodes.indexOf(c) < 0) throw appError_('ไม่พบกลุ่มเรียน ' + c); });
+    input.sectionScope = scope.length && scope.length < sectionCodes.length ? scope.join(',') : 'all';
+    const due = {};
+    const src = d.sectionDue || {};
+    Object.keys(src).forEach(function (k) {
+      if (sectionCodes.indexOf(k) < 0) return;
+      const v = dateTime_(src[k], 'กำหนดส่งของกลุ่ม ' + k, false);
+      if (v) due[k] = v;
+    });
+    input.sectionDue = JSON.stringify(due);
+    if (input.submissionMode === 'online' && input.status !== 'draft' && !input.dueAt && !Object.keys(due).length) throw appError_('งานที่ส่งออนไลน์ต้องมีกำหนดส่งก่อนเผยแพร่');
     return withLock_(function () {
-      if (input.projectId) projectFor_(user, input.projectId, false);
-      if (input.departmentId && !findById_('Departments', input.departmentId)) throw appError_('ไม่พบหน่วยงานที่เลือก');
+      const rows = readTable_('Assignments').rows;
+      if (rows.some(function (a) { return a.code === input.code && a.id !== d.id; })) throw appError_('รหัสงาน ' + input.code + ' ซ้ำ');
+      const cap = categoryCapacity_(d.id || '').filter(function (c) { return c.code === cat.code; })[0];
+      const probe = { sectionScope: input.sectionScope };
+      Object.keys(cap.bySection).forEach(function (sec) {
+        if (!appliesTo_(probe, sec)) return;
+        if (cap.bySection[sec] + input.maxScore > cat.max + 0.001) {
+          throw appError_('คะแนนเต็มรวมของหมวด "' + cat.name + '" ในกลุ่ม ' + sec + ' จะเกิน ' + cat.max + ' คะแนน (ใช้ไปแล้ว ' + cap.bySection[sec] + ' · เหลือ ' + round2_(cat.max - cap.bySection[sec]) + ')');
+        }
+      });
       let saved;
       if (d.id) {
-        const cur = findById_('Reports', d.id);
-        if (!cur || !canSeeReport_(user, cur, context_())) throw appError_('ไม่พบรายงาน');
-        saved = updateRow_('Reports', cur, Object.assign({}, input, { updatedAt: now_() }));
-        audit_(user, 'update', 'Report', cur.id, input.title);
+        const cur = findById_('Assignments', d.id);
+        if (!cur) throw appError_('ไม่พบงาน');
+        const maxGrade = readTable_('Grades').rows.filter(function (g) { return g.assignmentId === cur.id && g.score !== ''; }).reduce(function (m, g) { return Math.max(m, Number(g.score)); }, 0);
+        if (input.maxScore < maxGrade) throw appError_('คะแนนเต็มต้องไม่น้อยกว่าคะแนนที่ให้ไปแล้ว (' + maxGrade + ')');
+        saved = updateRow_('Assignments', cur, Object.assign({}, input, { updatedAt: now_() }));
+        audit_(user, 'update', 'Assignment', cur.id, input.code + ' ' + input.title);
       } else {
-        saved = Object.assign({ id: newId_('RPT'), fileId: '', fileUrl: '', generatedAt: '', createdBy: user.username, createdAt: now_(), updatedAt: now_() }, input);
-        insertRows_('Reports', [saved]);
-        audit_(user, 'create', 'Report', saved.id, input.title);
+        saved = Object.assign({ id: newId_('ASG'), createdBy: user.username, createdAt: now_(), updatedAt: now_() }, input);
+        insertRows_('Assignments', [saved]);
+        audit_(user, 'create', 'Assignment', saved.id, input.code + ' ' + input.title);
       }
-      return ok_(reportView_(saved, context_()), 'บันทึกรายงานแล้ว');
+      return ok_(assignmentView_(saved), 'บันทึกงานแล้ว');
     });
   });
 }
 
-function deleteReport(token, id) {
+function deleteAssignment(token, id) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
+    const user = auth_(token, TEACHERS_);
     return withLock_(function () {
-      const cur = findById_('Reports', id);
-      if (!cur || !canSeeReport_(user, cur, context_())) throw appError_('ไม่พบรายงาน');
-      if (cur.fileId) trashDriveFile_(cur.fileId);
-      deleteWhere_('Reports', function (r) { return r.id === cur.id; });
-      audit_(user, 'delete', 'Report', cur.id, cur.title);
-      return ok_({ id: cur.id }, 'ลบรายงานแล้ว');
+      const cur = findById_('Assignments', id);
+      if (!cur) throw appError_('ไม่พบงาน');
+      if (readTable_('Submissions').rows.some(function (s) { return s.assignmentId === cur.id; }) || readTable_('Grades').rows.some(function (g) { return g.assignmentId === cur.id && g.score !== ''; })) {
+        throw appError_('งานนี้มีการส่งงานหรือให้คะแนนแล้ว ให้เปลี่ยนสถานะเป็น "ปิดรับงาน" แทนการลบ');
+      }
+      deleteWhere_('Grades', function (g) { return g.assignmentId === cur.id; });
+      deleteWhere_('Assignments', function (a) { return a.id === cur.id; });
+      audit_(user, 'delete', 'Assignment', cur.id, cur.code + ' ' + cur.title);
+      return ok_({ id: cur.id }, 'ลบงานแล้ว');
     });
   });
 }
 
-function getReportData(token, id) {
+/* ============================================================================
+ * Submissions (ส่งงาน)
+ * ========================================================================== */
+function submitAssignment(token, data) {
   return handle_(function () {
-    const user = auth_(token);
-    const r = findById_('Reports', id);
-    const ctx = context_();
-    if (!r || !canSeeReport_(user, r, ctx)) throw appError_('ไม่พบรายงาน');
-    return ok_(buildReport_(user, r, ctx));
-  });
-}
-
-function generateReportFile(token, id) {
-  return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin', 'manager']);
+    const user = auth_(token, ['student']);
+    const d = data || {};
+    const links = String(d.links || '').split(/\s+/).map(function (x) { return x.trim(); }).filter(String);
+    if (links.length > 10) throw appError_('แนบลิงก์ได้ไม่เกิน 10 ลิงก์');
+    links.forEach(function (l) { if (!/^https:\/\/[^\s<>"']{4,500}$/.test(l)) throw appError_('ลิงก์ต้องขึ้นต้นด้วย https:// : ' + l.slice(0, 60)); });
+    const files = (d.files || []).slice(0, 11);
+    if (files.length > 10) throw appError_('แนบไฟล์ได้ไม่เกิน 10 ไฟล์');
+    const uploads = files.map(validateUpload_);
+    const total = uploads.reduce(function (t, f) { return t + f.size; }, 0);
+    if (total > maxUploadBytes_()) throw appError_('ไฟล์รวมกันเกิน ' + publicSettings_().maxUploadMB + ' MB');
+    if (!links.length && !uploads.length) throw appError_('กรุณาแนบไฟล์หรือลิงก์อย่างน้อย 1 รายการ');
+    const note = str_(d.note, 1000);
     return withLock_(function () {
-      const r = findById_('Reports', id);
-      const ctx = context_();
-      if (!r || !canSeeReport_(user, r, ctx)) throw appError_('ไม่พบรายงาน');
-      const rep = buildReport_(user, r, ctx);
-      const book = SpreadsheetApp.create(rep.title + ' (' + today_() + ')');
-      const sh = book.getSheets()[0];
-      sh.setName('รายงาน');
-      const out = [];
-      const boldRows = [];
-      out.push([rep.title]);
-      boldRows.push(out.length);
-      out.push([rep.subtitle]);
-      out.push(['']);
-      rep.summary.forEach(function (s) { out.push([s.label, s.value]); });
-      rep.sections.forEach(function (sec) {
-        out.push(['']);
-        out.push([sec.title]);
-        boldRows.push(out.length);
-        out.push(sec.columns.map(function (c) { return c.label; }));
-        boldRows.push(out.length);
-        sec.rows.forEach(function (row) { out.push(sec.columns.map(function (c) { return row[c.key] === undefined ? '' : row[c.key]; })); });
-        if (sec.totals) out.push(sec.columns.map(function (c) { return sec.totals[c.key] === undefined ? '' : sec.totals[c.key]; }));
-      });
-      const width = out.reduce(function (m, row) { return Math.max(m, row.length); }, 1);
-      const grid = out.map(function (row) { const copy = row.slice(); while (copy.length < width) copy.push(''); return copy; });
-      sh.getRange(1, 1, grid.length, width).setValues(grid);
-      boldRows.forEach(function (n) { sh.getRange(n, 1, 1, width).setFontWeight('bold'); });
-      sh.getRange(1, 1).setFontSize(14);
-      sh.autoResizeColumns(1, width);
-      SpreadsheetApp.flush();
-      const file = DriveApp.getFileById(book.getId());
-      file.moveTo(subFolder_('reports'));
-      applySharing_(file);
-      if (r.fileId) trashDriveFile_(r.fileId);
+      const a = findById_('Assignments', d.assignmentId);
+      if (!a || a.status === 'draft' || !appliesTo_(a, user.sectionCode)) throw appError_('ไม่พบงานนี้');
+      if (a.status === 'closed') throw appError_('งานนี้ปิดรับแล้ว');
+      if (a.submissionMode !== 'online') throw appError_('งานนี้ไม่ได้ส่งออนไลน์');
+      const due = dueFor_(a, user.sectionCode);
+      const late = !!due && nowLocal_() > due;
+      if (late && a.allowLate !== '1') throw appError_('เลยกำหนดส่งแล้ว (' + due.replace('T', ' ') + ') และงานนี้ไม่รับงานล่าช้า');
+      const grade = readTable_('Grades').rows.filter(function (g) { return g.assignmentId === a.id && g.studentCode === user.studentCode; })[0];
+      if (grade && grade.status === 'published') throw appError_('งานนี้ได้รับคะแนนแล้ว หากต้องการส่งใหม่กรุณาติดต่ออาจารย์');
+      const prior = readTable_('Submissions').rows.filter(function (s) { return s.assignmentId === a.id && s.studentCode === user.studentCode; });
+      const version = prior.reduce(function (m, s) { return Math.max(m, s.version); }, 0) + 1;
+      const subId = newId_('SUB');
+      const folder = submissionFolder_(a);
       const stamp = now_();
-      updateRow_('Reports', r, { fileId: file.getId(), fileUrl: file.getUrl(), generatedAt: stamp, updatedAt: stamp });
-      audit_(user, 'generate', 'Report', r.id, rep.title);
-      return ok_({ id: r.id, fileUrl: file.getUrl(), generatedAt: stamp }, 'สร้างไฟล์รายงานใน Google Drive แล้ว');
+      const fileRows = uploads.map(function (u) {
+        const blob = Utilities.newBlob(Utilities.base64Decode(u.data), u.mimeType, user.studentCode + '_v' + version + '_' + u.name);
+        const file = folder.createFile(blob);
+        return { id: newId_('FIL'), name: u.name, mimeType: u.mimeType, size: u.size, driveId: file.getId(), url: file.getUrl(), submissionId: subId, assignmentId: a.id, studentCode: user.studentCode, createdAt: stamp };
+      });
+      if (fileRows.length) insertRows_('Files', fileRows);
+      insertRows_('Submissions', [{
+        id: subId, assignmentId: a.id, studentCode: user.studentCode, version: version, submittedAt: stamp, isLate: late ? '1' : '0',
+        fileIds: fileRows.map(function (f) { return f.id; }).join(','), links: links.join('\n'), note: note, createdAt: stamp
+      }]);
+      audit_(user, 'submit', 'Submission', subId, a.code + ' v' + version + (late ? ' (ล่าช้า)' : ''));
+      return ok_({ student: studentData_(user) }, 'ส่งงาน ' + a.code + ' (ครั้งที่ ' + version + ') เรียบร้อย' + (late ? ' · ส่งล่าช้า' : ''));
     });
   });
 }
 
-function reportView_(r, ctx) {
-  const p = r.projectId ? ctx.projectMap[r.projectId] : null;
-  const dp = r.departmentId ? ctx.deptMap[r.departmentId] : null;
-  return {
-    id: r.id, title: r.title, reportType: r.reportType, reportTypeLabel: CONFIG.REPORT_TYPES[r.reportType] || r.reportType,
-    projectId: r.projectId, projectName: p ? p.name : '', departmentId: r.departmentId, departmentName: dp ? dp.name : '',
-    startDate: r.startDate, endDate: r.endDate, note: r.note, fileId: r.fileId, fileUrl: r.fileUrl, generatedAt: r.generatedAt,
-    createdBy: r.createdBy, createdAt: r.createdAt, updatedAt: r.updatedAt
-  };
+function submissionFolder_(a) {
+  const root = subFolder_('submissions');
+  const name = a.code + ' ' + a.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+  const it = root.getFoldersByName(name);
+  return it.hasNext() ? it.next() : root.createFolder(name);
 }
 
-function inRange_(date, start, end) {
-  if (start && date < start) return false;
-  if (end && date > end) return false;
-  return true;
-}
-
-function buildReport_(user, r, ctx) {
-  const currency = publicSettings_().currency;
-  const scopeProjects = ctx.projects.filter(function (p) {
-    if (!canSeeProject_(user, p)) return false;
-    if (r.reportType === 'project') return p.id === r.projectId;
-    if (r.departmentId && p.departmentId !== r.departmentId) return false;
-    return true;
-  });
-  const ids = {};
-  scopeProjects.forEach(function (p) { ids[p.id] = true; });
-  const period = (r.startDate || r.endDate) ? ('ช่วงวันที่ ' + (r.startDate || 'เริ่มต้น') + ' ถึง ' + (r.endDate || 'ปัจจุบัน')) : 'ทุกช่วงเวลา';
-  const dept = r.departmentId ? ctx.deptMap[r.departmentId] : null;
-  const subtitle = [CONFIG.REPORT_TYPES[r.reportType], dept ? 'หน่วยงาน ' + dept.name : 'ทุกหน่วยงานที่เข้าถึงได้', period, 'ออกรายงาน ' + now_()].join(' | ');
-  const actMap = indexBy_(ctx.activities, 'id');
-  const exps = ctx.expenses.filter(function (e) { return ids[e.projectId] && inRange_(e.expenseDate, r.startDate, r.endDate); });
-  const sections = [];
-  let summary = [];
-
-  if (r.reportType === 'project') {
-    const p = scopeProjects[0];
-    if (!p) throw appError_('ไม่พบโครงการของรายงานนี้');
-    const v = projectView_(p, ctx);
-    summary = [
-      { label: 'โครงการ', value: (v.code ? v.code + ' ' : '') + v.name },
-      { label: 'หน่วยงาน', value: v.departmentName },
-      { label: 'ผู้รับผิดชอบ', value: v.ownerName },
-      { label: 'ระยะเวลา', value: v.startDate + ' ถึง ' + v.endDate },
-      { label: 'สถานะ', value: v.statusLabel },
-      { label: 'ความก้าวหน้า (%)', value: v.progress },
-      { label: 'งบประมาณ (' + currency + ')', value: v.budget },
-      { label: 'เบิกจ่ายอนุมัติแล้ว (' + currency + ')', value: v.spent },
-      { label: 'รออนุมัติ (' + currency + ')', value: v.pending },
-      { label: 'คงเหลือ (' + currency + ')', value: v.remaining }
-    ];
-    const acts = ctx.activities.filter(function (a) { return a.projectId === p.id; }).map(function (a) { return activityView_(a, ctx); });
-    sections.push({
-      title: 'กิจกรรม',
-      columns: [{ key: 'name', label: 'กิจกรรม' }, { key: 'responsible', label: 'ผู้รับผิดชอบ' }, { key: 'period', label: 'ระยะเวลา' }, { key: 'statusLabel', label: 'สถานะ' }, { key: 'budget', label: 'งบประมาณ', type: 'money' }, { key: 'committed', label: 'เบิกจ่าย', type: 'money' }, { key: 'remaining', label: 'คงเหลือ', type: 'money' }],
-      rows: acts.map(function (a) { return { name: a.name, responsible: a.responsible, period: a.startDate + ' ถึง ' + a.endDate, statusLabel: a.statusLabel, budget: a.budget, committed: a.committed, remaining: a.remaining }; }),
-      totals: { name: 'รวม', budget: round2_(sumBy_(acts, 'budget')), committed: round2_(sumBy_(acts, 'committed')), remaining: round2_(sumBy_(acts, 'remaining')) }
-    });
-    const projectExpenses = exps.slice().sort(function (a, b) { return String(a.expenseDate).localeCompare(String(b.expenseDate)); }).map(function (e) {
-      const a = actMap[e.activityId];
-      return { expenseDate: e.expenseDate, activity: a ? a.name : '', description: e.description, payee: e.payee, receiptNo: e.receiptNo, statusLabel: CONFIG.EXPENSE_STATUS[e.status] || e.status, amount: e.amount };
-    });
-    sections.push({
-      title: 'รายการเบิกจ่าย',
-      columns: [{ key: 'expenseDate', label: 'วันที่' }, { key: 'activity', label: 'กิจกรรม' }, { key: 'description', label: 'รายการ' }, { key: 'payee', label: 'ผู้รับเงิน' }, { key: 'receiptNo', label: 'เลขที่เอกสาร' }, { key: 'statusLabel', label: 'สถานะ' }, { key: 'amount', label: 'จำนวนเงิน', type: 'money' }],
-      rows: projectExpenses,
-      totals: { expenseDate: 'รวม', amount: round2_(sumBy_(projectExpenses, 'amount')) }
-    });
-    const progress = readTable_('Progress').rows.filter(function (x) { return x.projectId === p.id && inRange_(x.reportDate, r.startDate, r.endDate); })
-      .sort(function (a, b) { return String(a.reportDate).localeCompare(String(b.reportDate)); });
-    sections.push({
-      title: 'ความก้าวหน้า',
-      columns: [{ key: 'reportDate', label: 'วันที่' }, { key: 'activity', label: 'กิจกรรม' }, { key: 'percent', label: 'ร้อยละ', type: 'number' }, { key: 'detail', label: 'รายละเอียด' }, { key: 'problems', label: 'ปัญหา/อุปสรรค' }],
-      rows: progress.map(function (x) { const a = actMap[x.activityId]; return { reportDate: x.reportDate, activity: a ? a.name : 'ภาพรวมโครงการ', percent: x.percent, detail: x.detail, problems: x.problems }; })
-    });
-  } else if (r.reportType === 'budget') {
-    const views = scopeProjects.map(function (p) { return projectView_(p, ctx); });
-    sections.push({
-      title: 'สรุปงบประมาณรายโครงการ',
-      columns: [{ key: 'code', label: 'รหัส' }, { key: 'name', label: 'โครงการ' }, { key: 'departmentName', label: 'หน่วยงาน' }, { key: 'statusLabel', label: 'สถานะ' }, { key: 'budget', label: 'งบประมาณ', type: 'money' }, { key: 'activityBudget', label: 'จัดสรรกิจกรรม', type: 'money' }, { key: 'spent', label: 'อนุมัติแล้ว', type: 'money' }, { key: 'pending', label: 'รออนุมัติ', type: 'money' }, { key: 'remaining', label: 'คงเหลือ', type: 'money' }, { key: 'progress', label: 'ก้าวหน้า (%)', type: 'number' }],
-      rows: views,
-      totals: { name: 'รวม', budget: round2_(sumBy_(views, 'budget')), activityBudget: round2_(sumBy_(views, 'activityBudget')), spent: round2_(sumBy_(views, 'spent')), pending: round2_(sumBy_(views, 'pending')), remaining: round2_(sumBy_(views, 'remaining')) }
-    });
-    const totalBudget = sumBy_(views, 'budget');
-    const totalCommitted = sumBy_(views, 'committed');
-    summary = [
-      { label: 'จำนวนโครงการ', value: views.length },
-      { label: 'งบประมาณรวม (' + currency + ')', value: round2_(totalBudget) },
-      { label: 'เบิกจ่ายรวม (' + currency + ')', value: round2_(totalCommitted) },
-      { label: 'คงเหลือรวม (' + currency + ')', value: round2_(totalBudget - totalCommitted) },
-      { label: 'ใช้งบไปแล้ว (%)', value: totalBudget > 0 ? round2_(totalCommitted / totalBudget * 100) : 0 }
-    ];
-  } else {
-    const rows = exps.slice().sort(function (a, b) { return String(a.expenseDate).localeCompare(String(b.expenseDate)); }).map(function (e) {
-      const p = ctx.projectMap[e.projectId];
-      const a = actMap[e.activityId];
-      return { expenseDate: e.expenseDate, project: p ? p.name : '', activity: a ? a.name : '', description: e.description, payee: e.payee, receiptNo: e.receiptNo, statusLabel: CONFIG.EXPENSE_STATUS[e.status] || e.status, amount: e.amount };
-    });
-    sections.push({
-      title: 'รายการเบิกจ่าย',
-      columns: [{ key: 'expenseDate', label: 'วันที่' }, { key: 'project', label: 'โครงการ' }, { key: 'activity', label: 'กิจกรรม' }, { key: 'description', label: 'รายการ' }, { key: 'payee', label: 'ผู้รับเงิน' }, { key: 'receiptNo', label: 'เลขที่เอกสาร' }, { key: 'statusLabel', label: 'สถานะ' }, { key: 'amount', label: 'จำนวนเงิน', type: 'money' }],
-      rows: rows,
-      totals: { expenseDate: 'รวม', amount: round2_(sumBy_(rows, 'amount')) }
-    });
-    const byStatus = {};
-    exps.forEach(function (e) { byStatus[e.status] = (byStatus[e.status] || 0) + e.amount; });
-    summary = [{ label: 'จำนวนรายการ', value: exps.length }].concat(Object.keys(CONFIG.EXPENSE_STATUS).map(function (k) {
-      return { label: CONFIG.EXPENSE_STATUS[k] + ' (' + currency + ')', value: round2_(byStatus[k] || 0) };
-    }));
-  }
-  if (r.note) summary.push({ label: 'หมายเหตุ', value: r.note });
-  return { id: r.id, title: r.title, subtitle: subtitle, summary: summary, sections: sections, fileUrl: r.fileUrl, generatedAt: r.generatedAt };
-}
-
-/* ============================================================================
- * File Management
- * ========================================================================== */
-function listFiles(token) {
+function downloadFile(token, fileId) {
   return handle_(function () {
-    const user = auth_(token);
-    const ctx = context_();
-    const items = readTable_('Files').rows.filter(function (f) { return canSeeFile_(user, f, ctx); })
-      .map(function (f) { return fileView_(f, ctx); })
-      .sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
-    return ok_({ items: items, lookups: lookups_(user, ctx) });
-  });
-}
-
-function canSeeFile_(user, f, ctx) {
-  if (!f.projectId) return true;
-  const p = ctx.projectMap[f.projectId];
-  return !!p && canSeeProject_(user, p);
-}
-
-function uploadFile(token, data) {
-  return handle_(function () {
-    const user = auth_(token);
-    const d = data || {};
-    const upload = validateUpload_(d.file);
-    const projectId = str_(d.projectId, 50);
-    const description = str_(d.description, 500);
-    return withLock_(function () {
-      let p = null;
-      if (projectId) p = projectFor_(user, projectId, false);
-      else requireRole_(user, ['admin', 'manager']);
-      const rec = storeFile_(user, upload, p, 'general', '', description);
-      return ok_(fileView_(rec, context_()), 'อัปโหลดไฟล์แล้ว');
-    });
-  });
-}
-
-function deleteFile(token, id) {
-  return handle_(function () {
-    const user = auth_(token);
-    return withLock_(function () {
-      const f = findById_('Files', id);
-      const ctx = context_();
-      if (!f || !canSeeFile_(user, f, ctx)) throw appError_('ไม่พบไฟล์');
-      const p = f.projectId ? ctx.projectMap[f.projectId] : null;
-      const allowed = user.role === 'admin' || f.uploadedBy === user.username || (p ? canManageProject_(user, p) : false);
-      if (!allowed) throw appError_('คุณไม่มีสิทธิ์ลบไฟล์นี้');
-      removeFileRecord_(f.id);
-      audit_(user, 'delete', 'File', f.id, f.name);
-      return ok_({ id: f.id }, 'ลบไฟล์แล้ว');
-    });
-  });
-}
-
-function downloadFile(token, id) {
-  return handle_(function () {
-    const user = auth_(token);
-    const f = findById_('Files', id);
-    if (!f || !canSeeFile_(user, f, context_())) throw appError_('ไม่พบไฟล์');
+    const user = auth_(token, null, false);
+    const f = findById_('Files', fileId);
+    if (!f || (user.role === 'student' && f.studentCode !== user.studentCode)) throw appError_('ไม่พบไฟล์');
     let blob;
     try { blob = DriveApp.getFileById(f.driveId).getBlob(); } catch (err) { throw appError_('ไม่พบไฟล์ใน Google Drive (อาจถูกลบไปแล้ว)'); }
     const bytes = blob.getBytes();
-    if (bytes.length > maxUploadBytes_()) throw appError_('ไฟล์มีขนาดใหญ่เกินกว่าจะดาวน์โหลดผ่านระบบ กรุณาเปิดจาก Google Drive');
+    if (bytes.length > 40 * 1024 * 1024) throw appError_('ไฟล์ใหญ่เกินกว่าจะดาวน์โหลดผ่านระบบ กรุณาเปิดจาก Google Drive');
     audit_(user, 'download', 'File', f.id, f.name);
     return ok_({ name: f.name, mimeType: f.mimeType || blob.getContentType(), data: Utilities.base64Encode(bytes) });
   });
 }
 
 function validateUpload_(file) {
-  if (!file || !file.data || !file.name) throw appError_('กรุณาเลือกไฟล์');
-  const name = String(file.name).replace(/[\\/:*?"<>|]/g, '_').slice(0, 180);
+  if (!file || !file.data || !file.name) throw appError_('ไฟล์ไม่ถูกต้อง');
+  const name = String(file.name).replace(/[\\/:*?"<>|]/g, '_').slice(0, 150);
   const mimeType = String(file.mimeType || 'application/octet-stream').slice(0, 120);
   const b64 = String(file.data);
   if (!/^[A-Za-z0-9+/=]+$/.test(b64)) throw appError_('ข้อมูลไฟล์ไม่ถูกต้อง');
-  const size = Math.floor(b64.length * 3 / 4);
-  if (size <= 0) throw appError_('ไฟล์ว่างเปล่า');
-  if (size > maxUploadBytes_()) throw appError_('ไฟล์มีขนาดเกิน ' + publicSettings_().maxUploadMB + ' MB');
-  return { name: name, mimeType: mimeType, data: b64 };
-}
-
-function storeFile_(user, upload, project, refType, refId, description) {
-  const folder = project ? projectFolder_(project) : subFolder_('general');
-  const blob = Utilities.newBlob(Utilities.base64Decode(upload.data), upload.mimeType, upload.name);
-  const file = folder.createFile(blob);
-  applySharing_(file);
-  const rec = {
-    id: newId_('FIL'), name: upload.name, mimeType: upload.mimeType, size: blob.getBytes().length, driveId: file.getId(), url: file.getUrl(),
-    refType: refType, refId: refId, projectId: project ? project.id : '', description: description, uploadedBy: user.username, createdAt: now_()
-  };
-  insertRows_('Files', [rec]);
-  audit_(user, 'upload', 'File', rec.id, rec.name);
-  return rec;
-}
-
-function removeFileRecord_(fileId) {
-  const removed = deleteWhere_('Files', function (f) { return f.id === fileId; });
-  removed.forEach(function (f) {
-    trashDriveFile_(f.driveId);
-    if (f.refType === 'expense' && f.refId) {
-      const e = findById_('Expenses', f.refId);
-      if (e && e.fileId === f.id) updateRow_('Expenses', e, { fileId: '' });
-    }
-  });
-}
-
-function fileView_(f, ctx) {
-  const p = f.projectId ? ctx.projectMap[f.projectId] : null;
-  return {
-    id: f.id, name: f.name, mimeType: f.mimeType, size: f.size, url: f.url, refType: f.refType, refId: f.refId,
-    projectId: f.projectId, projectName: p ? p.name : '', description: f.description, uploadedBy: f.uploadedBy, createdAt: f.createdAt
-  };
+  const size = Math.floor(b64.length * 3 / 4) - (b64.slice(-2) === '==' ? 2 : b64.slice(-1) === '=' ? 1 : 0);
+  if (size <= 0) throw appError_('ไฟล์ว่างเปล่า: ' + name);
+  if (/\.(exe|bat|cmd|com|js|vbs|ps1|sh|msi|scr)$/i.test(name)) throw appError_('ไม่อนุญาตไฟล์ประเภทนี้: ' + name);
+  return { name: name, mimeType: mimeType, data: b64, size: size };
 }
 
 function maxUploadBytes_() {
-  const mb = Number(publicSettings_().maxUploadMB) || 10;
+  const mb = Number(publicSettings_().maxUploadMB) || 20;
   return Math.min(Math.max(mb, 1), 40) * 1024 * 1024;
 }
 
-function rootFolder_() {
-  try { return DriveApp.getFolderById(CONFIG.FOLDER_ID); } catch (err) { throw appError_('ไม่สามารถเข้าถึงโฟลเดอร์หลักของระบบใน Google Drive ได้'); }
+/* ============================================================================
+ * Grading (ให้คะแนน)
+ * ========================================================================== */
+function getGrading(token, assignmentId) {
+  return handle_(function () {
+    auth_(token, TEACHERS_);
+    const a = findById_('Assignments', assignmentId);
+    if (!a) throw appError_('ไม่พบงาน');
+    const fileMap = indexBy_(readTable_('Files').rows, 'id');
+    const subs = readTable_('Submissions').rows.filter(function (s) { return s.assignmentId === a.id; });
+    const grades = indexBy_(readTable_('Grades').rows.filter(function (g) { return g.assignmentId === a.id; }), 'studentCode');
+    const rows = readTable_('Students').rows.filter(function (s) { return s.status === 'active' && appliesTo_(a, s.sectionCode); })
+      .sort(function (x, y) { return x.sectionCode.localeCompare(y.sectionCode) || x.studentCode.localeCompare(y.studentCode); })
+      .map(function (s) {
+        const mine = subs.filter(function (x) { return x.studentCode === s.studentCode; }).sort(function (x, y) { return y.version - x.version; });
+        const latest = mine[0] || null;
+        const g = grades[s.studentCode];
+        return {
+          studentCode: s.studentCode, fullName: s.fullName, sectionCode: s.sectionCode, due: dueFor_(a, s.sectionCode),
+          submission: latest ? {
+            id: latest.id, version: latest.version, submittedAt: latest.submittedAt, isLate: latest.isLate === '1', note: latest.note,
+            links: latest.links ? latest.links.split('\n') : [],
+            files: latest.fileIds ? latest.fileIds.split(',').map(function (id) { const f = fileMap[id]; return f ? { id: f.id, name: f.name, size: f.size, url: f.url } : null; }).filter(Boolean) : []
+          } : null,
+          versions: mine.length,
+          grade: g ? { score: g.score === '' ? '' : Number(g.score), feedback: g.feedback, status: g.status, gradedAt: g.gradedAt, gradedBy: g.gradedBy } : null
+        };
+      });
+    return ok_({ assignment: assignmentView_(a), rows: rows });
+  });
 }
 
-function subFolder_(key) {
-  const settingKey = 'sys:folder:' + key;
-  const map = settingsMap_();
-  if (map[settingKey]) {
-    try {
-      const f = DriveApp.getFolderById(map[settingKey]);
-      if (!f.isTrashed()) return f;
-    } catch (err) { /* โฟลเดอร์ถูกลบ สร้างใหม่ด้านล่าง */ }
-  }
-  const root = rootFolder_();
-  const it = root.getFoldersByName(CONFIG.FOLDERS[key]);
-  const folder = it.hasNext() ? it.next() : root.createFolder(CONFIG.FOLDERS[key]);
-  setSettingValues_([[settingKey, folder.getId()]]);
-  return folder;
+/** บันทึกคะแนนเป็นชุด (เขียนชีต Grades ครั้งเดียว) — publish=true จะเผยแพร่ให้นักศึกษาเห็นทันที */
+function saveGrades(token, data) {
+  return handle_(function () {
+    const user = auth_(token, TEACHERS_);
+    const d = data || {};
+    const list = d.grades || [];
+    if (!list.length) throw appError_('ไม่มีคะแนนที่จะบันทึก');
+    if (list.length > 1000) throw appError_('บันทึกได้ครั้งละไม่เกิน 1000 รายการ');
+    return withLock_(function () {
+      const a = findById_('Assignments', d.assignmentId);
+      if (!a) throw appError_('ไม่พบงาน');
+      if (a.status === 'draft') throw appError_('กรุณาเผยแพร่งานก่อนให้คะแนน');
+      const students = indexBy_(readTable_('Students').rows, 'studentCode');
+      const clean = list.map(function (g) {
+        const code = str_(g.studentCode, 20);
+        const st = students[code];
+        if (!st || !appliesTo_(a, st.sectionCode)) throw appError_('นักศึกษา ' + code + ' ไม่อยู่ในกลุ่มที่ได้รับงานนี้');
+        const raw = String(g.score === undefined || g.score === null ? '' : g.score).trim();
+        return { studentCode: code, score: raw === '' ? '' : score_(raw, 'คะแนนของ ' + code, a.maxScore, false), feedback: str_(g.feedback, 3000) };
+      });
+      const t = readTable_('Grades');
+      const rows = t.rows.map(function (r) { return Object.assign({}, r); });
+      const idx = {};
+      rows.forEach(function (r, i) { if (r.assignmentId === a.id) idx[r.studentCode] = i; });
+      const stamp = now_();
+      let published = 0;
+      clean.forEach(function (g) {
+        const i = idx[g.studentCode];
+        const publish = !!d.publish && g.score !== '';
+        if (i === undefined) {
+          if (g.score === '' && !g.feedback) return;
+          rows.push({ id: newId_('GRD'), assignmentId: a.id, studentCode: g.studentCode, score: g.score, feedback: g.feedback, status: publish ? 'published' : 'draft', gradedBy: user.username, gradedAt: stamp, publishedAt: publish ? stamp : '' });
+        } else {
+          const r = rows[i];
+          r.score = g.score;
+          r.feedback = g.feedback;
+          r.gradedBy = user.username;
+          r.gradedAt = stamp;
+          if (publish) { r.status = 'published'; r.publishedAt = stamp; } else if (g.score === '') { r.status = 'draft'; r.publishedAt = ''; }
+        }
+        if (publish) published += 1;
+      });
+      rewriteTable_('Grades', rows);
+      audit_(user, d.publish ? 'grade_publish' : 'grade_save', 'Assignment', a.id, a.code + ' ' + clean.length + ' รายการ');
+      return ok_({ count: clean.length, published: published }, 'บันทึกคะแนน ' + clean.length + ' รายการแล้ว' + (d.publish ? ' · เผยแพร่ ' + published + ' รายการ' : ''));
+    });
+  });
 }
 
-function projectFolder_(project) {
-  if (project.folderId) {
-    try {
-      const f = DriveApp.getFolderById(project.folderId);
-      if (!f.isTrashed()) return f;
-    } catch (err) { /* สร้างใหม่ */ }
-  }
-  const name = ((project.code ? project.code + ' ' : '') + project.name).replace(/[\\/:*?"<>|]/g, '_').slice(0, 150);
-  const folder = subFolder_('projects').createFolder(name);
-  const cur = findById_('Projects', project.id);
-  if (cur) updateRow_('Projects', cur, { folderId: folder.getId() });
-  return folder;
+function publishGrades(token, assignmentId) {
+  return handle_(function () {
+    const user = auth_(token, TEACHERS_);
+    return withLock_(function () {
+      const a = findById_('Assignments', assignmentId);
+      if (!a) throw appError_('ไม่พบงาน');
+      const t = readTable_('Grades');
+      const stamp = now_();
+      let n = 0;
+      const rows = t.rows.map(function (r) {
+        if (r.assignmentId === a.id && r.status === 'draft' && r.score !== '') { n += 1; return Object.assign({}, r, { status: 'published', publishedAt: stamp }); }
+        return r;
+      });
+      if (n) rewriteTable_('Grades', rows);
+      audit_(user, 'grade_publish', 'Assignment', a.id, a.code + ' เผยแพร่ ' + n + ' รายการ');
+      return ok_({ published: n }, n ? 'เผยแพร่คะแนน ' + n + ' รายการแล้ว' : 'ไม่มีคะแนนที่รอเผยแพร่');
+    });
+  });
 }
 
-function applySharing_(file) {
-  const mode = publicSettings_().fileSharing;
-  try {
-    if (mode === 'domain') file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
-    else if (mode === 'anyone') file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch (err) {
-    console.warn('ตั้งค่าการแชร์ไฟล์ไม่สำเร็จ: ' + err);
-  }
+/* ============================================================================
+ * Gradebook (สมุดคะแนน)
+ * ========================================================================== */
+function getGradebook(token, sectionCode) {
+  return handle_(function () {
+    auth_(token, TEACHERS_);
+    return ok_(gradebook_(str_(sectionCode, 10)));
+  });
 }
 
-function trashDriveFile_(driveId) {
-  if (!driveId) return;
-  try { DriveApp.getFileById(driveId).setTrashed(true); } catch (err) { console.warn('ลบไฟล์ใน Drive ไม่สำเร็จ: ' + driveId); }
+function gradebook_(sectionCode) {
+  const assigns = readTable_('Assignments').rows.filter(function (a) { return a.status !== 'draft'; });
+  const grades = readTable_('Grades').rows;
+  const gmap = {};
+  grades.forEach(function (g) { gmap[g.assignmentId + '|' + g.studentCode] = g; });
+  const sessions = readTable_('Sessions').rows;
+  const attendance = readTable_('Attendance').rows;
+  const sessionWeek = {};
+  sessions.forEach(function (s) { sessionWeek[s.id] = s; });
+  const marksBy = {};
+  attendance.forEach(function (a) {
+    const s = sessionWeek[a.sessionId];
+    if (!s) return;
+    (marksBy[a.studentCode] = marksBy[a.studentCode] || {})[s.week] = a.status;
+  });
+  const closedBySection = {};
+  const openBySection = {};
+  sessions.forEach(function (s) {
+    if (!countable_(s)) return;
+    if (s.status === 'closed') (closedBySection[s.sectionCode] = closedBySection[s.sectionCode] || []).push(s.week);
+    if (s.status === 'open') (openBySection[s.sectionCode] = openBySection[s.sectionCode] || []).push(s.week);
+  });
+  const students = readTable_('Students').rows.filter(function (s) { return s.status === 'active' && (!sectionCode || s.sectionCode === sectionCode); })
+    .sort(function (a, b) { return a.sectionCode.localeCompare(b.sectionCode) || a.studentCode.localeCompare(b.studentCode); });
+  const rows = students.map(function (s) {
+    const byCat = {};
+    CONFIG.CATEGORIES.forEach(function (c) { byCat[c.code] = { earned: 0, pending: 0, items: 0 }; });
+    let total = 0;
+    let pending = 0;
+    assigns.forEach(function (a) {
+      if (!appliesTo_(a, s.sectionCode) || !byCat[a.categoryCode]) return;
+      const g = gmap[a.id + '|' + s.studentCode];
+      byCat[a.categoryCode].items += 1;
+      if (g && g.status === 'published' && g.score !== '') { byCat[a.categoryCode].earned += Number(g.score); total += Number(g.score); }
+      else { byCat[a.categoryCode].pending += 1; pending += 1; }
+    });
+    Object.keys(byCat).forEach(function (k) { byCat[k].earned = round2_(byCat[k].earned); });
+    return {
+      studentCode: s.studentCode, fullName: s.fullName, sectionCode: s.sectionCode, byCat: byCat, total: round2_(total), pending: pending,
+      attendance: attendanceSummary_(marksBy[s.studentCode] || {}, closedBySection[s.sectionCode] || [], openBySection[s.sectionCode] || [])
+    };
+  });
+  return { sectionCode: sectionCode, categories: CONFIG.CATEGORIES, rows: rows, generatedAt: now_() };
 }
 
-function trashDriveFolder_(folderId) {
-  if (!folderId) return;
-  try { DriveApp.getFolderById(folderId).setTrashed(true); } catch (err) { console.warn('ลบโฟลเดอร์ใน Drive ไม่สำเร็จ: ' + folderId); }
+/** ส่งออกสมุดคะแนนเป็น Google Sheets ในโฟลเดอร์ Exports */
+function exportGradebook(token, sectionCode) {
+  return handle_(function () {
+    const user = auth_(token, TEACHERS_);
+    const gb = gradebook_(str_(sectionCode, 10));
+    const settings = publicSettings_();
+    const title = 'สมุดคะแนน ' + settings.courseCode + ' ' + settings.semester + '-' + settings.academicYear + (gb.sectionCode ? ' กลุ่ม ' + gb.sectionCode : ' ทุกกลุ่ม') + ' (' + today_() + ')';
+    const header = ['กลุ่ม', 'รหัสนักศึกษา', 'ชื่อ-สกุล'].concat(CONFIG.CATEGORIES.map(function (c) { return c.code + ' (' + c.max + ')'; }))
+      .concat(['รวม (100)', 'รอผล', 'มา', 'สาย', 'ขาด', 'ลา', 'เข้าเรียน (%)']);
+    const data = gb.rows.map(function (r) {
+      return [r.sectionCode, r.studentCode, r.fullName].concat(CONFIG.CATEGORIES.map(function (c) { return r.byCat[c.code].earned; }))
+        .concat([r.total, r.pending, r.attendance.present, r.attendance.late, r.attendance.absent, r.attendance.excused, r.attendance.rate]);
+    });
+    const book = SpreadsheetApp.create(title);
+    const sh = book.getSheets()[0];
+    sh.setName('สมุดคะแนน');
+    const grid = [[title], ['ออกรายงานโดย ' + user.fullName + ' ' + now_() + ' · รวมเฉพาะคะแนนที่เผยแพร่แล้ว'], header].concat(data);
+    const width = header.length;
+    sh.getRange(1, 1, grid.length, width).setValues(grid.map(function (row) { const c = row.slice(); while (c.length < width) c.push(''); return c; }));
+    sh.getRange(3, 1, 1, width).setFontWeight('bold');
+    sh.getRange(1, 1).setFontWeight('bold').setFontSize(13);
+    sh.setFrozenRows(3);
+    SpreadsheetApp.flush();
+    const file = DriveApp.getFileById(book.getId());
+    file.moveTo(subFolder_('exports'));
+    audit_(user, 'export', 'Gradebook', gb.sectionCode || 'all', title);
+    return ok_({ url: file.getUrl(), name: title }, 'ส่งออกสมุดคะแนนเป็น Google Sheets แล้ว');
+  });
+}
+
+/* ============================================================================
+ * Student Portal (ข้อมูลของนักศึกษา)
+ * ========================================================================== */
+function getStudentData(token) {
+  return handle_(function () {
+    const user = auth_(token, ['student']);
+    return ok_(studentData_(user));
+  });
+}
+
+function studentData_(user) {
+  const st = findById_('Students', user.id);
+  const sec = readTable_('Sections').rows.filter(function (s) { return s.code === st.sectionCode; })[0] || null;
+  const sessions = readTable_('Sessions').rows.filter(function (s) { return s.sectionCode === st.sectionCode; }).sort(function (a, b) { return a.week - b.week; });
+  const myAtt = {};
+  readTable_('Attendance').rows.forEach(function (a) { if (a.studentCode === st.studentCode) myAtt[a.sessionId] = a; });
+  const fileMap = indexBy_(readTable_('Files').rows.filter(function (f) { return f.studentCode === st.studentCode; }), 'id');
+  const subs = readTable_('Submissions').rows.filter(function (s) { return s.studentCode === st.studentCode; });
+  const grades = indexBy_(readTable_('Grades').rows.filter(function (g) { return g.studentCode === st.studentCode && g.status === 'published'; }), 'assignmentId');
+  const assignments = readTable_('Assignments').rows.filter(function (a) { return a.status !== 'draft' && appliesTo_(a, st.sectionCode); })
+    .map(function (a) {
+      const mine = subs.filter(function (s) { return s.assignmentId === a.id; }).sort(function (x, y) { return y.version - x.version; });
+      const g = grades[a.id];
+      const cat = categoryOf_(a.categoryCode);
+      return {
+        id: a.id, code: a.code, title: a.title, description: a.description, categoryName: cat ? cat.name : '', clo: cat ? cat.clo : '', maxScore: a.maxScore,
+        due: dueFor_(a, st.sectionCode), submissionMode: a.submissionMode, allowLate: a.allowLate === '1', status: a.status,
+        submissions: mine.map(function (s) {
+          return {
+            version: s.version, submittedAt: s.submittedAt, isLate: s.isLate === '1', note: s.note, links: s.links ? s.links.split('\n') : [],
+            files: s.fileIds ? s.fileIds.split(',').map(function (id) { const f = fileMap[id]; return f ? { id: f.id, name: f.name, size: f.size } : null; }).filter(Boolean) : []
+          };
+        }),
+        grade: g ? { score: Number(g.score), feedback: g.feedback, publishedAt: g.publishedAt } : null
+      };
+    }).sort(function (a, b) { return String(a.due || '9').localeCompare(String(b.due || '9')) || a.code.localeCompare(b.code); });
+  const closedWeeks = sessions.filter(function (s) { return s.status === 'closed' && countable_(s); }).map(function (s) { return s.week; });
+  const openWeeks = sessions.filter(function (s) { return s.status === 'open' && countable_(s); }).map(function (s) { return s.week; });
+  const marks = {};
+  sessions.forEach(function (s) { if (myAtt[s.id]) marks[s.week] = myAtt[s.id].status; });
+  const gb = gradebook_(st.sectionCode).rows.filter(function (r) { return r.studentCode === st.studentCode; })[0];
+  return {
+    profile: { studentCode: st.studentCode, fullName: st.fullName, sectionCode: st.sectionCode, program: st.program, faculty: st.faculty },
+    section: sec ? { code: sec.code, name: sec.name, dayLabel: CONFIG.DAYS[sec.meetingDay], startTime: sec.startTime, endTime: sec.endTime, room: sec.room } : null,
+    sessions: sessions.map(function (s) {
+      const a = myAtt[s.id];
+      return Object.assign(sessionView_(s), { myStatus: a ? a.status : '', myCheckinAt: a ? a.checkinAt : '', myNote: a ? a.note : '' });
+    }),
+    attendance: attendanceSummary_(marks, closedWeeks, openWeeks),
+    assignments: assignments,
+    grades: gb ? { byCat: gb.byCat, total: gb.total, pending: gb.pending } : null,
+    now: nowLocal_()
+  };
 }
 
 /* ============================================================================
@@ -1365,60 +1475,61 @@ function trashDriveFolder_(folderId) {
  * ========================================================================== */
 function getDashboard(token) {
   return handle_(function () {
-    const user = auth_(token);
-    return ok_(dashboard_(user, context_()));
+    auth_(token, TEACHERS_);
+    return ok_(dashboard_());
   });
 }
 
-function dashboard_(user, ctx) {
+function dashboard_() {
   const today = today_();
-  const in30 = Utilities.formatDate(new Date(Date.now() + 30 * 86400000), CONFIG.TIMEZONE, 'yyyy-MM-dd');
-  const projects = ctx.projects.filter(function (p) { return canSeeProject_(user, p); }).map(function (p) { return projectView_(p, ctx); });
-  const ids = {};
-  projects.forEach(function (p) { ids[p.id] = true; });
-  const expenses = ctx.expenses.filter(function (e) { return ids[e.projectId]; });
-  const totals = {
-    projects: projects.length,
-    activeProjects: projects.filter(function (p) { return p.status === 'active'; }).length,
-    activities: ctx.activities.filter(function (a) { return ids[a.projectId]; }).length,
-    budget: round2_(sumBy_(projects, 'budget')),
-    spent: round2_(sumBy_(projects, 'spent')),
-    pending: round2_(sumBy_(projects, 'pending')),
-    committed: round2_(sumBy_(projects, 'committed')),
-    remaining: round2_(sumBy_(projects, 'remaining')),
-    pendingCount: expenses.filter(function (e) { return e.status === 'pending'; }).length,
-    avgProgress: projects.length ? round2_(sumBy_(projects, 'progress') / projects.length) : 0
+  const sessions = readTable_('Sessions').rows;
+  const att = readTable_('Attendance').rows;
+  const students = readTable_('Students').rows.filter(function (s) { return s.status === 'active'; });
+  const sectionSize = {};
+  students.forEach(function (s) { sectionSize[s.sectionCode] = (sectionSize[s.sectionCode] || 0) + 1; });
+  const countFor = function (id) {
+    const c = { present: 0, late: 0, absent: 0, excused: 0 };
+    att.forEach(function (a) { if (a.sessionId === id && c[a.status] !== undefined) c[a.status] += 1; });
+    return c;
   };
-  totals.usedPct = totals.budget > 0 ? round2_(totals.committed / totals.budget * 100) : 0;
-  const byStatus = Object.keys(CONFIG.PROJECT_STATUS).map(function (k) {
-    return { key: k, label: CONFIG.PROJECT_STATUS[k], count: projects.filter(function (p) { return p.status === k; }).length };
+  const todaySessions = sessions.filter(function (s) { return s.sessionDate === today || s.status === 'open'; })
+    .map(function (s) { return Object.assign(sessionView_(s), { counts: countFor(s.id), studentCount: sectionSize[s.sectionCode] || 0 }); })
+    .sort(function (a, b) { return a.startTime.localeCompare(b.startTime); });
+  const upcoming = sessions.filter(function (s) { return s.sessionDate > today && s.status === 'scheduled'; })
+    .sort(function (a, b) { return a.sessionDate.localeCompare(b.sessionDate); }).slice(0, 5).map(sessionView_);
+  const subs = readTable_('Submissions').rows;
+  const grades = readTable_('Grades').rows;
+  const gradedAt = {};
+  grades.forEach(function (g) { if (g.score !== '') gradedAt[g.assignmentId + '|' + g.studentCode] = g.gradedAt; });
+  const latestSub = {};
+  subs.forEach(function (s) { const k = s.assignmentId + '|' + s.studentCode; if (!latestSub[k] || latestSub[k] < s.submittedAt) latestSub[k] = s.submittedAt; });
+  const toGrade = {};
+  Object.keys(latestSub).forEach(function (k) { if (!gradedAt[k] || gradedAt[k] < latestSub[k]) { const id = k.split('|')[0]; toGrade[id] = (toGrade[id] || 0) + 1; } });
+  const assigns = readTable_('Assignments').rows;
+  const pendingGrading = assigns.filter(function (a) { return toGrade[a.id]; }).map(function (a) { return { id: a.id, code: a.code, title: a.title, count: toGrade[a.id] }; });
+  const nowStr = nowLocal_();
+  const in7 = Utilities.formatDate(new Date(Date.now() + 7 * 86400000), CONFIG.TIMEZONE, "yyyy-MM-dd'T'HH:mm");
+  const dueSoon = [];
+  assigns.filter(function (a) { return a.status === 'published'; }).forEach(function (a) {
+    readTable_('Sections').rows.forEach(function (sec) {
+      if (!appliesTo_(a, sec.code)) return;
+      const due = dueFor_(a, sec.code);
+      if (due && due >= nowStr && due <= in7) dueSoon.push({ id: a.id, code: a.code, title: a.title, sectionCode: sec.code, due: due });
+    });
   });
-  const deptAgg = {};
-  projects.forEach(function (p) {
-    const key = p.departmentId || '-';
-    if (!deptAgg[key]) deptAgg[key] = { name: p.departmentName || 'ไม่ระบุหน่วยงาน', budget: 0, committed: 0, count: 0 };
-    deptAgg[key].budget += p.budget;
-    deptAgg[key].committed += p.committed;
-    deptAgg[key].count += 1;
-  });
-  const byDepartment = Object.keys(deptAgg).map(function (k) {
-    const d = deptAgg[k];
-    return { name: d.name, count: d.count, budget: round2_(d.budget), committed: round2_(d.committed), usedPct: d.budget > 0 ? round2_(d.committed / d.budget * 100) : 0 };
-  }).sort(function (a, b) { return b.budget - a.budget; });
-  const open = function (p) { return p.status !== 'completed' && p.status !== 'cancelled'; };
-  const upcoming = projects.filter(function (p) { return open(p) && p.endDate >= today && p.endDate <= in30; })
-    .sort(function (a, b) { return a.endDate.localeCompare(b.endDate); }).slice(0, 8);
-  const overdue = projects.filter(function (p) { return open(p) && p.endDate && p.endDate < today; })
-    .sort(function (a, b) { return a.endDate.localeCompare(b.endDate); }).slice(0, 8);
-  const actMap = indexBy_(ctx.activities, 'id');
-  const fileMap = indexBy_(readTable_('Files').rows, 'id');
-  const recentExpenses = expenses.slice().sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); }).slice(0, 8)
-    .map(function (e) { return expenseView_(e, ctx, actMap, fileMap); });
-  const recentProgress = readTable_('Progress').rows.filter(function (r) { return ids[r.projectId]; })
-    .sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); }).slice(0, 6)
-    .map(function (r) { return progressView_(r, ctx, actMap); });
-  const topProjects = projects.slice().sort(function (a, b) { return b.usedPct - a.usedPct; }).slice(0, 6);
-  return { totals: totals, byStatus: byStatus, byDepartment: byDepartment, upcoming: upcoming, overdue: overdue, recentExpenses: recentExpenses, recentProgress: recentProgress, topProjects: topProjects, generatedAt: now_() };
+  dueSoon.sort(function (a, b) { return a.due.localeCompare(b.due); });
+  const sectionRates = readTable_('Sections').rows.map(function (sec) {
+    const held = sessions.filter(function (s) { return s.sectionCode === sec.code && (s.status === 'open' || s.status === 'closed') && CONFIG.EXAM_WEEKS.indexOf(s.week) < 0; });
+    const heldIds = {};
+    held.forEach(function (s) { heldIds[s.id] = true; });
+    const attended = att.filter(function (a) { return heldIds[a.sessionId] && a.status !== 'absent'; }).length;
+    const possible = held.length * (sectionSize[sec.code] || 0);
+    return { code: sec.code, name: sec.name, held: held.length, students: sectionSize[sec.code] || 0, rate: possible ? round2_(attended / possible * 100) : 0 };
+  }).sort(function (a, b) { return a.code.localeCompare(b.code); });
+  return {
+    totals: { students: students.length, sections: Object.keys(sectionSize).length, assignments: assigns.filter(function (a) { return a.status !== 'draft'; }).length, toGrade: Object.keys(toGrade).reduce(function (t, k) { return t + toGrade[k]; }, 0) },
+    today: todaySessions, upcoming: upcoming, pendingGrading: pendingGrading, dueSoon: dueSoon.slice(0, 8), sectionRates: sectionRates, generatedAt: now_()
+  };
 }
 
 /* ============================================================================
@@ -1426,32 +1537,84 @@ function dashboard_(user, ctx) {
  * ========================================================================== */
 function getSettings(token) {
   return handle_(function () {
-    auth_(token);
-    return ok_({ settings: publicSettings_(), dailyBackupActive: dailyBackupTrigger_() !== null });
+    const user = auth_(token, TEACHERS_);
+    const out = { settings: publicSettings_(), sections: sectionList_() };
+    if (user.role === 'admin') {
+      out.teachers = readTable_('Teachers').rows.map(function (t) { return { id: t.id, username: t.username, fullName: t.fullName, status: t.status, lastLoginAt: t.lastLoginAt }; });
+      out.backups = { items: backupFiles_(), dailyBackupActive: dailyBackupTrigger_() !== null, lastBackupAt: PropertiesService.getScriptProperties().getProperty('lastBackupAt') || '' };
+    }
+    return ok_(out);
   });
 }
 
 function saveSettings(token, data) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
+    const user = auth_(token, ['admin']);
     const d = data || {};
-    const maxMb = Number(d.maxUploadMB);
-    if (!isFinite(maxMb) || maxMb < 1 || maxMb > 40) throw appError_('ขนาดไฟล์สูงสุดต้องอยู่ระหว่าง 1–40 MB');
-    const retention = Number(d.backupRetention);
-    if (!isFinite(retention) || retention < 1 || retention > 365 || Math.floor(retention) !== retention) throw appError_('จำนวนไฟล์สำรองที่เก็บต้องเป็นจำนวนเต็ม 1–365');
+    const lateMinutes = intRange_(d.lateMinutes, 0, 240, 'นาทีที่ถือว่าสาย');
+    const maxMb = intRange_(d.maxUploadMB, 1, 40, 'ขนาดไฟล์งานสูงสุด (MB)');
+    const retention = intRange_(d.backupRetention, 1, 365, 'จำนวนไฟล์สำรองที่เก็บ');
     const values = [
-      ['orgName', str_(d.orgName, 200)],
-      ['fiscalYear', str_(d.fiscalYear, 10)],
-      ['currency', req_(str_(d.currency, 20), 'หน่วยเงิน')],
+      ['courseCode', req_(str_(d.courseCode, 20), 'รหัสวิชา')],
+      ['courseName', req_(str_(d.courseName, 200), 'ชื่อวิชา')],
+      ['semester', req_(str_(d.semester, 5), 'ภาคเรียน')],
+      ['academicYear', req_(str_(d.academicYear, 5), 'ปีการศึกษา')],
+      ['lateMinutes', String(lateMinutes)],
+      ['deviceLock', d.deviceLock === 'on' ? 'on' : 'off'],
       ['maxUploadMB', String(maxMb)],
-      ['fileSharing', oneOf_(d.fileSharing, CONFIG.FILE_SHARING, 'การแชร์ไฟล์')],
       ['backupRetention', String(retention)]
     ];
     return withLock_(function () {
       setSettingValues_(values);
       audit_(user, 'update', 'Settings', '', values.map(function (v) { return v[0] + '=' + v[1]; }).join(', '));
       return ok_({ settings: publicSettings_() }, 'บันทึกการตั้งค่าแล้ว');
+    });
+  });
+}
+
+function saveTeacher(token, data) {
+  return handle_(function () {
+    const user = auth_(token, ['admin']);
+    const d = data || {};
+    const input = {
+      username: req_(str_(d.username, 30), 'ชื่อผู้ใช้'),
+      fullName: req_(str_(d.fullName, 120), 'ชื่อ-สกุล'),
+      status: oneOf_(d.status || 'active', CONFIG.USER_STATUS, 'สถานะ')
+    };
+    if (!/^[A-Za-z][A-Za-z0-9._-]{2,29}$/.test(input.username)) throw appError_('ชื่อผู้ใช้ต้องขึ้นต้นด้วยตัวอักษรภาษาอังกฤษ ใช้ได้ A–Z 0–9 . _ - ความยาว 3–30 ตัว');
+    if (input.username.toLowerCase() === CONFIG.TEACHER_USERNAME.toLowerCase()) throw appError_('ชื่อผู้ใช้นี้เป็นของอาจารย์ผู้สอนหลัก');
+    const password = String(d.password || '');
+    if (password && password.length < CONFIG.MIN_PASSWORD_LENGTH) throw appError_('รหัสผ่านต้องมีอย่างน้อย ' + CONFIG.MIN_PASSWORD_LENGTH + ' ตัวอักษร');
+    return withLock_(function () {
+      const rows = readTable_('Teachers').rows;
+      if (rows.some(function (t) { return t.username.toLowerCase() === input.username.toLowerCase() && t.id !== d.id; })) throw appError_('ชื่อผู้ใช้ "' + input.username + '" มีอยู่แล้ว');
+      let saved;
+      if (d.id) {
+        const cur = findById_('Teachers', d.id);
+        if (!cur) throw appError_('ไม่พบบัญชีอาจารย์');
+        const patch = Object.assign({}, input, { updatedAt: now_() });
+        if (password) patch.password = password;
+        saved = updateRow_('Teachers', cur, patch);
+      } else {
+        if (!password) throw appError_('กรุณากำหนดรหัสผ่าน');
+        saved = Object.assign({ id: newId_('TCH'), password: password, lastLoginAt: '', createdAt: now_(), updatedAt: now_() }, input);
+        insertRows_('Teachers', [saved]);
+      }
+      audit_(user, d.id ? 'update' : 'create', 'Teacher', saved.id, input.username);
+      return ok_({ id: saved.id }, 'บันทึกบัญชีอาจารย์แล้ว');
+    });
+  });
+}
+
+function deleteTeacher(token, id) {
+  return handle_(function () {
+    const user = auth_(token, ['admin']);
+    return withLock_(function () {
+      const cur = findById_('Teachers', id);
+      if (!cur) throw appError_('ไม่พบบัญชีอาจารย์');
+      deleteWhere_('Teachers', function (t) { return t.id === cur.id; });
+      audit_(user, 'delete', 'Teacher', cur.id, cur.username);
+      return ok_({ id: cur.id }, 'ลบบัญชีอาจารย์แล้ว');
     });
   });
 }
@@ -1470,64 +1633,75 @@ function publicSettings_() {
 }
 
 function setSettingValues_(pairs) {
-  const t = readTable_('Settings');
-  const rows = t.rows.map(function (r) { return Object.assign({}, r); });
+  const rows = readTable_('Settings').rows.map(function (r) { return Object.assign({}, r); });
   const stamp = now_();
   pairs.forEach(function (pair) {
     const existing = rows.filter(function (r) { return r.key === pair[0]; })[0];
-    if (existing) { existing.value = pair[1]; existing.updatedAt = stamp; }
-    else rows.push({ key: pair[0], value: pair[1], updatedAt: stamp });
+    if (existing) { existing.value = pair[1]; existing.updatedAt = stamp; } else rows.push({ key: pair[0], value: pair[1], updatedAt: stamp });
   });
   rewriteTable_('Settings', rows);
 }
 
 /* ============================================================================
- * Backup
+ * File Management (Google Drive)
  * ========================================================================== */
-function listBackups(token) {
-  return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
-    return ok_({ items: backupFiles_(), dailyBackupActive: dailyBackupTrigger_() !== null, lastBackupAt: PropertiesService.getScriptProperties().getProperty('lastBackupAt') || '' });
-  });
+function rootFolder_() {
+  try { return DriveApp.getFolderById(CONFIG.FOLDER_ID); } catch (err) { throw appError_('ไม่สามารถเข้าถึงโฟลเดอร์หลักของระบบใน Google Drive ได้'); }
 }
 
+function subFolder_(key) {
+  const settingKey = 'sys:folder:' + key;
+  const map = settingsMap_();
+  if (map[settingKey]) {
+    try { const f = DriveApp.getFolderById(map[settingKey]); if (!f.isTrashed()) return f; } catch (err) { /* สร้างใหม่ด้านล่าง */ }
+  }
+  const root = rootFolder_();
+  const it = root.getFoldersByName(CONFIG.FOLDERS[key]);
+  const folder = it.hasNext() ? it.next() : root.createFolder(CONFIG.FOLDERS[key]);
+  setSettingValues_([[settingKey, folder.getId()]]);
+  return folder;
+}
+
+function trashDriveFile_(driveId) {
+  if (!driveId) return;
+  try { DriveApp.getFileById(driveId).setTrashed(true); } catch (err) { console.warn('ลบไฟล์ใน Drive ไม่สำเร็จ: ' + driveId); }
+}
+
+/* ============================================================================
+ * Backup
+ * ========================================================================== */
 function createBackup(token) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
+    const user = auth_(token, ['admin']);
     const item = withLock_(function () { return runBackup_('manual'); });
     audit_(user, 'backup', 'Backup', item.id, item.name);
-    return ok_(item, 'สำรองข้อมูลแล้ว');
+    return ok_({ items: backupFiles_(), lastBackupAt: item.createdAt }, 'สำรองข้อมูลแล้ว');
   });
 }
 
 function deleteBackup(token, fileId) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
+    const user = auth_(token, ['admin']);
     const item = backupFiles_().filter(function (b) { return b.id === fileId; })[0];
     if (!item) throw appError_('ไม่พบไฟล์สำรองข้อมูล');
     trashDriveFile_(item.id);
     audit_(user, 'delete', 'Backup', item.id, item.name);
-    return ok_({ id: item.id }, 'ลบไฟล์สำรองข้อมูลแล้ว');
+    return ok_({ items: backupFiles_() }, 'ลบไฟล์สำรองข้อมูลแล้ว');
   });
 }
 
 function setDailyBackup(token, enabled) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
-    const existing = ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'dailyBackupJob'; });
-    existing.forEach(function (t) { ScriptApp.deleteTrigger(t); });
+    const user = auth_(token, ['admin']);
+    ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'dailyBackupJob'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
     if (enabled) ScriptApp.newTrigger('dailyBackupJob').timeBased().everyDays(1).atHour(2).inTimezone(CONFIG.TIMEZONE).create();
     withLock_(function () { setSettingValues_([['dailyBackup', enabled ? 'on' : 'off']]); });
-    audit_(user, 'update', 'Backup', '', enabled ? 'เปิดสำรองข้อมูลอัตโนมัติทุกวัน 02:00' : 'ปิดสำรองข้อมูลอัตโนมัติ');
+    audit_(user, 'update', 'Backup', '', enabled ? 'เปิดสำรองข้อมูลอัตโนมัติ 02:00' : 'ปิดสำรองข้อมูลอัตโนมัติ');
     return ok_({ dailyBackupActive: !!enabled }, enabled ? 'เปิดสำรองข้อมูลอัตโนมัติทุกวันเวลา 02:00 แล้ว' : 'ปิดสำรองข้อมูลอัตโนมัติแล้ว');
   });
 }
 
-/** เรียกโดย Time-driven Trigger เท่านั้น — ป้องกันการสั่งซ้ำถี่เกินไปด้วยเวลาสำรองล่าสุด */
+/** เรียกโดย Time-driven Trigger — ไม่ทำซ้ำหากเพิ่งสำรองภายใน 20 ชั่วโมง */
 function dailyBackupJob() {
   const last = Number(PropertiesService.getScriptProperties().getProperty('lastBackupTs') || 0);
   if (Date.now() - last < 20 * 3600 * 1000) return;
@@ -1553,8 +1727,7 @@ function runBackup_(kind) {
 }
 
 function backupFiles_() {
-  const folder = subFolder_('backups');
-  const it = folder.getFiles();
+  const it = subFolder_('backups').getFiles();
   const items = [];
   while (it.hasNext()) {
     const f = it.next();
@@ -1565,8 +1738,7 @@ function backupFiles_() {
 }
 
 function dailyBackupTrigger_() {
-  const t = ScriptApp.getProjectTriggers().filter(function (x) { return x.getHandlerFunction() === 'dailyBackupJob'; })[0];
-  return t || null;
+  return ScriptApp.getProjectTriggers().filter(function (x) { return x.getHandlerFunction() === 'dailyBackupJob'; })[0] || null;
 }
 
 /* ============================================================================
@@ -1585,8 +1757,7 @@ function audit_(user, action, entity, entityId, detail) {
 
 function listLogs(token) {
   return handle_(function () {
-    const user = auth_(token);
-    requireRole_(user, ['admin']);
+    auth_(token, ['admin']);
     const rows = readTable_('AuditLog').rows;
     const items = rows.slice(Math.max(0, rows.length - CONFIG.LOG_VIEW_LIMIT)).reverse().map(clean_);
     return ok_({ items: items, total: rows.length, limit: CONFIG.LOG_VIEW_LIMIT });
@@ -1626,7 +1797,7 @@ function appError_(message, code) {
 
 function withLock_(fn) {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(CONFIG.LOCK_WAIT_MS)) throw appError_('ระบบกำลังบันทึกข้อมูลของผู้ใช้อื่น กรุณาลองใหม่อีกครั้ง');
+  if (!lock.tryLock(CONFIG.LOCK_WAIT_MS)) throw appError_('มีผู้ใช้งานพร้อมกันจำนวนมาก กรุณาลองใหม่อีกครั้ง');
   try {
     return fn();
   } finally {
@@ -1638,7 +1809,7 @@ function withLock_(fn) {
 function ss_() {
   if (!SS_CACHE_) {
     assertConfigured_();
-    try { SS_CACHE_ = SpreadsheetApp.openById(CONFIG.SHEET_ID); } catch (err) { throw appError_('ไม่สามารถเปิดฐานข้อมูล Google Sheets ได้ กรุณาติดต่อผู้ดูแลระบบ'); }
+    try { SS_CACHE_ = SpreadsheetApp.openById(CONFIG.SHEET_ID); } catch (err) { throw appError_('ไม่สามารถเปิดฐานข้อมูล Google Sheets ได้ กรุณาติดต่ออาจารย์ผู้ดูแลระบบ'); }
   }
   return SS_CACHE_;
 }
@@ -1647,19 +1818,18 @@ function sheet_(name) {
   const sh = ss_().getSheetByName(name);
   if (!sh) {
     CacheService.getScriptCache().remove('setup:ok');
-    throw appError_('ไม่พบชีต "' + name + '" กรุณาเข้าสู่ระบบใหม่เพื่อให้ระบบสร้างชีตอัตโนมัติ');
+    throw appError_('ไม่พบชีต "' + name + '" กรุณาให้อาจารย์เข้าสู่ระบบใหม่เพื่อสร้างชีตอัตโนมัติ');
   }
   return sh;
 }
 
 function normalizeCell_(header, v) {
   if (CONFIG.NUMERIC_FIELDS.indexOf(header) >= 0) {
+    if (v === '' || v === null || v === undefined) return header === 'score' ? '' : 0;
     const n = Number(v);
     return isFinite(n) ? n : 0;
   }
-  if (v instanceof Date) {
-    return Utilities.formatDate(v, CONFIG.TIMEZONE, /Date$/.test(header) ? 'yyyy-MM-dd' : 'yyyy-MM-dd HH:mm:ss');
-  }
+  if (v instanceof Date) return Utilities.formatDate(v, CONFIG.TIMEZONE, /Date$/.test(header) ? 'yyyy-MM-dd' : 'yyyy-MM-dd HH:mm:ss');
   return v === null || v === undefined ? '' : String(v);
 }
 
@@ -1695,6 +1865,7 @@ function toRow_(name, obj) {
   return CONFIG.SHEETS[name].map(function (h) {
     const v = obj[h];
     if (CONFIG.NUMERIC_FIELDS.indexOf(h) >= 0) {
+      if (h === 'score' && (v === '' || v === null || v === undefined)) return '';
       const n = Number(v);
       return isFinite(n) ? n : 0;
     }
@@ -1711,7 +1882,7 @@ function insertRows_(name, objs) {
   const width = CONFIG.SHEETS[name].length;
   const start = sh.getLastRow() + 1;
   const needed = start + objs.length - 1 - sh.getMaxRows();
-  if (needed > 0) sh.insertRowsAfter(sh.getMaxRows(), needed + 100);
+  if (needed > 0) sh.insertRowsAfter(sh.getMaxRows(), needed + 200);
   sh.getRange(start, 1, objs.length, width).setValues(objs.map(function (o) { return toRow_(name, o); }));
   invalidate_(name);
 }
@@ -1723,7 +1894,7 @@ function updateRow_(name, rowObj, patch) {
   return merged;
 }
 
-/** เขียนทั้งตารางใหม่ในครั้งเดียว (ใช้สำหรับลบหลายแถว/แก้หลายแถว) */
+/** เขียนทั้งตารางใหม่ในครั้งเดียว (ใช้กับการแก้/ลบหลายแถว) */
 function rewriteTable_(name, rows) {
   const sh = sheet_(name);
   const width = CONFIG.SHEETS[name].length;
@@ -1731,7 +1902,7 @@ function rewriteTable_(name, rows) {
   if (last > 1) sh.getRange(2, 1, last - 1, width).clearContent();
   if (rows.length) {
     const needed = rows.length + 1 - sh.getMaxRows();
-    if (needed > 0) sh.insertRowsAfter(sh.getMaxRows(), needed + 100);
+    if (needed > 0) sh.insertRowsAfter(sh.getMaxRows(), needed + 200);
     sh.getRange(2, 1, rows.length, width).setValues(rows.map(function (o) { return toRow_(name, o); }));
   }
   invalidate_(name);
@@ -1760,58 +1931,12 @@ function indexBy_(rows, key) {
   return map;
 }
 
-function emptyStat_() {
-  return { activityBudget: 0, spent: 0, pending: 0, committed: 0, activityCount: 0, expenseCount: 0 };
+function categoryOf_(code) {
+  return CONFIG.CATEGORIES.filter(function (c) { return c.code === code; })[0] || null;
 }
 
-/** อ่านตารางหลักครั้งเดียวแล้วคำนวณยอดงบทั้งหมดในหน่วยความจำ */
-function context_() {
-  const projects = readTable_('Projects').rows;
-  const activities = readTable_('Activities').rows;
-  const expenses = readTable_('Expenses').rows;
-  const departments = readTable_('Departments').rows;
-  const pStat = {};
-  const aStat = {};
-  projects.forEach(function (p) { pStat[p.id] = emptyStat_(); });
-  activities.forEach(function (a) {
-    aStat[a.id] = emptyStat_();
-    if (pStat[a.projectId]) { pStat[a.projectId].activityBudget += a.budget; pStat[a.projectId].activityCount += 1; }
-  });
-  expenses.forEach(function (e) {
-    const ps = pStat[e.projectId];
-    const as = e.activityId ? aStat[e.activityId] : null;
-    [ps, as].forEach(function (s) {
-      if (!s) return;
-      s.expenseCount += 1;
-      if (e.status === 'rejected') return;
-      s.committed += e.amount;
-      if (e.status === 'approved') s.spent += e.amount;
-      else s.pending += e.amount;
-    });
-  });
-  return {
-    projects: projects, activities: activities, expenses: expenses, departments: departments,
-    projectMap: indexBy_(projects, 'id'), deptMap: indexBy_(departments, 'id'), pStat: pStat, aStat: aStat
-  };
-}
-
-function lookups_(user, ctx) {
-  const projects = ctx.projects.filter(function (p) { return canSeeProject_(user, p); });
-  const ids = {};
-  const list = projects.map(function (p) {
-    ids[p.id] = true;
-    const st = ctx.pStat[p.id] || emptyStat_();
-    return {
-      id: p.id, code: p.code, name: p.name, departmentId: p.departmentId, status: p.status, budget: p.budget,
-      activityBudget: round2_(st.activityBudget), committed: round2_(st.committed), remaining: round2_(p.budget - st.committed),
-      startDate: p.startDate, endDate: p.endDate, canManage: canManageProject_(user, p)
-    };
-  }).sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
-  const acts = ctx.activities.filter(function (a) { return ids[a.projectId]; }).map(function (a) {
-    const st = ctx.aStat[a.id] || emptyStat_();
-    return { id: a.id, projectId: a.projectId, name: a.name, budget: a.budget, committed: round2_(st.committed), remaining: round2_(a.budget - st.committed) };
-  }).sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
-  return { projects: list, activities: acts };
+function parseJson_(s, fallback) {
+  try { return s ? JSON.parse(s) : fallback; } catch (err) { return fallback; }
 }
 
 function clean_(obj) {
@@ -1833,8 +1958,27 @@ function now_() {
   return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
 }
 
+function nowLocal_() {
+  return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, "yyyy-MM-dd'T'HH:mm");
+}
+
 function today_() {
   return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd');
+}
+
+function addDays_(dateStr, days) {
+  const p = dateStr.split('-').map(Number);
+  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + days));
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+}
+
+function weekdayOf_(dateStr) {
+  const p = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay();
+}
+
+function firstOnOrAfter_(dateStr, weekday) {
+  return addDays_(dateStr, (weekday - weekdayOf_(dateStr) + 7) % 7);
 }
 
 function str_(v, max) {
@@ -1847,42 +1991,48 @@ function req_(v, label) {
   return v;
 }
 
-function money_(v, label, mustBePositive) {
-  if (v === undefined || v === null || String(v).trim() === '') throw appError_('กรุณากรอก ' + label);
-  const s = String(v).replace(/,/g, '').trim();
+function score_(v, label, max, mustBePositive) {
+  const s = String(v === undefined || v === null ? '' : v).replace(/,/g, '').trim();
+  if (s === '') throw appError_('กรุณากรอก ' + label);
   if (!/^-?\d+(\.\d+)?$/.test(s)) throw appError_(label + ' ต้องเป็นตัวเลข');
   const n = Number(s);
-  if (!isFinite(n)) throw appError_(label + ' ต้องเป็นตัวเลข');
   if (n < 0) throw appError_(label + ' ต้องไม่ติดลบ');
   if (mustBePositive && n <= 0) throw appError_(label + ' ต้องมากกว่า 0');
-  if (n > 999999999999) throw appError_(label + ' มีค่ามากเกินไป');
+  if (n > max) throw appError_(label + ' ต้องไม่เกิน ' + max);
   return round2_(n);
 }
 
-function percent_(v) {
+function intRange_(v, min, max, label) {
   const s = String(v === undefined || v === null ? '' : v).trim();
-  if (s === '') throw appError_('กรุณากรอก ร้อยละความก้าวหน้า');
-  if (!/^\d+(\.\d+)?$/.test(s)) throw appError_('ร้อยละความก้าวหน้าต้องเป็นตัวเลข');
+  if (!/^\d+$/.test(s)) throw appError_(label + ' ต้องเป็นจำนวนเต็ม');
   const n = Number(s);
-  if (n < 0 || n > 100) throw appError_('ร้อยละความก้าวหน้าต้องอยู่ระหว่าง 0–100');
-  return round2_(n);
+  if (n < min || n > max) throw appError_(label + ' ต้องอยู่ระหว่าง ' + min + '–' + max);
+  return n;
 }
 
 function date_(v, label, required) {
   const s = str_(v, 10);
-  if (!s) {
-    if (required) throw appError_('กรุณาเลือก ' + label);
-    return '';
-  }
+  if (!s) { if (required) throw appError_('กรุณาเลือก ' + label); return ''; }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw appError_(label + ' ไม่ถูกต้อง');
-  const parts = s.split('-').map(Number);
-  const dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-  if (dt.getUTCFullYear() !== parts[0] || dt.getUTCMonth() !== parts[1] - 1 || dt.getUTCDate() !== parts[2]) throw appError_(label + ' ไม่ถูกต้อง');
+  const p = s.split('-').map(Number);
+  const dt = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+  if (dt.getUTCFullYear() !== p[0] || dt.getUTCMonth() !== p[1] - 1 || dt.getUTCDate() !== p[2]) throw appError_(label + ' ไม่ถูกต้อง');
   return s;
 }
 
-function dateOrder_(start, end) {
-  if (start && end && end < start) throw appError_('วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม');
+function dateTime_(v, label, required) {
+  const s = str_(v, 16);
+  if (!s) { if (required) throw appError_('กรุณาเลือก ' + label); return ''; }
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) throw appError_(label + ' ไม่ถูกต้อง');
+  date_(s.slice(0, 10), label, true);
+  time_(s.slice(11), label);
+  return s;
+}
+
+function time_(v, label) {
+  const s = str_(v, 5);
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s)) throw appError_(label + ' ไม่ถูกต้อง (รูปแบบ HH:mm)');
+  return s;
 }
 
 function oneOf_(v, map, label) {
@@ -1893,17 +2043,6 @@ function oneOf_(v, map, label) {
 
 function round2_(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
-}
-
-function sumBy_(rows, key) {
-  return rows.reduce(function (t, r) { return t + (Number(r[key]) || 0); }, 0);
-}
-
-function fmtMoney_(n) {
-  const v = round2_(n);
-  const parts = Math.abs(v).toFixed(2).split('.');
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return (v < 0 ? '-' : '') + parts.join('.');
 }
 
 function columnLetter_(n) {
