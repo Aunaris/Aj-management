@@ -1152,6 +1152,12 @@ VIEWS.students = {
       { label: 'บัญชี', render: function (s) { return badge(s.status, S.meta.userStatus[s.status]) + (s.mustChange ? ' <span class="badge warn">ยังไม่เปลี่ยนรหัส</span>' : '') + '<div class="cell-sub">เข้าล่าสุด ' + (s.lastLoginAt ? dateTimeTH(s.lastLoginAt) : '-') + '</div>'; } },
       { label: '', render: function (s) { return actionButtons([isAdmin() && { act: 'student-edit', id: s.id, label: 'แก้ไข' }, { act: 'student-reset', id: s.id, label: 'รีเซ็ตรหัสผ่าน' }, isAdmin() && { act: 'student-delete', id: s.id, label: 'ลบ', cls: 'danger' }]); } }
     ], rows, { empty: 'ยังไม่มีนักศึกษา — นำเข้าไฟล์ ClassRoster จากระบบทะเบียน' });
+    if (!rows.length && d.items.length) {
+      var by = {};
+      d.items.forEach(function (s) { if (s.status === 'active') by[s.sectionCode] = (by[s.sectionCode] || 0) + 1; });
+      var summary = S.sections.map(function (s) { return s.name + ' ' + (by[s.code] || 0) + ' คน'; }).join(' · ');
+      el('list').insertAdjacentHTML('beforeend', '<div class="notice">นักศึกษาในระบบตอนนี้: ' + esc(summary) + (S.section && !by[S.section] ? '<br>กลุ่ม ' + esc(S.section) + ' ยังไม่ได้นำเข้า — กด "นำเข้า ClassRoster" แล้วเลือกไฟล์ของกลุ่ม ' + esc(S.section) + ' หรือเลือก "ทุกกลุ่มเรียน" ที่มุมขวาบนเพื่อดูทั้งหมด' : '') + '</div>');
+    }
   }
 };
 

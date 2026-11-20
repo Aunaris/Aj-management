@@ -629,8 +629,11 @@ function importStudents(token, payload) {
         }
       });
       if (created || updated) rewriteTable_('Students', rows);
+      const perSection = {};
+      rows.forEach(function (r) { if (seen[r.studentCode]) perSection[r.sectionCode] = (perSection[r.sectionCode] || 0) + 1; });
+      const perText = Object.keys(perSection).sort().map(function (k) { return 'กลุ่ม ' + k + ' = ' + perSection[k] + ' คน'; }).join(', ');
       audit_(user, 'import', 'Student', '', 'เพิ่ม ' + created + ' · อัปเดต ' + updated + ' · ข้อผิดพลาด ' + errors.length);
-      return ok_({ created: created, updated: updated, errors: errors.slice(0, 50), errorCount: errors.length }, 'นำเข้าแล้ว: เพิ่มใหม่ ' + created + ' คน · อัปเดต ' + updated + ' คน' + (errors.length ? ' · ข้าม ' + errors.length + ' แถว' : ''));
+      return ok_({ created: created, updated: updated, errors: errors.slice(0, 50), errorCount: errors.length }, 'นำเข้าแล้ว: เพิ่มใหม่ ' + created + ' คน · อัปเดต ' + updated + ' คน' + (perText ? ' (' + perText + ')' : '') + (errors.length ? ' · ข้าม ' + errors.length + ' แถว' : ''));
     });
   });
 }
