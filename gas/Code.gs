@@ -235,7 +235,7 @@ function initSheets_() {
     });
     if (textCols.length) sh.getRangeList(textCols).setNumberFormat('@');
   });
-  ['Sheet1', 'แผ่น1', 'แผ่นงาน1'].forEach(function (n) {
+  ['Sheet1', 'ชีต1', 'แผ่น1', 'แผ่นงาน1'].forEach(function (n) {
     const s = ss.getSheetByName(n);
     if (s && s.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(s);
   });
