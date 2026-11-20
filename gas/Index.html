@@ -1029,7 +1029,7 @@ VIEWS.sessions = {
       { label: 'วันที่', render: function (s) { return '<span class="nowrap">' + dateTH(s.sessionDate) + '</span><div class="cell-sub">' + esc(s.startTime) + '–' + esc(s.endTime) + ' · ' + esc(s.room) + '</div>'; } },
       { label: 'หัวข้อ', render: function (s) { return esc(s.title) + (s.clo ? '<div class="cell-sub">' + esc(s.clo) + '</div>' : '') + (s.isExam ? ' ' + badge('late', 'สอบ') : ''); } },
       { label: 'สถานะ', render: function (s) { return badge(s.status, s.statusLabel); } },
-      { label: 'มา/สาย/ขาด/ลา', render: function (s) { var c = s.counts; return s.status === 'scheduled' || s.status === 'cancelled' ? '<span class="muted">-</span>' : '<span class="nowrap">' + c.present + ' / ' + c.late + ' / ' + c.absent + ' / ' + c.excused + '</span><div class="cell-sub">จาก ' + s.studentCount + ' คน</div>'; } },
+      { label: 'มา/สาย/ขาด/ลา', render: function (s) { var c = s.counts; return s.status === 'scheduled' || s.status === 'cancelled' ? '<span class="muted">-</span>' : '<span class="nowrap">' + c.present + ' / ' + c.late + ' / ' + c.absent + ' / ' + c.excused + '</span><div class="cell-sub">จาก ' + s.studentCount + ' คน</div>' + (c.flagged ? '<span class="badge warn" title="เช็คชื่อจากอุปกรณ์ผิดปกติ">⚠ ' + c.flagged + '</span>' : ''); } },
       { label: '', render: function (s) {
         return actionButtons([
           (s.status === 'scheduled' || s.status === 'closed') && { act: 'session-open', id: s.id, label: s.status === 'closed' ? 'เปิดอีกครั้ง' : 'เปิดเช็คชื่อ', cls: 'primary' },
@@ -1091,12 +1091,12 @@ VIEWS.live = {
     var rows = d.roster.filter(function (r) { return matchText(r, ['studentCode', 'fullName'], q); });
     var canEdit = s.status === 'open' || s.status === 'closed';
     el('roster-card').innerHTML = '<div class="card-head"><h2>รายชื่อ (' + d.roster.length + ' คน)</h2><input class="input" id="roster-q" type="search" placeholder="ค้นหารหัส/ชื่อ" value="' + esc(q) + '" style="max-width:220px"></div>' +
-      (canEdit ? '<div class="bulk-bar"><span class="small muted">ที่เลือก:</span>' + Object.keys(S.meta.attendanceStatus).map(function (k) { return '<button class="btn sm ghost" type="button" data-act="att-bulk" data-status="' + k + '">' + esc(S.meta.attendanceStatus[k]) + '</button>'; }).join('') + '<button class="btn sm ghost" type="button" data-act="att-bulk" data-status="">ล้างสถานะ</button></div>' : '') +
+      (canEdit ? '<div class="bulk-bar"><button class="btn sm primary" type="button" data-act="spot-check">🎲 สุ่มตรวจตัว</button>' + (d.roster.some(function (r) { return r.flags && r.flags.length; }) ? '<span class="badge warn">⚠ ' + d.roster.filter(function (r) { return r.flags && r.flags.length; }).length + ' คนน่าสงสัย</span>' : '') + '<span class="small muted" style="margin-left:.5rem">ที่เลือก:</span>' + Object.keys(S.meta.attendanceStatus).map(function (k) { return '<button class="btn sm ghost" type="button" data-act="att-bulk" data-status="' + k + '">' + esc(S.meta.attendanceStatus[k]) + '</button>'; }).join('') + '<button class="btn sm ghost" type="button" data-act="att-bulk" data-status="">ล้างสถานะ</button></div>' : '') +
       table([
         canEdit && { label: '', render: function (r) { return '<input type="checkbox" data-code="' + esc(r.studentCode) + '"' + (checked[r.studentCode] ? ' checked' : '') + ' aria-label="เลือก ' + esc(r.studentCode) + '">'; } },
         { label: 'รหัส', render: function (r) { return '<span class="nowrap">' + esc(r.studentCode) + '</span>'; } },
         { label: 'ชื่อ-สกุล', render: function (r) { return esc(r.fullName); } },
-        { label: 'สถานะ', render: function (r) { return r.status ? badge(r.status, S.meta.attendanceStatus[r.status]) + (r.method === 'manual' ? ' <span class="cell-sub">โดยอาจารย์</span>' : '') : '<span class="muted">-</span>'; } },
+        { label: 'สถานะ', render: function (r) { return (r.status ? badge(r.status, S.meta.attendanceStatus[r.status]) + (r.method === 'manual' ? ' <span class="cell-sub">โดยอาจารย์</span>' : '') : '<span class="muted">-</span>') + flagBadge(r.flags); } },
         { label: 'เวลา', render: function (r) { return r.checkinAt ? String(r.checkinAt).slice(11, 16) : ''; } },
         canEdit && { label: '', render: function (r) { return '<button class="btn sm ghost" type="button" data-act="att-one" data-id="' + esc(r.studentCode) + '">แก้ไข</button>'; } }
       ].filter(Boolean), rows, { empty: 'ไม่พบนักศึกษา' });
@@ -1282,6 +1282,7 @@ VIEWS.settings = {
       input('semester', 'ภาคเรียน', 'text', ' maxlength="5" required') + input('academicYear', 'ปีการศึกษา', 'text', ' maxlength="5" required') +
       input('lateMinutes', 'นับว่าสายหลังเริ่มคาบ (นาที)', 'number', ' min="0" max="240" required') +
       '<div class="field"><label for="s-deviceLock">1 เครื่อง : 1 คน ต่อคาบ</label><select class="input" id="s-deviceLock" name="deviceLock"' + dis + '><option value="on"' + (s.deviceLock === 'on' ? ' selected' : '') + '>เปิด (ป้องกันเช็คชื่อแทนกัน)</option><option value="off"' + (s.deviceLock !== 'on' ? ' selected' : '') + '>ปิด</option></select></div>' +
+      '<div class="field full"><label for="s-checkinAuth">การยืนยันตัวตนตอนเช็คชื่อ (ไม่ได้เข้าสู่ระบบ)</label><select class="input" id="s-checkinAuth" name="checkinAuth"' + dis + '>' + mapOptions(S.meta.checkinAuth).map(function (o) { return '<option value="' + o.value + '"' + (o.value === (s.checkinAuth || 'password') ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select><span class="help">แบบใส่รหัสผ่าน: นักศึกษาต้องตั้งรหัสผ่านของตนเองก่อน (เข้าสู่ระบบครั้งแรกด้วย 123456) เพื่อนจึงเช็คชื่อแทนไม่ได้</span></div>' +
       input('maxUploadMB', 'ขนาดไฟล์งานรวมสูงสุดต่อครั้ง (MB)', 'number', ' min="1" max="40" required') + input('backupRetention', 'จำนวนไฟล์สำรองที่เก็บไว้', 'number', ' min="1" max="365" required') +
       '</div><div class="form-error" id="settings-error" hidden></div>' + (admin ? '<div class="toolbar" style="margin:1rem 0 0"><button class="btn primary" type="submit" id="settings-submit">บันทึกการตั้งค่า</button></div>' : '') + '</form></div>';
     var sections = '<div class="card"><div class="card-head"><h2>กลุ่มเรียนและตารางสอน</h2>' + (admin ? '<button class="btn sm primary" type="button" data-act="section-new">+ เพิ่มกลุ่มเรียน</button>' : '') + '</div>' +
@@ -1331,7 +1332,7 @@ function bindSettingsForms() {
       var box = el('settings-error');
       box.hidden = true;
       var data = {};
-      ['courseCode', 'courseName', 'semester', 'academicYear', 'lateMinutes', 'deviceLock', 'maxUploadMB', 'backupRetention'].forEach(function (k) { data[k] = sf.elements[k].value.trim(); });
+      ['courseCode', 'courseName', 'semester', 'academicYear', 'lateMinutes', 'deviceLock', 'checkinAuth', 'maxUploadMB', 'backupRetention'].forEach(function (k) { data[k] = sf.elements[k].value.trim(); });
       var err = '';
       if (!data.courseCode || !data.courseName || !data.semester || !data.academicYear) err = 'กรุณากรอกข้อมูลรายวิชาให้ครบ';
       else if (!/^\d+$/.test(data.lateMinutes) || Number(data.lateMinutes) > 240) err = 'นาทีที่ถือว่าสายต้องเป็นจำนวนเต็ม 0–240';
@@ -1571,9 +1572,15 @@ function checkinFormHtml(prefix) {
     '<div id="' + prefix + '-info"></div>' +
     '<form id="' + prefix + '-form" class="stack" novalidate>' +
     '<div class="field"><label for="' + prefix + '-student">รหัสนักศึกษา <span class="req">*</span></label><input class="input" id="' + prefix + '-student" inputmode="numeric" autocomplete="username" maxlength="15" required></div>' +
+    '<div class="field" id="' + prefix + '-pwfield"' + (prefix === 'in' || checkinMode() === 'code' ? ' hidden' : '') + '><label for="' + prefix + '-password">รหัสผ่านของคุณ <span class="req">*</span></label><input class="input" id="' + prefix + '-password" type="password" autocomplete="current-password" maxlength="100"><span class="help">รหัสเดียวกับที่ใช้เข้าสู่ระบบ — ป้องกันไม่ให้ผู้อื่นเช็คชื่อแทน</span></div>' +
     '<div class="field"><label for="' + prefix + '-code">รหัสเช็คชื่อ 6 ตัว <span class="req">*</span></label><input class="input code-input" id="' + prefix + '-code" maxlength="6" autocomplete="off" autocapitalize="characters" required></div>' +
     '<div class="form-error" id="' + prefix + '-error" hidden></div>' +
     '<button class="btn primary block" type="submit" id="' + prefix + '-submit">เช็คชื่อ</button></form><div id="' + prefix + '-result"></div>';
+}
+
+function checkinMode() {
+  if (S.settings && S.settings.checkinAuth) return S.settings.checkinAuth;
+  return S.publicInfo && S.publicInfo.checkinAuth ? S.publicInfo.checkinAuth : 'password';
 }
 
 function bindCheckinForm(prefix, studentCode, code) {
@@ -1589,6 +1596,7 @@ function bindCheckinForm(prefix, studentCode, code) {
     serverCall('getCheckinInfo', [c]).then(function (res) {
       var d = res.data;
       el(prefix + '-info').innerHTML = '<div class="session-info"><strong>' + esc(d.courseName) + '</strong><br>กลุ่ม ' + esc(d.sectionCode) + ' · สัปดาห์ ' + d.week + ' · ' + dateTH(d.sessionDate) + ' ' + esc(d.startTime) + ' น. · ' + esc(d.room) + '<br>' + esc(d.title) + '</div>';
+      if (prefix !== 'in' && el(prefix + '-pwfield')) el(prefix + '-pwfield').hidden = d.checkinAuth === 'code';
     }).catch(function (err) { el(prefix + '-info').innerHTML = '<div class="form-error" style="margin:0 0 1rem">' + esc(err.message) + '</div>'; });
   };
   cInput.addEventListener('input', function () { if (cInput.value.trim().length === 6) lookup(); });
@@ -1599,7 +1607,11 @@ function bindCheckinForm(prefix, studentCode, code) {
     var box = el(prefix + '-error');
     box.hidden = true;
     var payload = { studentCode: sInput.value.trim(), code: cInput.value.trim().toUpperCase(), deviceHash: S.deviceHash };
-    var err = !/^\d{5,15}$/.test(payload.studentCode) ? 'กรุณากรอกรหัสนักศึกษาให้ถูกต้อง (ตัวเลข)' : payload.code.length !== 6 ? 'กรุณากรอกรหัสเช็คชื่อ 6 ตัว' : '';
+    var pwField = el(prefix + '-pwfield');
+    var needPw = prefix !== 'in' && pwField && !pwField.hidden;
+    if (prefix === 'in' && S.token) payload.token = S.token;
+    if (needPw) payload.password = el(prefix + '-password').value;
+    var err = !/^\d{5,15}$/.test(payload.studentCode) ? 'กรุณากรอกรหัสนักศึกษาให้ถูกต้อง (ตัวเลข)' : needPw && !payload.password ? 'กรุณากรอกรหัสผ่านของคุณ' : payload.code.length !== 6 ? 'กรุณากรอกรหัสเช็คชื่อ 6 ตัว' : '';
     if (err) { box.textContent = err; box.hidden = false; return; }
     withButton(el(prefix + '-submit'), serverCall('checkIn', [payload])).then(function (res) {
       var d = res.data;
@@ -1916,6 +1928,31 @@ function downloadFile(id, btn) {
   }).catch(function (err) { toast(err.message, 'error'); });
 }
 
+function flagBadge(flags) {
+  if (!flags || !flags.length) return '';
+  var text = flags.map(function (f) { return (S.meta.riskFlags || {})[f] || f; }).join(' · ');
+  return ' <span class="badge warn" title="' + esc(text) + '">⚠ ' + esc(text) + '</span>';
+}
+
+/** สุ่มเรียกชื่อคนที่เช็คชื่อแล้ว (คนที่ถูกติดธงอุปกรณ์ผิดปกติจะถูกเลือกก่อน) */
+function spotCheck() {
+  var d = S.data.live;
+  var checked = d.roster.filter(function (r) { return r.status === 'present' || r.status === 'late'; });
+  if (!checked.length) { toast('ยังไม่มีนักศึกษาที่เช็คชื่อ', 'warn'); return; }
+  var flagged = checked.filter(function (r) { return r.flags && r.flags.length; });
+  var others = checked.filter(function (r) { return !r.flags || !r.flags.length; });
+  for (var i = others.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = others[i]; others[i] = others[j]; others[j] = t; }
+  var picks = flagged.concat(others).slice(0, Math.max(5, Math.min(flagged.length, 10)));
+  openModal({
+    title: 'สุ่มตรวจตัว ' + picks.length + ' คน',
+    body: '<p class="muted small">เรียกชื่อทีละคน ถ้าไม่อยู่ในห้องให้กด "ไม่อยู่" ระบบจะเปลี่ยนเป็น "ขาด" พร้อมหมายเหตุ · คนที่มี ⚠ ถูกเลือกก่อน</p><ul class="list">' +
+      picks.map(function (r) {
+        return '<li id="spot-' + esc(r.studentCode) + '"><div><strong>' + esc(r.fullName) + '</strong><div class="cell-sub">' + esc(r.studentCode) + ' · ' + esc(S.meta.attendanceStatus[r.status]) + ' ' + String(r.checkinAt || '').slice(11, 16) + '</div>' + flagBadge(r.flags) + '</div>' +
+          '<div class="btn-row"><button class="btn sm success" type="button" data-act="spot-ok" data-id="' + esc(r.studentCode) + '">อยู่ในห้อง</button><button class="btn sm danger" type="button" data-act="spot-absent" data-id="' + esc(r.studentCode) + '">ไม่อยู่ → ขาด</button></div></li>';
+      }).join('') + '</ul>'
+  });
+}
+
 function confirmAndRun(message, btn, fn, args, after) {
   confirmBox(message).then(function (yes) {
     if (!yes) return;
@@ -1966,6 +2003,17 @@ var ACTIONS = {
   'session-close': function (t) { closeSessionFlow(t.getAttribute('data-id'), t); },
   'session-edit': function (t) { var s = item('session', t.getAttribute('data-id')); if (s) sessionForm(s); },
   'present-toggle': function () { document.body.classList.toggle('presenting'); },
+  'spot-check': function () { spotCheck(); },
+  'spot-ok': function (t) { var li = el('spot-' + t.getAttribute('data-id')); if (li) li.querySelector('.btn-row').innerHTML = badge('present', 'ยืนยันตัวแล้ว'); },
+  'spot-absent': function (t) {
+    var code = t.getAttribute('data-id');
+    withButton(t, api('setAttendance', { sessionId: S.data.live.session.id, studentCodes: [code], status: 'absent', note: 'สุ่มตรวจแล้วไม่พบตัวในห้อง' })).then(function () {
+      var li = el('spot-' + code);
+      if (li) li.querySelector('.btn-row').innerHTML = badge('absent', 'บันทึกขาดแล้ว');
+      toast(code + ' ถูกบันทึกเป็นขาด', 'warn');
+      refreshView();
+    }).catch(function (err) { toast(err.message, 'error'); });
+  },
   'att-one': function (t) { var r = item('roster', t.getAttribute('data-id')); if (r) attendanceForm(S.data.live.session.id, [r.studentCode], r.studentCode + ' ' + r.fullName); },
   'att-bulk': function (t) {
     var codes = Array.prototype.map.call(document.querySelectorAll('#roster-card input[data-code]:checked'), function (x) { return x.getAttribute('data-code'); });

@@ -95,6 +95,8 @@ const CONFIG = {
   ROLES: { admin: 'อาจารย์ผู้สอนหลัก', teacher: 'อาจารย์ผู้สอน', student: 'นักศึกษา' },
   DAYS: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'],
   SESSION_STATUS: { scheduled: 'ยังไม่เปิด', open: 'กำลังเช็คชื่อ', closed: 'ปิดเช็คชื่อแล้ว', cancelled: 'งดสอน' },
+  CHECKIN_AUTH: { password: 'รหัสนักศึกษา + รหัสผ่านของตนเอง (ป้องกันเช็คชื่อแทนกัน)', code: 'รหัสนักศึกษาอย่างเดียว' },
+  RISK_FLAGS: { new_device: 'ใช้อุปกรณ์ต่างจากที่เคยเช็คชื่อ', shared_device: 'อุปกรณ์นี้เคยใช้เช็คชื่อให้นักศึกษาคนอื่น' },
   ATTENDANCE_STATUS: { present: 'มาเรียน', late: 'สาย', absent: 'ขาด', excused: 'ลา' },
   ASSIGNMENT_STATUS: { draft: 'ฉบับร่าง', published: 'เผยแพร่', closed: 'ปิดรับงาน' },
   SUBMISSION_MODE: { online: 'ส่งออนไลน์ (ไฟล์/ลิงก์)', offline: 'ส่งในห้องเรียน/ให้คะแนนโดยตรง' },
@@ -110,7 +112,7 @@ const CONFIG = {
     Sections: ['id', 'code', 'name', 'meetingDay', 'startTime', 'endTime', 'room', 'firstDate', 'createdAt', 'updatedAt'],
     Students: ['id', 'studentCode', 'fullName', 'sectionCode', 'program', 'faculty', 'email', 'password', 'mustChange', 'status', 'lastLoginAt', 'createdAt', 'updatedAt'],
     Sessions: ['id', 'sectionCode', 'week', 'sessionDate', 'startTime', 'endTime', 'room', 'title', 'clo', 'status', 'openedAt', 'closedAt', 'createdAt', 'updatedAt'],
-    Attendance: ['id', 'sessionId', 'studentCode', 'status', 'checkinAt', 'method', 'deviceHash', 'note', 'updatedBy', 'updatedAt'],
+    Attendance: ['id', 'sessionId', 'studentCode', 'status', 'checkinAt', 'method', 'deviceHash', 'note', 'updatedBy', 'updatedAt', 'flags'],
     Assignments: ['id', 'code', 'title', 'description', 'categoryCode', 'maxScore', 'sectionScope', 'dueAt', 'sectionDue', 'submissionMode', 'allowLate', 'status', 'createdBy', 'createdAt', 'updatedAt'],
     Submissions: ['id', 'assignmentId', 'studentCode', 'version', 'submittedAt', 'isLate', 'fileIds', 'links', 'note', 'createdAt'],
     Grades: ['id', 'assignmentId', 'studentCode', 'score', 'feedback', 'status', 'gradedBy', 'gradedAt', 'publishedAt'],
@@ -126,6 +128,7 @@ const CONFIG = {
     termStart: '2026-11-16',
     lateMinutes: '15',
     deviceLock: 'on',
+    checkinAuth: 'password',
     maxUploadMB: '20',
     backupRetention: '30',
     dailyBackup: 'off'
@@ -162,7 +165,7 @@ function setupSystem() {
 }
 
 function ensureSetup_() {
-  if (CacheService.getScriptCache().get('setup:ok')) return;
+  if (CacheService.getScriptCache().get('setup:v2')) return;
   runSetup_();
 }
 
@@ -174,7 +177,7 @@ function runSetup_() {
     ensureDefaultSections_();
     Object.keys(CONFIG.FOLDERS).forEach(function (key) { subFolder_(key); });
   });
-  CacheService.getScriptCache().put('setup:ok', '1', 21600);
+  CacheService.getScriptCache().put('setup:v2', '1', 21600);
 }
 
 function assertConfigured_() {
@@ -368,7 +371,7 @@ function buildBootstrap_(user) {
       days: CONFIG.DAYS, categories: CONFIG.CATEGORIES, clos: CONFIG.CLOS, sessionStatus: CONFIG.SESSION_STATUS,
       attendanceStatus: CONFIG.ATTENDANCE_STATUS, assignmentStatus: CONFIG.ASSIGNMENT_STATUS, submissionMode: CONFIG.SUBMISSION_MODE,
       gradeStatus: CONFIG.GRADE_STATUS, roles: CONFIG.ROLES, userStatus: CONFIG.USER_STATUS, minPasswordLength: CONFIG.MIN_PASSWORD_LENGTH,
-      qrRotateSeconds: CONFIG.QR_ROTATE_SECONDS, examWeeks: CONFIG.EXAM_WEEKS
+      qrRotateSeconds: CONFIG.QR_ROTATE_SECONDS, examWeeks: CONFIG.EXAM_WEEKS, checkinAuth: CONFIG.CHECKIN_AUTH, riskFlags: CONFIG.RISK_FLAGS
     }
   };
   if (user.role === 'student') {
@@ -391,7 +394,7 @@ function getPublicInfo() {
   return handle_(function () {
     ensureSetup_();
     const settings = publicSettings_();
-    return ok_({ course: courseInfo_(settings), sections: sectionList_().map(function (s) { return { code: s.code, name: s.name, dayLabel: s.dayLabel, startTime: s.startTime, endTime: s.endTime, room: s.room }; }) });
+    return ok_({ checkinAuth: settings.checkinAuth, course: courseInfo_(settings), sections: sectionList_().map(function (s) { return { code: s.code, name: s.name, dayLabel: s.dayLabel, startTime: s.startTime, endTime: s.endTime, room: s.room }; }) });
   });
 }
 
@@ -716,13 +719,14 @@ function listSessions(token) {
     const att = readTable_('Attendance').rows;
     const counts = {};
     att.forEach(function (a) {
-      const c = counts[a.sessionId] || (counts[a.sessionId] = { present: 0, late: 0, absent: 0, excused: 0 });
+      const c = counts[a.sessionId] || (counts[a.sessionId] = { present: 0, late: 0, absent: 0, excused: 0, flagged: 0 });
       if (c[a.status] !== undefined) c[a.status] += 1;
+      if (a.flags) c.flagged += 1;
     });
     const sectionSize = {};
     readTable_('Students').rows.forEach(function (s) { if (s.status === 'active') sectionSize[s.sectionCode] = (sectionSize[s.sectionCode] || 0) + 1; });
     const items = readTable_('Sessions').rows.map(function (s) {
-      return Object.assign(sessionView_(s), { counts: counts[s.id] || { present: 0, late: 0, absent: 0, excused: 0 }, studentCount: sectionSize[s.sectionCode] || 0 });
+      return Object.assign(sessionView_(s), { counts: counts[s.id] || { present: 0, late: 0, absent: 0, excused: 0, flagged: 0 }, studentCount: sectionSize[s.sectionCode] || 0 });
     }).sort(function (a, b) { return a.sessionDate.localeCompare(b.sessionDate) || a.sectionCode.localeCompare(b.sectionCode); });
     return ok_({ items: items });
   });
@@ -844,7 +848,7 @@ function getLiveSession(token, id) {
       .sort(function (a, b) { return a.studentCode.localeCompare(b.studentCode); })
       .map(function (st) {
         const a = att[st.studentCode];
-        return { studentCode: st.studentCode, fullName: st.fullName, status: a ? a.status : '', checkinAt: a ? a.checkinAt : '', method: a ? a.method : '', note: a ? a.note : '' };
+        return { studentCode: st.studentCode, fullName: st.fullName, status: a ? a.status : '', checkinAt: a ? a.checkinAt : '', method: a ? a.method : '', note: a ? a.note : '', flags: a && a.flags ? a.flags.split(',') : [] };
       });
     const counts = { present: 0, late: 0, absent: 0, excused: 0, none: 0 };
     roster.forEach(function (r) { if (r.status) counts[r.status] += 1; else counts.none += 1; });
@@ -856,46 +860,85 @@ function getLiveSession(token, id) {
   });
 }
 
-/** เช็คชื่อโดยนักศึกษา (ไม่ต้องเข้าสู่ระบบ) — กรอกรหัสนักศึกษา + รหัส 6 ตัวจาก QR */
+/**
+ * เช็คชื่อโดยนักศึกษา — รหัส 6 ตัวจาก QR + ยืนยันตัวตน
+ *  - เข้าสู่ระบบอยู่แล้ว: ส่ง token มา ไม่ต้องกรอกรหัสผ่านซ้ำ
+ *  - ไม่ได้เข้าสู่ระบบ: กรอกรหัสนักศึกษา และรหัสผ่านของตนเอง (เมื่อตั้งค่า checkinAuth = password)
+ * ป้องกันเช็คชื่อแทนกัน: รหัสผ่านส่วนตัว, 1 เครื่อง : 1 คน ต่อคาบ, ติดธงอุปกรณ์ผิดปกติ, จำกัดความถี่
+ */
 function checkIn(payload) {
   return handle_(function () {
     const d = payload || {};
     const code = String(d.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-    const studentCode = String(d.studentCode || '').trim().replace(/\s/g, '').slice(0, 20);
     const deviceHash = String(d.deviceHash || '').replace(/[^a-f0-9]/gi, '').slice(0, 64);
+    const settings = publicSettings_();
+    let studentCode = String(d.studentCode || '').trim().replace(/\s/g, '').slice(0, 20);
+    let viaLogin = false;
+    if (d.token) {
+      const user = auth_(String(d.token), ['student'], false);
+      studentCode = user.studentCode;
+      viaLogin = true;
+    }
     if (code.length !== 6) throw appError_('กรุณากรอกรหัสเช็คชื่อ 6 ตัวที่แสดงบนจอ');
     if (!/^\d{5,15}$/.test(studentCode)) throw appError_('กรุณากรอกรหัสนักศึกษาให้ถูกต้อง');
+    const needPassword = !viaLogin && settings.checkinAuth !== 'code';
+    const password = String(d.password || '');
+    if (needPassword && !password) throw appError_('กรุณากรอกรหัสผ่านของคุณ (รหัสเดียวกับที่ใช้เข้าสู่ระบบ)');
     const cache = CacheService.getScriptCache();
     rateLimit_(cache, 'rl:s:' + studentCode);
     if (deviceHash) rateLimit_(cache, 'rl:d:' + deviceHash);
+    const failKey = 'cfail:' + studentCode;
+    if (needPassword && Number(cache.get(failKey) || 0) >= 5) throw appError_('กรอกรหัสผ่านผิดหลายครั้ง กรุณารอ 15 นาที หรือแจ้งอาจารย์');
     const sessionId = cache.get('qrc:' + code);
     if (!sessionId) throw appError_('รหัสเช็คชื่อหมดอายุหรือไม่ถูกต้อง กรุณาสแกน QR ล่าสุดบนจออีกครั้ง');
     return withLock_(function () {
       const s = findById_('Sessions', sessionId);
       if (!s || s.status !== 'open') throw appError_('คาบนี้ปิดเช็คชื่อแล้ว');
       const st = readTable_('Students').rows.filter(function (x) { return x.studentCode === studentCode; })[0];
-      if (!st || st.status !== 'active') throw appError_('ไม่พบรหัสนักศึกษานี้ในรายวิชา');
+      if (!st || st.status !== 'active') throw appError_(needPassword ? 'รหัสนักศึกษาหรือรหัสผ่านไม่ถูกต้อง' : 'ไม่พบรหัสนักศึกษานี้ในรายวิชา');
+      if (needPassword) {
+        if (st.mustChange === '1') throw appError_('คุณยังไม่ได้ตั้งรหัสผ่าน กรุณาเข้าสู่ระบบด้วยรหัสนักศึกษาและรหัสผ่าน 123456 เพื่อตั้งรหัสผ่านใหม่ แล้วจึงเช็คชื่อ');
+        if (st.password !== password) {
+          cache.put(failKey, String(Number(cache.get(failKey) || 0) + 1), 900);
+          audit_({ username: studentCode }, 'checkin_bad_password', 'Attendance', s.id, 'รหัสผ่านไม่ถูกต้อง');
+          throw appError_('รหัสนักศึกษาหรือรหัสผ่านไม่ถูกต้อง');
+        }
+        cache.remove(failKey);
+      }
       if (st.sectionCode !== s.sectionCode) throw appError_('คาบนี้เป็นของกลุ่ม ' + s.sectionCode + ' แต่คุณอยู่กลุ่ม ' + st.sectionCode);
-      const sessionAtt = readTable_('Attendance').rows.filter(function (a) { return a.sessionId === s.id; });
+      const allAtt = readTable_('Attendance').rows;
+      const sessionAtt = allAtt.filter(function (a) { return a.sessionId === s.id; });
       const mine = sessionAtt.filter(function (a) { return a.studentCode === studentCode; })[0];
       if (mine) {
         return ok_({ fullName: maskName_(st.fullName), status: mine.status, statusLabel: CONFIG.ATTENDANCE_STATUS[mine.status], checkinAt: mine.checkinAt, week: s.week, sectionCode: s.sectionCode, already: true }, 'คุณเช็คชื่อคาบนี้ไว้แล้ว');
       }
-      if (publicSettings_().deviceLock === 'on' && deviceHash) {
+      if (settings.deviceLock === 'on' && deviceHash) {
         const used = sessionAtt.filter(function (a) { return a.deviceHash === deviceHash && a.studentCode !== studentCode; })[0];
         if (used) {
           audit_({ username: studentCode }, 'checkin_blocked', 'Attendance', s.id, 'อุปกรณ์ซ้ำกับ ' + used.studentCode);
           throw appError_('อุปกรณ์นี้ถูกใช้เช็คชื่อให้นักศึกษาคนอื่นในคาบนี้แล้ว (1 เครื่อง : 1 คน) หากเป็นความผิดพลาด กรุณาแจ้งอาจารย์');
         }
       }
+      const flags = riskFlags_(allAtt, studentCode, deviceHash);
       const nowStr = now_();
       const status = isLate_(s) ? 'late' : 'present';
-      const rec = { id: newId_('ATT'), sessionId: s.id, studentCode: studentCode, status: status, checkinAt: nowStr, method: 'qr', deviceHash: deviceHash, note: '', updatedBy: studentCode, updatedAt: nowStr };
+      const rec = { id: newId_('ATT'), sessionId: s.id, studentCode: studentCode, status: status, checkinAt: nowStr, method: 'qr', deviceHash: deviceHash, note: '', updatedBy: studentCode, updatedAt: nowStr, flags: flags.join(',') };
       insertRows_('Attendance', [rec]);
-      audit_({ username: studentCode }, 'checkin', 'Attendance', rec.id, 'กลุ่ม ' + s.sectionCode + ' สัปดาห์ ' + s.week + ' ' + status);
+      audit_({ username: studentCode }, flags.length ? 'checkin_flagged' : 'checkin', 'Attendance', rec.id, 'กลุ่ม ' + s.sectionCode + ' สัปดาห์ ' + s.week + ' ' + status + (flags.length ? ' ⚠ ' + flags.map(function (f) { return CONFIG.RISK_FLAGS[f]; }).join(', ') : ''));
       return ok_({ fullName: maskName_(st.fullName), status: status, statusLabel: CONFIG.ATTENDANCE_STATUS[status], checkinAt: nowStr, week: s.week, sectionCode: s.sectionCode, already: false }, status === 'late' ? 'เช็คชื่อแล้ว (สาย)' : 'เช็คชื่อสำเร็จ');
     });
   });
+}
+
+/** สัญญาณเสี่ยงจากประวัติอุปกรณ์ (ไม่ปฏิเสธ แต่แจ้งอาจารย์) */
+function riskFlags_(allAtt, studentCode, deviceHash) {
+  if (!deviceHash) return [];
+  const flags = [];
+  const myDevices = {};
+  allAtt.forEach(function (a) { if (a.studentCode === studentCode && a.method === 'qr' && a.deviceHash) myDevices[a.deviceHash] = true; });
+  if (Object.keys(myDevices).length && !myDevices[deviceHash]) flags.push('new_device');
+  if (allAtt.some(function (a) { return a.deviceHash === deviceHash && a.studentCode !== studentCode; })) flags.push('shared_device');
+  return flags;
 }
 
 /** ข้อมูลคาบจากรหัส QR (ไม่มีข้อมูลส่วนบุคคล) — ใช้แสดงก่อนกดยืนยันเช็คชื่อ */
@@ -907,7 +950,8 @@ function getCheckinInfo(code) {
     if (!sessionId) throw appError_('รหัสเช็คชื่อหมดอายุ กรุณาสแกน QR ล่าสุดบนจออีกครั้ง');
     const s = findById_('Sessions', sessionId);
     if (!s || s.status !== 'open') throw appError_('คาบนี้ปิดเช็คชื่อแล้ว');
-    return ok_({ week: s.week, sectionCode: s.sectionCode, title: s.title, sessionDate: s.sessionDate, startTime: s.startTime, room: s.room, courseName: publicSettings_().courseName });
+    const settings = publicSettings_();
+    return ok_({ week: s.week, sectionCode: s.sectionCode, title: s.title, sessionDate: s.sessionDate, startTime: s.startTime, room: s.room, courseName: settings.courseName, checkinAuth: settings.checkinAuth });
   });
 }
 
@@ -1572,6 +1616,7 @@ function saveSettings(token, data) {
       ['academicYear', req_(str_(d.academicYear, 5), 'ปีการศึกษา')],
       ['lateMinutes', String(lateMinutes)],
       ['deviceLock', d.deviceLock === 'on' ? 'on' : 'off'],
+      ['checkinAuth', oneOf_(d.checkinAuth || 'password', CONFIG.CHECKIN_AUTH, 'วิธียืนยันตัวตนตอนเช็คชื่อ')],
       ['maxUploadMB', String(maxMb)],
       ['backupRetention', String(retention)]
     ];
@@ -1828,7 +1873,7 @@ function ss_() {
 function sheet_(name) {
   const sh = ss_().getSheetByName(name);
   if (!sh) {
-    CacheService.getScriptCache().remove('setup:ok');
+    CacheService.getScriptCache().remove('setup:v2');
     throw appError_('ไม่พบชีต "' + name + '" กรุณาให้อาจารย์เข้าสู่ระบบใหม่เพื่อสร้างชีตอัตโนมัติ');
   }
   return sh;
