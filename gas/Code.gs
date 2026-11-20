@@ -147,10 +147,18 @@ function doGet() {
  * ========================================================================== */
 /** เรียกจาก Editor ได้ (Run > setupSystem) หรือระบบเรียกให้อัตโนมัติเมื่อเข้าสู่ระบบ */
 function setupSystem() {
-  return handle_(function () {
+  const res = handle_(function () {
     runSetup_();
-    return ok_({ sheets: Object.keys(CONFIG.SHEETS) }, 'ตั้งค่าระบบเรียบร้อย');
+    const ss = ss_();
+    const folder = rootFolder_();
+    return ok_({
+      spreadsheet: ss.getName(), sheets: ss.getSheets().map(function (s) { return s.getName(); }),
+      folder: folder.getName(), sections: readTable_('Sections').rows.length, sessions: readTable_('Sessions').rows.length,
+      webAppUrl: appUrl_() || '(ยังไม่ได้ Deploy)'
+    }, 'เชื่อมต่อ Google Sheets และ Google Drive สำเร็จ');
   });
+  console.log(JSON.stringify(res, null, 2));
+  return res;
 }
 
 function ensureSetup_() {
