@@ -612,12 +612,18 @@ var MARK = { present: 'ม', late: 'ส', absent: 'ข', excused: 'ล' };
 /* =========================================================================
  * SERVER CALLS — google.script.run พร้อม Success/Failure Handler + Loading
  * ========================================================================= */
-function serverCall(fn, args) {
+function serverCall(fn, args, opts) {
+  opts = opts || {};
   return new Promise(function (resolve, reject) {
+    var done = false;
+    var finish = function () { if (done) return false; done = true; clearTimeout(timer); setBusy(-1); return true; };
+    var timer = setTimeout(function () {
+      if (finish()) reject(new Error('เซิร์ฟเวอร์ตอบช้าเกินไป กรุณากด ⟳ เพื่อโหลดข้อมูลใหม่ แล้วตรวจสอบว่ารายการบันทึกแล้วหรือยัง'));
+    }, opts.timeoutMs || 90000);
     setBusy(1);
     var runner = google.script.run
       .withSuccessHandler(function (res) {
-        setBusy(-1);
+        if (!finish()) return;
         if (res && res.success) { resolve(res); return; }
         var message = (res && res.message) || 'เกิดข้อผิดพลาด';
         if (res && res.code === 'SESSION_EXPIRED') sessionExpired(message);
@@ -625,7 +631,7 @@ function serverCall(fn, args) {
         reject(new Error(message));
       })
       .withFailureHandler(function () {
-        setBusy(-1);
+        if (!finish()) return;
         reject(new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'));
       });
     runner[fn].apply(runner, args || []);
@@ -929,7 +935,7 @@ function renderNav() {
   }
 }
 
-function stopTimers() { S.timers.forEach(function (t) { clearInterval(t); }); S.timers = []; document.body.classList.remove('presenting'); }
+function stopTimers() { S.timers.forEach(function (t) { clearInterval(t); clearTimeout(t); }); S.timers = []; document.body.classList.remove('presenting'); }
 
 function navigate(id, params) {
   stopTimers();
@@ -1063,10 +1069,19 @@ VIEWS.live = {
         var c = el('cd');
         if (c) c.style.width = (S.liveLeft / S.meta.qrRotateSeconds * 100) + '%';
       }, 1000));
-      S.timers.push(setInterval(function () {
+      var poll = function () {
         if (seq !== S.seq || S.view !== 'live') return;
-        api('getLiveSession', s.id).then(function (r) { if (seq === S.seq && S.view === 'live') { S.data.live = r.data; S.liveLeft = r.data.expiresIn; self.paint(r.data); } }).catch(function () { /* แจ้งผ่าน toast ครั้งถัดไป */ });
-      }, 5000));
+        var busy = S.pending > 0 || !el('modal-root').hidden || !el('confirm-root').hidden;
+        if (busy) { S.timers.push(setTimeout(poll, 2000)); return; }
+        S.livePolling = true;
+        api('getLiveSession', s.id).then(function (r) {
+          if (seq === S.seq && S.view === 'live') { S.data.live = r.data; S.liveLeft = r.data.expiresIn; self.paint(r.data); }
+        }).catch(function () { /* ลองใหม่รอบถัดไป */ }).then(function () {
+          S.livePolling = false;
+          if (seq === S.seq && S.view === 'live') S.timers.push(setTimeout(poll, 6000));
+        });
+      };
+      S.timers.push(setTimeout(poll, 6000));
     }
   },
   paint: function (d) {
