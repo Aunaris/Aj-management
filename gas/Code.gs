@@ -26,7 +26,7 @@ const CONFIG = {
 
   APP_NAME: '2D animation',
   TEACHER_USERNAME: 'aunalyst',
-  TEACHER_NAME: 'อาจารย์ทักษิณ อินตะพิงค์',
+  TEACHER_NAME: 'อาจารย์ปวริศา จันทราช',
   STUDENT_DEFAULT_PASSWORD: '123456',
   MIN_PASSWORD_LENGTH: 8,
   TIMEZONE: 'Asia/Bangkok',
@@ -45,7 +45,7 @@ const CONFIG = {
     courseNameEn: '2D Animation Techniques',
     semester: '2',
     academicYear: '2569',
-    instructors: 'ผู้ช่วยศาสตราจารย์พิริยะ กาญจนคงคา (ผู้ประสานงานรายวิชา); อาจารย์ทักษิณ อินตะพิงค์'
+    instructors: 'ผู้ช่วยศาสตราจารย์พิริยะ กาญจนคงคา (ผู้ประสานงานรายวิชา); อาจารย์ปวริศา จันทราช'
   },
   CLOS: {
     CLO1: 'อธิบายหลักการ เทคนิค และกระบวนการสร้างภาพเคลื่อนไหวแบบ 2 มิติได้',
